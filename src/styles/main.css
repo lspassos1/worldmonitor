@@ -292,6 +292,38 @@ body.animations-paused *::after {
   color: var(--text);
 }
 
+
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+}
+
+.language-icon {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.language-select {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 98px;
+}
+
+.language-select:focus {
+  outline: none;
+}
+
+.language-switcher:hover {
+  border-color: var(--text-dim);
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -6802,7 +6834,8 @@ a.prediction-link:hover {
 
   /* Hide non-essential header items */
   .copy-link-btn,
-  .time-display {
+  .time-display,
+  .language-icon {
     display: none;
   }
 }

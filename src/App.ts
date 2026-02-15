@@ -101,6 +101,73 @@ type IntlDisplayNamesCtor = new (
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
+type SupportedLanguage = 'en' | 'pt' | 'ja' | 'es' | 'it';
+
+const LANGUAGE_STORAGE_KEY = 'worldmonitor-language';
+
+const UI_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
+  en: {
+    language: 'Language',
+    search: 'Search',
+    copyLink: 'Copy Link',
+    panels: '⚙ PANELS',
+    sources: '📡 SOURCES',
+    panelSettings: 'Panel Settings',
+    newsSources: 'News Sources',
+    filterSources: 'Filter sources...',
+    selectAll: 'Select All',
+    selectNone: 'Select None',
+  },
+  pt: {
+    language: 'Idioma',
+    search: 'Buscar',
+    copyLink: 'Copiar link',
+    panels: '⚙ PAINÉIS',
+    sources: '📡 FONTES',
+    panelSettings: 'Configurações de painéis',
+    newsSources: 'Fontes de notícias',
+    filterSources: 'Filtrar fontes...',
+    selectAll: 'Selecionar tudo',
+    selectNone: 'Limpar seleção',
+  },
+  ja: {
+    language: '言語',
+    search: '検索',
+    copyLink: 'リンクをコピー',
+    panels: '⚙ パネル',
+    sources: '📡 ソース',
+    panelSettings: 'パネル設定',
+    newsSources: 'ニュースソース',
+    filterSources: 'ソースを絞り込み...',
+    selectAll: 'すべて選択',
+    selectNone: 'すべて解除',
+  },
+  es: {
+    language: 'Idioma',
+    search: 'Buscar',
+    copyLink: 'Copiar enlace',
+    panels: '⚙ PANELES',
+    sources: '📡 FUENTES',
+    panelSettings: 'Configuración de paneles',
+    newsSources: 'Fuentes de noticias',
+    filterSources: 'Filtrar fuentes...',
+    selectAll: 'Seleccionar todo',
+    selectNone: 'Deseleccionar todo',
+  },
+  it: {
+    language: 'Lingua',
+    search: 'Cerca',
+    copyLink: 'Copia link',
+    panels: '⚙ PANNELLI',
+    sources: '📡 FONTI',
+    panelSettings: 'Impostazioni pannelli',
+    newsSources: 'Fonti di notizie',
+    filterSources: 'Filtra fonti...',
+    selectAll: 'Seleziona tutto',
+    selectNone: 'Deseleziona tutto',
+  },
+};
+
 export interface CountryBriefSignals {
   protests: number;
   militaryFlights: number;
@@ -160,6 +227,7 @@ export class App {
   private pendingDeepLinkCountry: string | null = null;
   private briefRequestToken = 0;
   private readonly isDesktopApp = isDesktopRuntime();
+  private selectedLanguage: SupportedLanguage;
 
   constructor(containerId: string) {
     const el = document.getElementById(containerId);
@@ -168,6 +236,7 @@ export class App {
 
     this.isMobile = isMobileDevice();
     this.monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
+    this.selectedLanguage = this.loadSavedLanguage();
 
     // Use mobile-specific defaults on first load (no saved layers)
     const defaultLayers = this.isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
@@ -290,6 +359,7 @@ export class App {
     }
 
     this.renderLayout();
+    this.applyLanguage();
     this.signalModal = new SignalModal();
     this.signalModal.setLocationClickHandler((lat, lon) => {
       this.map?.setCenter(lat, lon, 4);
@@ -1460,6 +1530,67 @@ export class App {
     this.map?.setHotspotLevels(snapshot.hotspotLevels);
   }
 
+  private loadSavedLanguage(): SupportedLanguage {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved === 'pt' || saved === 'ja' || saved === 'es' || saved === 'it' || saved === 'en') {
+      return saved;
+    }
+    return 'pt';
+  }
+
+  private getTranslation(key: string): string {
+    return UI_TRANSLATIONS[this.selectedLanguage][key] ?? UI_TRANSLATIONS.en[key] ?? key;
+  }
+
+  private applyLanguage(): void {
+    document.documentElement.lang = this.selectedLanguage;
+
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+      searchBtn.innerHTML = `<kbd>⌘K</kbd> ${this.getTranslation('search')}`;
+    }
+
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    if (copyLinkBtn) {
+      copyLinkBtn.textContent = this.getTranslation('copyLink');
+    }
+
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) {
+      settingsBtn.textContent = this.getTranslation('panels');
+    }
+
+    const sourcesBtn = document.getElementById('sourcesBtn');
+    if (sourcesBtn) {
+      sourcesBtn.textContent = this.getTranslation('sources');
+    }
+
+    const panelSettings = document.querySelector('#settingsModal .modal-title');
+    if (panelSettings) {
+      panelSettings.textContent = this.getTranslation('panelSettings');
+    }
+
+    const newsSources = document.querySelector('#sourcesModal .modal-title');
+    if (newsSources) {
+      newsSources.textContent = this.getTranslation('newsSources');
+    }
+
+    const sourceFilter = document.getElementById('sourcesSearch') as HTMLInputElement | null;
+    if (sourceFilter) {
+      sourceFilter.placeholder = this.getTranslation('filterSources');
+    }
+
+    const selectAll = document.getElementById('sourcesSelectAll');
+    if (selectAll) {
+      selectAll.textContent = this.getTranslation('selectAll');
+    }
+
+    const selectNone = document.getElementById('sourcesSelectNone');
+    if (selectNone) {
+      selectNone.textContent = this.getTranslation('selectNone');
+    }
+  }
+
   private renderLayout(): void {
     this.container.innerHTML = `
       <div class="header">
@@ -1509,12 +1640,22 @@ export class App {
           </div>
         </div>
         <div class="header-right">
-          <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> Search</button>
-          ${this.isDesktopApp ? '' : '<button class="copy-link-btn" id="copyLinkBtn">Copy Link</button>'}
+          <div class="language-switcher" title="${this.getTranslation('language')}">
+            <span class="language-icon">🌐</span>
+            <select id="languageSelect" class="language-select" aria-label="${this.getTranslation('language')}">
+              <option value="pt" ${this.selectedLanguage === 'pt' ? 'selected' : ''}>Português</option>
+              <option value="ja" ${this.selectedLanguage === 'ja' ? 'selected' : ''}>日本語</option>
+              <option value="it" ${this.selectedLanguage === 'it' ? 'selected' : ''}>Italiano</option>
+              <option value="es" ${this.selectedLanguage === 'es' ? 'selected' : ''}>Español</option>
+              <option value="en" ${this.selectedLanguage === 'en' ? 'selected' : ''}>English</option>
+            </select>
+          </div>
+          <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> ${this.getTranslation('search')}</button>
+          ${this.isDesktopApp ? '' : `<button class="copy-link-btn" id="copyLinkBtn">${this.getTranslation('copyLink')}</button>`}
           <span class="time-display" id="timeDisplay">--:--:-- UTC</span>
           ${this.isDesktopApp ? '' : '<button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>'}
-          <button class="settings-btn" id="settingsBtn">⚙ PANELS</button>
-          <button class="sources-btn" id="sourcesBtn">📡 SOURCES</button>
+          <button class="settings-btn" id="settingsBtn">${this.getTranslation('panels')}</button>
+          <button class="sources-btn" id="sourcesBtn">${this.getTranslation('sources')}</button>
         </div>
       </div>
       <div class="main-content">
@@ -1537,7 +1678,7 @@ export class App {
       <div class="modal-overlay" id="settingsModal">
         <div class="modal">
           <div class="modal-header">
-            <span class="modal-title">Panel Settings</span>
+            <span class="modal-title">${this.getTranslation('panelSettings')}</span>
             <button class="modal-close" id="modalClose">×</button>
           </div>
           <div class="panel-toggle-grid" id="panelToggles"></div>
@@ -1546,17 +1687,17 @@ export class App {
       <div class="modal-overlay" id="sourcesModal">
         <div class="modal sources-modal">
           <div class="modal-header">
-            <span class="modal-title">News Sources</span>
+            <span class="modal-title">${this.getTranslation('newsSources')}</span>
             <span class="sources-counter" id="sourcesCounter"></span>
             <button class="modal-close" id="sourcesModalClose">×</button>
           </div>
           <div class="sources-search">
-            <input type="text" id="sourcesSearch" placeholder="Filter sources..." />
+            <input type="text" id="sourcesSearch" placeholder="${this.getTranslation('filterSources')}" />
           </div>
           <div class="sources-toggle-grid" id="sourceToggles"></div>
           <div class="sources-footer">
-            <button class="sources-select-all" id="sourcesSelectAll">Select All</button>
-            <button class="sources-select-none" id="sourcesSelectNone">Select None</button>
+            <button class="sources-select-all" id="sourcesSelectAll">${this.getTranslation('selectAll')}</button>
+            <button class="sources-select-none" id="sourcesSelectNone">${this.getTranslation('selectNone')}</button>
           </div>
         </div>
       </div>
@@ -2227,6 +2368,17 @@ export class App {
     const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
     regionSelect?.addEventListener('change', () => {
       this.map?.setView(regionSelect.value as MapView);
+    });
+
+    // Language selector
+    const languageSelect = document.getElementById('languageSelect') as HTMLSelectElement;
+    languageSelect?.addEventListener('change', () => {
+      const value = languageSelect.value;
+      if (value === 'pt' || value === 'ja' || value === 'es' || value === 'it' || value === 'en') {
+        this.selectedLanguage = value;
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
+        this.applyLanguage();
+      }
     });
 
     // Window resize
