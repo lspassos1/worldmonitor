@@ -81,10 +81,10 @@ function buildPanel(): HTMLElement {
       .wm-dl-btn.win:hover { background: rgba(6, 182, 212, 0.15); }
     </style>
     <div class="wm-dl-head">
-      <div class="wm-dl-title">\u{1F5A5} Desktop Available</div>
-      <button class="wm-dl-close" aria-label="Dismiss">\u00D7</button>
+      <div class="wm-dl-title">\u{1F5A5} Desktop Disponível</div>
+      <button class="wm-dl-close" aria-label="Fechar">\u00D7</button>
     </div>
-    <div class="wm-dl-body">Native performance, secure local key storage, offline map tiles.</div>
+    <div class="wm-dl-body">Desempenho nativo, armazenamento local seguro de chaves e mapas offline.</div>
     <div class="wm-dl-btns">
       <a class="wm-dl-btn mac" href="/api/download?platform=macos-arm64">\uF8FF macOS (Apple Silicon)</a>
       <a class="wm-dl-btn mac" href="/api/download?platform=macos-x64">\uF8FF macOS (Intel)</a>

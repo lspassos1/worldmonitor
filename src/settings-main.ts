@@ -23,7 +23,7 @@ async function invokeDesktopAction(command: string, successLabel: string): Promi
     return;
   }
 
-  setActionStatus(`Failed to run ${command}. Check desktop log.`, 'error');
+  setActionStatus(`Falha ao executar ${command}. Verifique o log do desktop.`, 'error');
 }
 
 function initTabs(): void {
@@ -82,20 +82,20 @@ async function initSettingsWindow(): Promise<void> {
           closeSettingsWindow();
           return;
         }
-        setActionStatus('Validating API keys...', 'ok');
+        setActionStatus('Validando chaves de API...', 'ok');
         const errors = await panel.verifyPendingSecrets();
         console.log('[settings] verify done, errors:', errors.length, errors);
         await panel.commitVerifiedSecrets();
         console.log('[settings] commit done, remaining pending:', panel.hasPendingChanges());
         if (errors.length > 0) {
-          setActionStatus(`Saved verified keys. Failed: ${errors.join(', ')}`, 'error');
+          setActionStatus(`Chaves verificadas salvas. Falhas: ${errors.join(', ')}`, 'error');
         } else {
-          setActionStatus('Settings saved', 'ok');
+          setActionStatus('Configurações salvas', 'ok');
           closeSettingsWindow();
         }
       } catch (err) {
         console.error('[settings] save error:', err);
-        setActionStatus(`Save failed: ${err}`, 'error');
+        setActionStatus(`Falha ao salvar: ${err}`, 'error');
       }
     })();
   });
@@ -107,12 +107,12 @@ async function initSettingsWindow(): Promise<void> {
 
   const openLogsBtn = document.getElementById('openLogsBtn');
   openLogsBtn?.addEventListener('click', () => {
-    void invokeDesktopAction('open_logs_folder', 'Opened logs folder');
+    void invokeDesktopAction('open_logs_folder', 'Pasta de logs aberta');
   });
 
   const openSidecarLogBtn = document.getElementById('openSidecarLogBtn');
   openSidecarLogBtn?.addEventListener('click', () => {
-    void invokeDesktopAction('open_sidecar_log_file', 'Opened API log');
+    void invokeDesktopAction('open_sidecar_log_file', 'Log da API aberto');
   });
 
   initTabs();
@@ -150,9 +150,9 @@ function initDiagnostics(): void {
       const res = await fetch(`${SIDECAR_BASE}/api/local-debug-toggle`, { method: 'POST' });
       const data = await res.json();
       if (verboseToggle) verboseToggle.checked = data.verboseMode;
-      setActionStatus(data.verboseMode ? 'Verbose sidecar logging ON (saved)' : 'Verbose sidecar logging OFF (saved)', 'ok');
+      setActionStatus(data.verboseMode ? 'Log detalhado do sidecar ATIVADO (salvo)' : 'Log detalhado do sidecar DESATIVADO (salvo)', 'ok');
     } catch {
-      setActionStatus('Could not reach sidecar to toggle verbose mode', 'error');
+      setActionStatus('Não foi possível acessar o sidecar para alternar o modo detalhado', 'error');
     }
   });
 
@@ -167,7 +167,7 @@ function initDiagnostics(): void {
       if (trafficCount) trafficCount.textContent = `(${entries.length})`;
 
       if (entries.length === 0) {
-        trafficLogEl.innerHTML = '<p class="diag-empty">No traffic recorded yet.</p>';
+        trafficLogEl.innerHTML = '<p class="diag-empty">Nenhum tráfego registrado ainda.</p>';
         return;
       }
 
@@ -177,9 +177,9 @@ function initDiagnostics(): void {
         return `<tr class="diag-${cls}"><td>${escapeHtml(ts)}</td><td>${e.method}</td><td title="${escapeHtml(e.path)}">${escapeHtml(e.path)}</td><td>${e.status}</td><td>${e.durationMs}ms</td></tr>`;
       }).join('');
 
-      trafficLogEl.innerHTML = `<table class="diag-table"><thead><tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>Duration</th></tr></thead><tbody>${rows}</tbody></table>`;
+      trafficLogEl.innerHTML = `<table class="diag-table"><thead><tr><th>Hora</th><th>Método</th><th>Caminho</th><th>Status</th><th>Duração</th></tr></thead><tbody>${rows}</tbody></table>`;
     } catch {
-      trafficLogEl.innerHTML = '<p class="diag-empty">Sidecar not reachable.</p>';
+      trafficLogEl.innerHTML = '<p class="diag-empty">Sidecar indisponível.</p>';
     }
   }
 
@@ -189,7 +189,7 @@ function initDiagnostics(): void {
     try {
       await fetch(`${SIDECAR_BASE}/api/local-traffic-log`, { method: 'DELETE' });
     } catch { /* ignore */ }
-    if (trafficLogEl) trafficLogEl.innerHTML = '<p class="diag-empty">Log cleared.</p>';
+    if (trafficLogEl) trafficLogEl.innerHTML = '<p class="diag-empty">Log limpo.</p>';
     if (trafficCount) trafficCount.textContent = '(0)';
   });
 
