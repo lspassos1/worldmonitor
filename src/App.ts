@@ -168,6 +168,140 @@ const UI_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
   },
 };
 
+const REGION_LABELS_EN: Record<string, string> = {
+  global: 'Global',
+  america: 'Americas',
+  mena: 'MENA',
+  eu: 'Europe',
+  asia: 'Asia',
+  latam: 'Latin America',
+  africa: 'Africa',
+  oceania: 'Oceania',
+};
+
+const REGION_LABELS_PT: Record<string, string> = {
+  global: 'Global',
+  america: 'Americas',
+  mena: 'MENA',
+  eu: 'Europa',
+  asia: 'Asia',
+  latam: 'America Latina',
+  africa: 'Africa',
+  oceania: 'Oceania',
+};
+
+const PANEL_TITLES_EN: Record<string, string> = {
+  politics: 'World / Geopolitical',
+  tech: 'Technology / AI',
+  finance: 'Financial News',
+  heatmap: 'Sector Heatmap',
+  markets: 'Markets',
+  monitors: 'My Monitors',
+  commodities: 'Commodities / VIX',
+  polymarket: 'Prediction Markets',
+  gov: 'Government / Policy',
+  intel: 'Intel Feed',
+  crypto: 'Crypto',
+  middleeast: 'Middle East / MENA',
+  layoffs: 'Layoffs Tracker',
+  ai: 'AI / ML',
+  startups: 'Startups & VC',
+  vcblogs: 'VC Insights & Essays',
+  regionalStartups: 'Global Startup News',
+  unicorns: 'Unicorn Tracker',
+  accelerators: 'Accelerators & Demo Days',
+  funding: 'Funding & VC',
+  producthunt: 'Product Hunt',
+  security: 'Cybersecurity',
+  policy: 'AI Policy & Regulation',
+  hardware: 'Semiconductors & Hardware',
+  cloud: 'Cloud & Infrastructure',
+  dev: 'Developer Community',
+  github: 'GitHub Trending',
+  ipo: 'IPO & SPAC',
+  thinktanks: 'Think Tanks',
+  economic: 'Economic Data',
+  africa: 'Africa',
+  latam: 'Latin America',
+  asia: 'Asia-Pacific',
+  energy: 'Energy & Resources',
+  'gdelt-intel': 'Live Intelligence',
+  cii: 'Country Instability Index',
+  cascade: 'Infrastructure Cascade',
+  'satellite-fires': 'Fires',
+  'strategic-risk': 'Strategic Risk Overview',
+  'strategic-posture': 'AI Strategic Posture',
+  'ucdp-events': 'UCDP Conflict Events',
+  displacement: 'UNHCR Displacement',
+  climate: 'Climate Anomalies',
+  'population-exposure': 'Population Exposure',
+  'live-news': 'Live News',
+  events: 'Tech Events',
+  'service-status': 'Service Status',
+  'runtime-config': 'Desktop Configuration',
+  'tech-readiness': 'Tech Readiness Index',
+  'macro-signals': 'Market Radar',
+  'etf-flows': 'BTC ETF Tracker',
+  stablecoins: 'Stablecoins',
+  insights: 'AI INSIGHTS',
+};
+
+const PANEL_TITLES_PT: Record<string, string> = {
+  politics: 'Mundo / Geopolitica',
+  tech: 'Tecnologia / IA',
+  finance: 'Noticias Financeiras',
+  heatmap: 'Mapa de Calor Setorial',
+  markets: 'Mercados',
+  monitors: 'Meus Monitores',
+  commodities: 'Commodities / VIX',
+  polymarket: 'Mercados de Previsao',
+  gov: 'Governo / Politica',
+  intel: 'Feed de Inteligencia',
+  crypto: 'Cripto',
+  middleeast: 'Oriente Medio / MENA',
+  layoffs: 'Demissoes',
+  ai: 'IA / ML',
+  startups: 'Startups e VC',
+  vcblogs: 'Insights e Ensaios de VC',
+  regionalStartups: 'Noticias Globais de Startups',
+  unicorns: 'Rastreador de Unicornio',
+  accelerators: 'Aceleradoras e Demo Days',
+  funding: 'Captacao e VC',
+  producthunt: 'Product Hunt',
+  security: 'Ciberseguranca',
+  policy: 'Politica e Regulacao de IA',
+  hardware: 'Semicondutores e Hardware',
+  cloud: 'Nuvem e Infraestrutura',
+  dev: 'Comunidade de Desenvolvedores',
+  github: 'Tendencias do GitHub',
+  ipo: 'IPO e SPAC',
+  thinktanks: 'Think Tanks',
+  economic: 'Dados Economicos',
+  africa: 'Africa',
+  latam: 'America Latina',
+  asia: 'Asia-Pacifico',
+  energy: 'Energia e Recursos',
+  'gdelt-intel': 'Inteligencia ao Vivo',
+  cii: 'Indice de Instabilidade por Pais',
+  cascade: 'Cascata de Infraestrutura',
+  'satellite-fires': 'Incendios',
+  'strategic-risk': 'Visao de Risco Estrategico',
+  'strategic-posture': 'Postura Estrategica de IA',
+  'ucdp-events': 'Eventos de Conflito UCDP',
+  displacement: 'Deslocamento UNHCR',
+  climate: 'Anomalias Climaticas',
+  'population-exposure': 'Exposicao Populacional',
+  'live-news': 'Noticias ao Vivo',
+  events: 'Eventos de Tecnologia',
+  'service-status': 'Status dos Servicos',
+  'runtime-config': 'Configuracao Desktop',
+  'tech-readiness': 'Indice de Prontidao Tecnologica',
+  'macro-signals': 'Radar de Mercado',
+  'etf-flows': 'Rastreador de ETF BTC',
+  stablecoins: 'Stablecoins',
+  insights: 'INSIGHTS DE IA',
+};
+
 export interface CountryBriefSignals {
   protests: number;
   militaryFlights: number;
@@ -1542,6 +1676,49 @@ export class App {
     return UI_TRANSLATIONS[this.selectedLanguage][key] ?? UI_TRANSLATIONS.en[key] ?? key;
   }
 
+  private getLocalizedRegionLabel(regionId: string): string {
+    if (this.selectedLanguage === 'pt') {
+      return REGION_LABELS_PT[regionId] ?? REGION_LABELS_EN[regionId] ?? regionId;
+    }
+    return REGION_LABELS_EN[regionId] ?? regionId;
+  }
+
+  private getLocalizedPanelTitle(panelId: string): string | null {
+    if (this.selectedLanguage === 'pt') {
+      return PANEL_TITLES_PT[panelId] ?? PANEL_TITLES_EN[panelId] ?? null;
+    }
+    return PANEL_TITLES_EN[panelId] ?? null;
+  }
+
+  private getMapSectionTitle(): string {
+    if (SITE_VARIANT === 'tech') {
+      return this.selectedLanguage === 'pt' ? 'Tecnologia Global' : 'Global Tech';
+    }
+    return this.selectedLanguage === 'pt' ? 'Situacao Global' : 'Global Situation';
+  }
+
+  private applyRegionSelectorLanguage(): void {
+    const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement | null;
+    if (!regionSelect) return;
+    Array.from(regionSelect.options).forEach((option) => {
+      option.textContent = this.getLocalizedRegionLabel(option.value);
+    });
+  }
+
+  private applyPanelTitlesLanguage(): void {
+    for (const [panelId, panel] of Object.entries(this.panels)) {
+      const title = this.getLocalizedPanelTitle(panelId);
+      if (title) {
+        panel.setTitle(title);
+      }
+    }
+
+    const mapSectionTitle = document.getElementById('mapSectionTitle');
+    if (mapSectionTitle) {
+      mapSectionTitle.textContent = this.getMapSectionTitle();
+    }
+  }
+
   private applyLanguage(): void {
     document.documentElement.lang = this.selectedLanguage;
 
@@ -1589,6 +1766,19 @@ export class App {
     if (selectNone) {
       selectNone.textContent = this.getTranslation('selectNone');
     }
+
+    const languageSwitcher = this.container.querySelector('.language-switcher');
+    if (languageSwitcher) {
+      languageSwitcher.setAttribute('title', this.getTranslation('language'));
+    }
+
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+      languageSelect.setAttribute('aria-label', this.getTranslation('language'));
+    }
+
+    this.applyRegionSelectorLanguage();
+    this.applyPanelTitlesLanguage();
   }
 
   private renderLayout(): void {
@@ -1628,14 +1818,14 @@ export class App {
           </div>
           <div class="region-selector">
             <select id="regionSelect" class="region-select">
-              <option value="global">Global</option>
-              <option value="america">Americas</option>
-              <option value="mena">MENA</option>
-              <option value="eu">Europe</option>
-              <option value="asia">Asia</option>
-              <option value="latam">Latin America</option>
-              <option value="africa">Africa</option>
-              <option value="oceania">Oceania</option>
+              <option value="global">${this.getLocalizedRegionLabel('global')}</option>
+              <option value="america">${this.getLocalizedRegionLabel('america')}</option>
+              <option value="mena">${this.getLocalizedRegionLabel('mena')}</option>
+              <option value="eu">${this.getLocalizedRegionLabel('eu')}</option>
+              <option value="asia">${this.getLocalizedRegionLabel('asia')}</option>
+              <option value="latam">${this.getLocalizedRegionLabel('latam')}</option>
+              <option value="africa">${this.getLocalizedRegionLabel('africa')}</option>
+              <option value="oceania">${this.getLocalizedRegionLabel('oceania')}</option>
             </select>
           </div>
         </div>
@@ -1662,7 +1852,7 @@ export class App {
         <div class="map-section" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
-              <span class="panel-title">${SITE_VARIANT === 'tech' ? 'Global Tech' : 'Global Situation'}</span>
+              <span class="panel-title" id="mapSectionTitle">${this.getMapSectionTitle()}</span>
             </div>
             <button class="map-pin-btn" id="mapPinBtn" title="Pin map to top">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

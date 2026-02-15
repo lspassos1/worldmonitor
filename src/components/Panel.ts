@@ -300,6 +300,13 @@ export class Panel {
     }
   }
 
+  public setTitle(title: string): void {
+    const titleEl = this.header.querySelector('.panel-title');
+    if (titleEl) {
+      titleEl.textContent = title;
+    }
+  }
+
   public setErrorState(hasError: boolean, tooltip?: string): void {
     this.header.classList.toggle('panel-header-error', hasError);
     if (tooltip) {
