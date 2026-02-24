@@ -502,14 +502,12 @@ export function calculateStrategicRiskOverview(
     compositeScore: composite,
     trend,
     topRisks: identifyTopRisks(convergenceAlerts, ciiScores),
-    topConvergenceZones: convergenceAlerts
-      .slice(0, 3)
-      .map((a) => ({
-        cellId: a.cellId,
-        lat: a.lat,
-        lon: a.lon,
-        score: a.score,
-      })),
+    topConvergenceZones: convergenceAlerts.slice(0, 3).map((a) => ({
+      cellId: a.cellId,
+      lat: a.lat,
+      lon: a.lon,
+      score: a.score,
+    })),
     unstableCountries: ciiScores.filter((s) => s.score >= 50).slice(0, 5),
     timestamp: new Date(),
   };

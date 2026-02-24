@@ -37,8 +37,8 @@
     "desktop:package:windows:full:sign": "node scripts/desktop-package.mjs --os windows --variant full --sign",
     "desktop:package:windows:tech:sign": "node scripts/desktop-package.mjs --os windows --variant tech --sign",
     "desktop:package": "node scripts/desktop-package.mjs",
-    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,md,html}\" \"api/**/*.js\" \"tests/**/*.js\" \"*.{js,json,md,html,ts}\"",
-    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,md,html}\" \"api/**/*.js\" \"tests/**/*.js\" \"*.{js,json,md,html,ts}\""
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,md,html}\" \"api/**/*.js\" \"tests/**/*.mjs\" \"*.{js,json,md,html,ts}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,md,html}\" \"api/**/*.js\" \"tests/**/*.mjs\" \"*.{js,json,md,html,ts}\""
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
