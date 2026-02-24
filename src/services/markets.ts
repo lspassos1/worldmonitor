@@ -1,6 +1,6 @@
-import type { MarketData, CryptoData } from '@/types';
-import { API_URLS, CRYPTO_MAP } from '@/config';
-import { fetchWithProxy } from '@/utils';
+import type { MarketData, CryptoData } from "@/types";
+import { API_URLS, CRYPTO_MAP } from "@/config";
+import { fetchWithProxy } from "@/utils";
 
 interface FinnhubQuote {
   symbol: string;
@@ -51,16 +51,23 @@ interface CoinGeckoMarketItem {
 
 // Symbols that need Yahoo Finance (indices and futures not supported by Finnhub free tier)
 const YAHOO_ONLY_SYMBOLS = new Set([
-  '^GSPC', '^DJI', '^IXIC', '^VIX',
-  'GC=F', 'CL=F', 'NG=F', 'SI=F', 'HG=F',
+  "^GSPC",
+  "^DJI",
+  "^IXIC",
+  "^VIX",
+  "GC=F",
+  "CL=F",
+  "NG=F",
+  "SI=F",
+  "HG=F",
 ]);
 
 let lastSuccessfulResults: MarketData[] = [];
 
 async function fetchFromFinnhub(
-  symbols: Array<{ symbol: string; name: string; display: string }>
+  symbols: Array<{ symbol: string; name: string; display: string }>,
 ): Promise<MarketData[]> {
-  const symbolList = symbols.map(s => s.symbol);
+  const symbolList = symbols.map((s) => s.symbol);
   const url = API_URLS.finnhub(symbolList);
 
   try {
@@ -78,11 +85,11 @@ async function fetchFromFinnhub(
       return [];
     }
 
-    const symbolMap = new Map(symbols.map(s => [s.symbol, s]));
+    const symbolMap = new Map(symbols.map((s) => [s.symbol, s]));
 
     return data.quotes
-      .filter(q => !q.error && q.price > 0)
-      .map(q => {
+      .filter((q) => !q.error && q.price > 0)
+      .map((q) => {
         const info = symbolMap.get(q.symbol);
         return {
           symbol: q.symbol,
@@ -93,7 +100,7 @@ async function fetchFromFinnhub(
         };
       });
   } catch (error) {
-    console.error('[Markets] Finnhub fetch failed:', error);
+    console.error("[Markets] Finnhub fetch failed:", error);
     return [];
   }
 }
@@ -101,7 +108,7 @@ async function fetchFromFinnhub(
 async function fetchFromYahoo(
   symbol: string,
   name: string,
-  display: string
+  display: string,
 ): Promise<MarketData | null> {
   try {
     const url = API_URLS.yahooFinance(symbol);
@@ -131,11 +138,13 @@ export async function fetchMultipleStocks(
   symbols: Array<{ symbol: string; name: string; display: string }>,
   options: {
     onBatch?: (results: MarketData[]) => void;
-  } = {}
+  } = {},
 ): Promise<MarketData[]> {
   // Split symbols into Finnhub-compatible and Yahoo-only
-  const finnhubSymbols = symbols.filter(s => !YAHOO_ONLY_SYMBOLS.has(s.symbol));
-  const yahooSymbols = symbols.filter(s => YAHOO_ONLY_SYMBOLS.has(s.symbol));
+  const finnhubSymbols = symbols.filter(
+    (s) => !YAHOO_ONLY_SYMBOLS.has(s.symbol),
+  );
+  const yahooSymbols = symbols.filter((s) => YAHOO_ONLY_SYMBOLS.has(s.symbol));
 
   const results: MarketData[] = [];
 
@@ -149,7 +158,7 @@ export async function fetchMultipleStocks(
   // Fetch indices/commodities from Yahoo (parallel)
   if (yahooSymbols.length > 0) {
     const yahooResults = await Promise.all(
-      yahooSymbols.map(s => fetchFromYahoo(s.symbol, s.name, s.display))
+      yahooSymbols.map((s) => fetchFromYahoo(s.symbol, s.name, s.display)),
     );
     results.push(...yahooResults.filter((r): r is MarketData => r !== null));
     options.onBatch?.(results);
@@ -166,7 +175,7 @@ export async function fetchMultipleStocks(
 export async function fetchStockQuote(
   symbol: string,
   name: string,
-  display: string
+  display: string,
 ): Promise<MarketData> {
   if (YAHOO_ONLY_SYMBOLS.has(symbol)) {
     const result = await fetchFromYahoo(symbol, name, display);
@@ -179,7 +188,7 @@ export async function fetchStockQuote(
 
 export async function fetchCrypto(): Promise<CryptoData[]> {
   try {
-    const ids = Object.keys(CRYPTO_MAP).join(',');
+    const ids = Object.keys(CRYPTO_MAP).join(",");
     const marketsUrl = `/api/coingecko?ids=${ids}&vs_currencies=usd&endpoint=markets`;
     const response = await fetchWithProxy(marketsUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -195,11 +204,12 @@ export async function fetchCrypto(): Promise<CryptoData[]> {
       }));
     }
 
-    const byId = new Map(data.map(c => [c.id, c]));
+    const byId = new Map(data.map((c) => [c.id, c]));
     return Object.entries(CRYPTO_MAP).map(([id, info]) => {
       const coin = byId.get(id);
       const prices = coin?.sparkline_in_7d?.price;
-      const sparkline = prices && prices.length > 24 ? prices.slice(-48) : prices;
+      const sparkline =
+        prices && prices.length > 24 ? prices.slice(-48) : prices;
       return {
         name: info.name,
         symbol: info.symbol,
@@ -209,7 +219,7 @@ export async function fetchCrypto(): Promise<CryptoData[]> {
       };
     });
   } catch (e) {
-    console.error('Failed to fetch crypto:', e);
+    console.error("Failed to fetch crypto:", e);
     return [];
   }
 }

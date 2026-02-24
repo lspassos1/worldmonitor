@@ -1,4 +1,9 @@
-import type { FeatureCollection, Geometry, GeoJsonProperties, Position } from 'geojson';
+import type {
+  FeatureCollection,
+  Geometry,
+  GeoJsonProperties,
+  Position,
+} from "geojson";
 
 interface IndexedCountryGeometry {
   code: string;
@@ -12,25 +17,30 @@ interface CountryHit {
   name: string;
 }
 
-const COUNTRY_GEOJSON_URL = '/data/countries.geojson';
+const COUNTRY_GEOJSON_URL = "/data/countries.geojson";
 
 let loadPromise: Promise<void> | null = null;
 let loadedGeoJson: FeatureCollection<Geometry> | null = null;
 const countryIndex = new Map<string, IndexedCountryGeometry>();
 let countryList: IndexedCountryGeometry[] = [];
 
-function normalizeCode(properties: GeoJsonProperties | null | undefined): string | null {
+function normalizeCode(
+  properties: GeoJsonProperties | null | undefined,
+): string | null {
   if (!properties) return null;
-  const rawCode = properties['ISO3166-1-Alpha-2'] ?? properties.ISO_A2 ?? properties.iso_a2;
-  if (typeof rawCode !== 'string') return null;
+  const rawCode =
+    properties["ISO3166-1-Alpha-2"] ?? properties.ISO_A2 ?? properties.iso_a2;
+  if (typeof rawCode !== "string") return null;
   const code = rawCode.trim().toUpperCase();
   return /^[A-Z]{2}$/.test(code) ? code : null;
 }
 
-function normalizeName(properties: GeoJsonProperties | null | undefined): string | null {
+function normalizeName(
+  properties: GeoJsonProperties | null | undefined,
+): string | null {
   if (!properties) return null;
   const rawName = properties.name ?? properties.NAME ?? properties.admin;
-  if (typeof rawName !== 'string') return null;
+  if (typeof rawName !== "string") return null;
   const name = rawName.trim();
   return name.length > 0 ? name : null;
 }
@@ -45,17 +55,21 @@ function toCoord(point: Position): [number, number] | null {
 
 function normalizePolygonRings(rings: Position[][]): [number, number][][] {
   return rings
-    .map((ring) => ring.map(toCoord).filter((p): p is [number, number] => p !== null))
+    .map((ring) =>
+      ring.map(toCoord).filter((p): p is [number, number] => p !== null),
+    )
     .filter((ring) => ring.length >= 3);
 }
 
-function normalizeGeometry(geometry: Geometry | null | undefined): [number, number][][][] {
+function normalizeGeometry(
+  geometry: Geometry | null | undefined,
+): [number, number][][][] {
   if (!geometry) return [];
-  if (geometry.type === 'Polygon') {
+  if (geometry.type === "Polygon") {
     const polygon = normalizePolygonRings(geometry.coordinates);
     return polygon.length > 0 ? [polygon] : [];
   }
-  if (geometry.type === 'MultiPolygon') {
+  if (geometry.type === "MultiPolygon") {
     return geometry.coordinates
       .map((polygonCoords) => normalizePolygonRings(polygonCoords))
       .filter((polygon) => polygon.length > 0);
@@ -63,7 +77,9 @@ function normalizeGeometry(geometry: Geometry | null | undefined): [number, numb
   return [];
 }
 
-function computeBbox(polygons: [number, number][][][]): [number, number, number, number] | null {
+function computeBbox(
+  polygons: [number, number][][][],
+): [number, number, number, number] | null {
   let minLon = Infinity;
   let minLat = Infinity;
   let maxLon = -Infinity;
@@ -91,7 +107,7 @@ function pointOnSegment(
   x1: number,
   y1: number,
   x2: number,
-  y2: number
+  y2: number,
 ): boolean {
   const cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1);
   if (Math.abs(cross) > 1e-9) return false;
@@ -99,7 +115,11 @@ function pointOnSegment(
   return dot <= 0;
 }
 
-function pointInRing(lon: number, lat: number, ring: [number, number][]): boolean {
+function pointInRing(
+  lon: number,
+  lat: number,
+  ring: [number, number][],
+): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const current = ring[i];
@@ -108,16 +128,22 @@ function pointInRing(lon: number, lat: number, ring: [number, number][]): boolea
     const [xi, yi] = current;
     const [xj, yj] = previous;
     if (pointOnSegment(lon, lat, xi, yi, xj, yj)) return true;
-    const intersects = ((yi > lat) !== (yj > lat))
-      && (lon < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+    const intersects =
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi || Number.EPSILON) + xi;
     if (intersects) inside = !inside;
   }
   return inside;
 }
 
-function pointInCountryGeometry(country: IndexedCountryGeometry, lon: number, lat: number): boolean {
+function pointInCountryGeometry(
+  country: IndexedCountryGeometry,
+  lon: number,
+  lat: number,
+): boolean {
   const [minLon, minLat, maxLon, maxLat] = country.bbox;
-  if (lon < minLon || lon > maxLon || lat < minLat || lat > maxLat) return false;
+  if (lon < minLon || lon > maxLon || lat < minLat || lat > maxLat)
+    return false;
 
   for (const polygon of country.polygons) {
     const outer = polygon[0];
@@ -142,7 +168,7 @@ async function ensureLoaded(): Promise<void> {
   }
 
   loadPromise = (async () => {
-    if (typeof fetch !== 'function') return;
+    if (typeof fetch !== "function") return;
 
     try {
       const response = await fetch(COUNTRY_GEOJSON_URL);
@@ -150,8 +176,12 @@ async function ensureLoaded(): Promise<void> {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = await response.json() as FeatureCollection<Geometry>;
-      if (!data || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+      const data = (await response.json()) as FeatureCollection<Geometry>;
+      if (
+        !data ||
+        data.type !== "FeatureCollection" ||
+        !Array.isArray(data.features)
+      ) {
         return;
       }
 
@@ -173,7 +203,7 @@ async function ensureLoaded(): Promise<void> {
         countryList.push(indexed);
       }
     } catch (err) {
-      console.warn('[country-geometry] Failed to load countries.geojson:', err);
+      console.warn("[country-geometry] Failed to load countries.geojson:", err);
     }
   })();
 
@@ -194,14 +224,21 @@ export function hasCountryGeometry(code: string): boolean {
   return countryIndex.has(code.toUpperCase());
 }
 
-export function getCountryAtCoordinates(lat: number, lon: number, candidateCodes?: string[]): CountryHit | null {
+export function getCountryAtCoordinates(
+  lat: number,
+  lon: number,
+  candidateCodes?: string[],
+): CountryHit | null {
   // Synchronous API: return null until geometry is preloaded.
   if (!loadedGeoJson) return null;
-  const candidates = Array.isArray(candidateCodes) && candidateCodes.length > 0
-    ? candidateCodes
-      .map((code) => countryIndex.get(code.toUpperCase()))
-      .filter((country): country is IndexedCountryGeometry => Boolean(country))
-    : countryList;
+  const candidates =
+    Array.isArray(candidateCodes) && candidateCodes.length > 0
+      ? candidateCodes
+          .map((code) => countryIndex.get(code.toUpperCase()))
+          .filter((country): country is IndexedCountryGeometry =>
+            Boolean(country),
+          )
+      : countryList;
 
   for (const country of candidates) {
     if (pointInCountryGeometry(country, lon, lat)) {
@@ -211,7 +248,11 @@ export function getCountryAtCoordinates(lat: number, lon: number, candidateCodes
   return null;
 }
 
-export function isCoordinateInCountry(lat: number, lon: number, code: string): boolean | null {
+export function isCoordinateInCountry(
+  lat: number,
+  lon: number,
+  code: string,
+): boolean | null {
   // Synchronous API: return null until geometry is preloaded.
   if (!loadedGeoJson) return null;
   const country = countryIndex.get(code.toUpperCase());

@@ -4,94 +4,154 @@
  * Uses Upstash Redis for cross-user caching (10-minute TTL)
  */
 
-import { getCachedJson, setCachedJson } from './_upstash-cache.js';
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from "./_upstash-cache.js";
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
 
 export const config = {
-  runtime: 'edge',
+  runtime: "edge",
 };
 
 const CACHE_TTL_SECONDS = 600; // 10 minutes
 const STALE_CACHE_TTL_SECONDS = 3600; // 1 hour - serve stale when API fails
-const CACHE_KEY = 'risk:scores:v2';
-const STALE_CACHE_KEY = 'risk:scores:stale:v2';
+const CACHE_KEY = "risk:scores:v2";
+const STALE_CACHE_KEY = "risk:scores:stale:v2";
 
 // Tier 1 countries for CII
 const TIER1_COUNTRIES = {
-  US: 'United States', RU: 'Russia', CN: 'China', UA: 'Ukraine', IR: 'Iran',
-  IL: 'Israel', TW: 'Taiwan', KP: 'North Korea', SA: 'Saudi Arabia', TR: 'Turkey',
-  PL: 'Poland', DE: 'Germany', FR: 'France', GB: 'United Kingdom', IN: 'India',
-  PK: 'Pakistan', SY: 'Syria', YE: 'Yemen', MM: 'Myanmar', VE: 'Venezuela',
+  US: "United States",
+  RU: "Russia",
+  CN: "China",
+  UA: "Ukraine",
+  IR: "Iran",
+  IL: "Israel",
+  TW: "Taiwan",
+  KP: "North Korea",
+  SA: "Saudi Arabia",
+  TR: "Turkey",
+  PL: "Poland",
+  DE: "Germany",
+  FR: "France",
+  GB: "United Kingdom",
+  IN: "India",
+  PK: "Pakistan",
+  SY: "Syria",
+  YE: "Yemen",
+  MM: "Myanmar",
+  VE: "Venezuela",
 };
 
 // Baseline geopolitical risk (0-50)
 const BASELINE_RISK = {
-  US: 5, RU: 35, CN: 25, UA: 50, IR: 40, IL: 45, TW: 30, KP: 45,
-  SA: 20, TR: 25, PL: 10, DE: 5, FR: 10, GB: 5, IN: 20, PK: 35,
-  SY: 50, YE: 50, MM: 45, VE: 40,
+  US: 5,
+  RU: 35,
+  CN: 25,
+  UA: 50,
+  IR: 40,
+  IL: 45,
+  TW: 30,
+  KP: 45,
+  SA: 20,
+  TR: 25,
+  PL: 10,
+  DE: 5,
+  FR: 10,
+  GB: 5,
+  IN: 20,
+  PK: 35,
+  SY: 50,
+  YE: 50,
+  MM: 45,
+  VE: 40,
 };
 
 // Event significance multipliers
 const EVENT_MULTIPLIER = {
-  US: 0.3, RU: 2.0, CN: 2.5, UA: 0.8, IR: 2.0, IL: 0.7, TW: 1.5, KP: 3.0,
-  SA: 2.0, TR: 1.2, PL: 0.8, DE: 0.5, FR: 0.6, GB: 0.5, IN: 0.8, PK: 1.5,
-  SY: 0.7, YE: 0.7, MM: 1.8, VE: 1.8,
+  US: 0.3,
+  RU: 2.0,
+  CN: 2.5,
+  UA: 0.8,
+  IR: 2.0,
+  IL: 0.7,
+  TW: 1.5,
+  KP: 3.0,
+  SA: 2.0,
+  TR: 1.2,
+  PL: 0.8,
+  DE: 0.5,
+  FR: 0.6,
+  GB: 0.5,
+  IN: 0.8,
+  PK: 1.5,
+  SY: 0.7,
+  YE: 0.7,
+  MM: 1.8,
+  VE: 1.8,
 };
 
 // Country keywords for matching
 const COUNTRY_KEYWORDS = {
-  US: ['united states', 'usa', 'america', 'washington', 'biden', 'trump', 'pentagon'],
-  RU: ['russia', 'moscow', 'kremlin', 'putin'],
-  CN: ['china', 'beijing', 'xi jinping', 'prc'],
-  UA: ['ukraine', 'kyiv', 'zelensky', 'donbas'],
-  IR: ['iran', 'tehran', 'khamenei', 'irgc'],
-  IL: ['israel', 'tel aviv', 'netanyahu', 'idf', 'gaza'],
-  TW: ['taiwan', 'taipei'],
-  KP: ['north korea', 'pyongyang', 'kim jong'],
-  SA: ['saudi arabia', 'riyadh'],
-  TR: ['turkey', 'ankara', 'erdogan'],
-  PL: ['poland', 'warsaw'],
-  DE: ['germany', 'berlin'],
-  FR: ['france', 'paris', 'macron'],
-  GB: ['britain', 'uk', 'london'],
-  IN: ['india', 'delhi', 'modi'],
-  PK: ['pakistan', 'islamabad'],
-  SY: ['syria', 'damascus'],
-  YE: ['yemen', 'sanaa', 'houthi'],
-  MM: ['myanmar', 'burma'],
-  VE: ['venezuela', 'caracas', 'maduro'],
+  US: [
+    "united states",
+    "usa",
+    "america",
+    "washington",
+    "biden",
+    "trump",
+    "pentagon",
+  ],
+  RU: ["russia", "moscow", "kremlin", "putin"],
+  CN: ["china", "beijing", "xi jinping", "prc"],
+  UA: ["ukraine", "kyiv", "zelensky", "donbas"],
+  IR: ["iran", "tehran", "khamenei", "irgc"],
+  IL: ["israel", "tel aviv", "netanyahu", "idf", "gaza"],
+  TW: ["taiwan", "taipei"],
+  KP: ["north korea", "pyongyang", "kim jong"],
+  SA: ["saudi arabia", "riyadh"],
+  TR: ["turkey", "ankara", "erdogan"],
+  PL: ["poland", "warsaw"],
+  DE: ["germany", "berlin"],
+  FR: ["france", "paris", "macron"],
+  GB: ["britain", "uk", "london"],
+  IN: ["india", "delhi", "modi"],
+  PK: ["pakistan", "islamabad"],
+  SY: ["syria", "damascus"],
+  YE: ["yemen", "sanaa", "houthi"],
+  MM: ["myanmar", "burma"],
+  VE: ["venezuela", "caracas", "maduro"],
 };
 
 function normalizeCountryName(text) {
   const lower = text.toLowerCase();
   for (const [code, keywords] of Object.entries(COUNTRY_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) return code;
+    if (keywords.some((kw) => lower.includes(kw))) return code;
   }
   return null;
 }
 
 function getScoreLevel(score) {
-  if (score >= 70) return 'critical';
-  if (score >= 55) return 'high';
-  if (score >= 40) return 'elevated';
-  if (score >= 25) return 'normal';
-  return 'low';
+  if (score >= 70) return "critical";
+  if (score >= 55) return "high";
+  if (score >= 40) return "elevated";
+  if (score >= 25) return "normal";
+  return "low";
 }
 
 async function fetchACLEDProtests() {
   try {
     // Fetch recent protests from ACLED (last 7 days)
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split("T")[0];
+    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
     // ACLED API now requires authentication - new endpoint as of Jan 2026
     const token = process.env.ACLED_ACCESS_TOKEN;
-    const headers = { 'Accept': 'application/json' };
+    const headers = { Accept: "application/json" };
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     // Updated endpoint: acleddata.com/api/ instead of api.acleddata.com
@@ -100,17 +160,21 @@ async function fetchACLEDProtests() {
       {
         headers,
         signal: controller.signal,
-      }
+      },
     );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      console.warn('[RiskScores] ACLED fetch failed:', response.status, text.slice(0, 200));
+      const text = await response.text().catch(() => "");
+      console.warn(
+        "[RiskScores] ACLED fetch failed:",
+        response.status,
+        text.slice(0, 200),
+      );
       // Check for auth errors specifically
       if (response.status === 401 || response.status === 403) {
-        throw new Error('ACLED API requires valid authentication token');
+        throw new Error("ACLED API requires valid authentication token");
       }
       throw new Error(`ACLED API error: ${response.status}`);
     }
@@ -119,17 +183,20 @@ async function fetchACLEDProtests() {
 
     // Check for API-level error in response
     if (data.message) {
-      console.warn('[RiskScores] ACLED API returned message:', data.message);
+      console.warn("[RiskScores] ACLED API returned message:", data.message);
       throw new Error(data.message);
     }
     if (data.error || data.success === false) {
-      console.warn('[RiskScores] ACLED API returned error:', data.error || 'unknown');
-      throw new Error(data.error || 'ACLED API error');
+      console.warn(
+        "[RiskScores] ACLED API returned error:",
+        data.error || "unknown",
+      );
+      throw new Error(data.error || "ACLED API error");
     }
 
     return data.data || [];
   } catch (error) {
-    console.warn('[RiskScores] ACLED error:', error.message);
+    console.warn("[RiskScores] ACLED error:", error.message);
     throw error; // Re-throw to trigger stale cache fallback
   }
 }
@@ -143,7 +210,7 @@ function computeCIIScores(protests) {
     const code = normalizeCountryName(country);
     if (code && TIER1_COUNTRIES[code]) {
       const count = countryEvents.get(code) || { protests: 0, riots: 0 };
-      if (event.event_type === 'Riots') {
+      if (event.event_type === "Riots") {
         count.riots++;
       } else {
         count.protests++;
@@ -173,17 +240,19 @@ function computeCIIScores(protests) {
     const information = Math.min(100, totalEvents * multiplier * 3);
 
     // Composite score: weighted average + baseline
-    const composite = Math.min(100, Math.round(
-      baseline +
-      (unrest * 0.4 + security * 0.35 + information * 0.25) * 0.5
-    ));
+    const composite = Math.min(
+      100,
+      Math.round(
+        baseline + (unrest * 0.4 + security * 0.35 + information * 0.25) * 0.5,
+      ),
+    );
 
     scores.push({
       code,
       name,
       score: composite,
       level: getScoreLevel(composite),
-      trend: 'stable', // Would need historical data for real trend
+      trend: "stable", // Would need historical data for real trend
       change24h: 0,
       components: { unrest, security, information },
       lastUpdated: now.toISOString(),
@@ -198,7 +267,7 @@ function computeCIIScores(protests) {
 function computeStrategicRisk(ciiScores) {
   // Top 5 CII scores weighted average
   const top5 = ciiScores.slice(0, 5);
-  const weights = top5.map((_, i) => 1 - (i * 0.15)); // [1.0, 0.85, 0.70, 0.55, 0.40]
+  const weights = top5.map((_, i) => 1 - i * 0.15); // [1.0, 0.85, 0.70, 0.55, 0.40]
   const totalWeight = weights.reduce((sum, w) => sum + w, 0); // 3.5
   const weightedSum = top5.reduce((sum, s, i) => sum + s.score * weights[i], 0);
   const ciiComponent = weightedSum / totalWeight;
@@ -209,9 +278,9 @@ function computeStrategicRisk(ciiScores) {
   return {
     score: Math.min(100, overallScore),
     level: getScoreLevel(overallScore),
-    trend: 'stable',
+    trend: "stable",
     lastUpdated: new Date().toISOString(),
-    contributors: top5.map(s => ({
+    contributors: top5.map((s) => ({
       country: s.name,
       code: s.code,
       score: s.score,
@@ -221,64 +290,72 @@ function computeStrategicRisk(ciiScores) {
 }
 
 export default async function handler(request) {
-  const corsHeaders = getCorsHeaders(request, 'GET, OPTIONS');
+  const corsHeaders = getCorsHeaders(request, "GET, OPTIONS");
 
-  if (request.method === 'OPTIONS') {
+  if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (request.method !== "GET") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   if (isDisallowedOrigin(request)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   if (!process.env.ACLED_ACCESS_TOKEN) {
     const baselineScores = computeCIIScores([]);
     const baselineStrategic = computeStrategicRisk(baselineScores);
-    return new Response(JSON.stringify({
-      cii: baselineScores,
-      strategicRisk: baselineStrategic,
-      protestCount: 0,
-      computedAt: new Date().toISOString(),
-      baseline: true,
-      error: 'ACLED token not configured - showing baseline risk assessments',
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+    return new Response(
+      JSON.stringify({
+        cii: baselineScores,
+        strategicRisk: baselineStrategic,
+        protestCount: 0,
+        computedAt: new Date().toISOString(),
+        baseline: true,
+        error: "ACLED token not configured - showing baseline risk assessments",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "public, max-age=300, s-maxage=300, stale-while-revalidate=60",
+        },
       },
-    });
+    );
   }
 
   // Check cache first
   const cached = await getCachedJson(CACHE_KEY);
-  if (cached && typeof cached === 'object') {
-    console.log('[RiskScores] Cache hit');
-    return new Response(JSON.stringify({
-      ...cached,
-      cached: true,
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+  if (cached && typeof cached === "object") {
+    console.log("[RiskScores] Cache hit");
+    return new Response(
+      JSON.stringify({
+        ...cached,
+        cached: true,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "public, max-age=300, s-maxage=300, stale-while-revalidate=60",
+        },
       },
-    });
+    );
   }
 
   try {
     // Fetch ACLED protests
-    console.log('[RiskScores] Computing scores...');
+    console.log("[RiskScores] Computing scores...");
     const protests = await fetchACLEDProtests();
 
     // Compute CII scores
@@ -300,56 +377,67 @@ export default async function handler(request) {
       setCachedJson(STALE_CACHE_KEY, result, STALE_CACHE_TTL_SECONDS),
     ]);
 
-    return new Response(JSON.stringify({
-      ...result,
-      cached: false,
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+    return new Response(
+      JSON.stringify({
+        ...result,
+        cached: false,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "public, max-age=300, s-maxage=300, stale-while-revalidate=60",
+        },
       },
-    });
-
+    );
   } catch (error) {
-    console.error('[RiskScores] Error:', error);
+    console.error("[RiskScores] Error:", error);
 
     // Try to return stale cached data
     const stale = await getCachedJson(STALE_CACHE_KEY);
-    if (stale && typeof stale === 'object') {
-      console.log('[RiskScores] Returning stale cache due to error');
-      return new Response(JSON.stringify({
-        ...stale,
-        cached: true,
-        stale: true,
-        error: 'Using cached data - ACLED temporarily unavailable',
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=30',
+    if (stale && typeof stale === "object") {
+      console.log("[RiskScores] Returning stale cache due to error");
+      return new Response(
+        JSON.stringify({
+          ...stale,
+          cached: true,
+          stale: true,
+          error: "Using cached data - ACLED temporarily unavailable",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control":
+              "public, max-age=60, s-maxage=60, stale-while-revalidate=30",
+          },
         },
-      });
+      );
     }
 
     // Final fallback: return baseline scores without unrest data
-    console.log('[RiskScores] Returning baseline scores (no ACLED data)');
-    const baselineScores = computeCIIScores([]);  // Empty protests = baseline only
+    console.log("[RiskScores] Returning baseline scores (no ACLED data)");
+    const baselineScores = computeCIIScores([]); // Empty protests = baseline only
     const baselineStrategic = computeStrategicRisk(baselineScores);
 
-    return new Response(JSON.stringify({
-      cii: baselineScores,
-      strategicRisk: baselineStrategic,
-      protestCount: 0,
-      computedAt: new Date().toISOString(),
-      baseline: true,
-      error: 'ACLED unavailable - showing baseline risk assessments',
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=30',
+    return new Response(
+      JSON.stringify({
+        cii: baselineScores,
+        strategicRisk: baselineStrategic,
+        protestCount: 0,
+        computedAt: new Date().toISOString(),
+        baseline: true,
+        error: "ACLED unavailable - showing baseline risk assessments",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "public, max-age=60, s-maxage=60, stale-while-revalidate=30",
+        },
       },
-    });
+    );
   }
 }

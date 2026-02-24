@@ -1,4 +1,4 @@
-import { ENTITY_REGISTRY, type EntityEntry } from '@/config/entities';
+import { ENTITY_REGISTRY, type EntityEntry } from "@/config/entities";
 
 export interface EntityIndex {
   byId: Map<string, EntityEntry>;
@@ -9,7 +9,7 @@ export interface EntityIndex {
 }
 
 function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function buildEntityIndex(entities: EntityEntry[]): EntityIndex {
@@ -67,7 +67,7 @@ export function lookupEntitiesByKeyword(keyword: string): EntityEntry[] {
   const ids = index.byKeyword.get(keyword.toLowerCase());
   if (!ids) return [];
   return Array.from(ids)
-    .map(id => index.byId.get(id))
+    .map((id) => index.byId.get(id))
     .filter((e): e is EntityEntry => e !== undefined);
 }
 
@@ -76,7 +76,7 @@ export function lookupEntitiesBySector(sector: string): EntityEntry[] {
   const ids = index.bySector.get(sector.toLowerCase());
   if (!ids) return [];
   return Array.from(ids)
-    .map(id => index.byId.get(id))
+    .map((id) => index.byId.get(id))
     .filter((e): e is EntityEntry => e !== undefined);
 }
 
@@ -84,13 +84,15 @@ export function findRelatedEntities(entityId: string): EntityEntry[] {
   const index = getEntityIndex();
   const entity = index.byId.get(entityId);
   if (!entity?.related) return [];
-  return entity.related.map(id => index.byId.get(id)).filter((e): e is EntityEntry => !!e);
+  return entity.related
+    .map((id) => index.byId.get(id))
+    .filter((e): e is EntityEntry => !!e);
 }
 
 export interface EntityMatch {
   entityId: string;
   matchedText: string;
-  matchType: 'alias' | 'keyword' | 'name';
+  matchType: "alias" | "keyword" | "name";
   confidence: number;
   position: number;
 }
@@ -104,14 +106,14 @@ export function findEntitiesInText(text: string): EntityMatch[] {
   for (const [alias, entityId] of index.byAlias) {
     if (alias.length < 3) continue;
 
-    const regex = new RegExp(`\\b${escapeRegex(alias)}\\b`, 'gi');
+    const regex = new RegExp(`\\b${escapeRegex(alias)}\\b`, "gi");
     let match: RegExpExecArray | null;
     while ((match = regex.exec(text)) !== null) {
       if (!seen.has(entityId)) {
         matches.push({
           entityId,
           matchedText: match[0],
-          matchType: 'alias',
+          matchType: "alias",
           confidence: alias.length > 4 ? 0.95 : 0.85,
           position: match.index,
         });
@@ -132,7 +134,7 @@ export function findEntitiesInText(text: string): EntityMatch[] {
       matches.push({
         entityId,
         matchedText: keyword,
-        matchType: 'keyword',
+        matchType: "keyword",
         confidence: 0.7,
         position: pos,
       });
@@ -140,7 +142,9 @@ export function findEntitiesInText(text: string): EntityMatch[] {
     }
   }
 
-  return matches.sort((a, b) => b.confidence - a.confidence || a.position - b.position);
+  return matches.sort(
+    (a, b) => b.confidence - a.confidence || a.position - b.position,
+  );
 }
 
 export function getEntityDisplayName(entityId: string): string {

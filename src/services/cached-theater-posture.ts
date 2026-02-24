@@ -5,7 +5,7 @@
  * Persists to localStorage so data shows instantly on reload
  */
 
-import type { TheaterPostureSummary } from './military-surge';
+import type { TheaterPostureSummary } from "./military-surge";
 
 export interface CachedTheaterPosture {
   postures: TheaterPostureSummary[];
@@ -16,7 +16,7 @@ export interface CachedTheaterPosture {
   error?: string;
 }
 
-const LS_KEY = 'wm:theater-posture';
+const LS_KEY = "wm:theater-posture";
 const LS_MAX_AGE_MS = 30 * 60 * 1000; // 30 min max staleness for localStorage
 
 let cachedPosture: CachedTheaterPosture | null = null;
@@ -42,21 +42,27 @@ function loadFromStorage(): CachedTheaterPosture | null {
 function saveToStorage(data: CachedTheaterPosture): void {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({ data, savedAt: Date.now() }));
-  } catch { /* quota exceeded - ignore */ }
+  } catch {
+    /* quota exceeded - ignore */
+  }
 }
 
 // Hydrate in-memory cache from localStorage on module load
 const stored = loadFromStorage();
 if (stored) {
   cachedPosture = stored;
-  console.log('[CachedTheaterPosture] Restored from localStorage (stale)');
+  console.log("[CachedTheaterPosture] Restored from localStorage (stale)");
 }
 
 export async function fetchCachedTheaterPosture(): Promise<CachedTheaterPosture | null> {
   const now = Date.now();
 
   // Return cached if fresh
-  if (cachedPosture && !cachedPosture.stale && now - lastFetchTime < REFETCH_INTERVAL_MS) {
+  if (
+    cachedPosture &&
+    !cachedPosture.stale &&
+    now - lastFetchTime < REFETCH_INTERVAL_MS
+  ) {
     return cachedPosture;
   }
 
@@ -70,9 +76,9 @@ export async function fetchCachedTheaterPosture(): Promise<CachedTheaterPosture 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch('/api/theater-posture');
+      const response = await fetch("/api/theater-posture");
       if (!response.ok) {
-        console.warn('[CachedTheaterPosture] API error:', response.status);
+        console.warn("[CachedTheaterPosture] API error:", response.status);
         return cachedPosture; // Return stale cache on error
       }
 
@@ -81,13 +87,13 @@ export async function fetchCachedTheaterPosture(): Promise<CachedTheaterPosture 
       lastFetchTime = Date.now();
       saveToStorage(data);
       console.log(
-        '[CachedTheaterPosture] Loaded',
-        data.cached ? '(from Redis)' : '(computed)',
-        `${data.postures?.length || 0} theaters, ${data.totalFlights || 0} flights`
+        "[CachedTheaterPosture] Loaded",
+        data.cached ? "(from Redis)" : "(computed)",
+        `${data.postures?.length || 0} theaters, ${data.totalFlights || 0} flights`,
       );
       return cachedPosture;
     } catch (error) {
-      console.error('[CachedTheaterPosture] Fetch error:', error);
+      console.error("[CachedTheaterPosture] Fetch error:", error);
       return cachedPosture; // Return stale cache on error
     } finally {
       fetchPromise = null;

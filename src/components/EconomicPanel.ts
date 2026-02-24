@@ -1,23 +1,27 @@
-import { Panel } from './Panel';
-import type { FredSeries } from '@/services/fred';
-import type { OilAnalytics } from '@/services/oil-analytics';
-import type { SpendingSummary } from '@/services/usa-spending';
-import { getChangeClass, formatChange } from '@/services/fred';
-import { formatOilValue, getTrendIndicator, getTrendColor } from '@/services/oil-analytics';
-import { formatAwardAmount, getAwardTypeIcon } from '@/services/usa-spending';
-import { escapeHtml } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import type { FredSeries } from "@/services/fred";
+import type { OilAnalytics } from "@/services/oil-analytics";
+import type { SpendingSummary } from "@/services/usa-spending";
+import { getChangeClass, formatChange } from "@/services/fred";
+import {
+  formatOilValue,
+  getTrendIndicator,
+  getTrendColor,
+} from "@/services/oil-analytics";
+import { formatAwardAmount, getAwardTypeIcon } from "@/services/usa-spending";
+import { escapeHtml } from "@/utils/sanitize";
 
-type TabId = 'indicators' | 'oil' | 'spending';
+type TabId = "indicators" | "oil" | "spending";
 
 export class EconomicPanel extends Panel {
   private fredData: FredSeries[] = [];
   private oilData: OilAnalytics | null = null;
   private spendingData: SpendingSummary | null = null;
   private lastUpdate: Date | null = null;
-  private activeTab: TabId = 'indicators';
+  private activeTab: TabId = "indicators";
 
   constructor() {
-    super({ id: 'economic', title: 'Economic Data' });
+    super({ id: "economic", title: "Economic Data" });
   }
 
   public update(data: FredSeries[]): void {
@@ -43,45 +47,58 @@ export class EconomicPanel extends Panel {
   }
 
   private render(): void {
-    const hasOil = this.oilData && (this.oilData.wtiPrice || this.oilData.brentPrice);
-    const hasSpending = this.spendingData && this.spendingData.awards.length > 0;
+    const hasOil =
+      this.oilData && (this.oilData.wtiPrice || this.oilData.brentPrice);
+    const hasSpending =
+      this.spendingData && this.spendingData.awards.length > 0;
 
     // Build tabs HTML
     const tabsHtml = `
       <div class="economic-tabs">
-        <button class="economic-tab ${this.activeTab === 'indicators' ? 'active' : ''}" data-tab="indicators">
+        <button class="economic-tab ${this.activeTab === "indicators" ? "active" : ""}" data-tab="indicators">
           📊 Indicators
         </button>
-        ${hasOil ? `
-          <button class="economic-tab ${this.activeTab === 'oil' ? 'active' : ''}" data-tab="oil">
+        ${
+          hasOil
+            ? `
+          <button class="economic-tab ${this.activeTab === "oil" ? "active" : ""}" data-tab="oil">
             🛢️ Oil
           </button>
-        ` : ''}
-        ${hasSpending ? `
-          <button class="economic-tab ${this.activeTab === 'spending' ? 'active' : ''}" data-tab="spending">
+        `
+            : ""
+        }
+        ${
+          hasSpending
+            ? `
+          <button class="economic-tab ${this.activeTab === "spending" ? "active" : ""}" data-tab="spending">
             🏛️ Gov
           </button>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
     `;
 
-    let contentHtml = '';
+    let contentHtml = "";
 
     switch (this.activeTab) {
-      case 'indicators':
+      case "indicators":
         contentHtml = this.renderIndicators();
         break;
-      case 'oil':
+      case "oil":
         contentHtml = this.renderOil();
         break;
-      case 'spending':
+      case "spending":
         contentHtml = this.renderSpending();
         break;
     }
 
     const updateTime = this.lastUpdate
-      ? this.lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '';
+      ? this.lastUpdate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
 
     this.setContent(`
       ${tabsHtml}
@@ -94,8 +111,8 @@ export class EconomicPanel extends Panel {
     `);
 
     // Bind tab click events
-    this.content.querySelectorAll('.economic-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
+    this.content.querySelectorAll(".economic-tab").forEach((tab) => {
+      tab.addEventListener("click", (e) => {
         const tabId = (e.target as HTMLElement).dataset.tab as TabId;
         if (tabId) {
           this.activeTab = tabId;
@@ -107,9 +124,12 @@ export class EconomicPanel extends Panel {
 
   private getSourceLabel(): string {
     switch (this.activeTab) {
-      case 'indicators': return 'FRED';
-      case 'oil': return 'EIA';
-      case 'spending': return 'USASpending.gov';
+      case "indicators":
+        return "FRED";
+      case "oil":
+        return "EIA";
+      case "spending":
+        return "USASpending.gov";
     }
   }
 
@@ -120,27 +140,34 @@ export class EconomicPanel extends Panel {
 
     return `
       <div class="economic-indicators">
-        ${this.fredData.map(series => {
-          const changeClass = getChangeClass(series.change);
-          const changeStr = formatChange(series.change, series.unit);
-          const arrow = series.change !== null
-            ? (series.change > 0 ? '▲' : series.change < 0 ? '▼' : '–')
-            : '';
+        ${this.fredData
+          .map((series) => {
+            const changeClass = getChangeClass(series.change);
+            const changeStr = formatChange(series.change, series.unit);
+            const arrow =
+              series.change !== null
+                ? series.change > 0
+                  ? "▲"
+                  : series.change < 0
+                    ? "▼"
+                    : "–"
+                : "";
 
-          return `
+            return `
             <div class="economic-indicator" data-series="${escapeHtml(series.id)}">
               <div class="indicator-header">
                 <span class="indicator-name">${escapeHtml(series.name)}</span>
                 <span class="indicator-id">${escapeHtml(series.id)}</span>
               </div>
               <div class="indicator-value">
-                <span class="value">${escapeHtml(String(series.value !== null ? series.value : 'N/A'))}${escapeHtml(series.unit)}</span>
+                <span class="value">${escapeHtml(String(series.value !== null ? series.value : "N/A"))}${escapeHtml(series.unit)}</span>
                 <span class="change ${escapeHtml(changeClass)}">${escapeHtml(arrow)} ${escapeHtml(changeStr)}</span>
               </div>
               <div class="indicator-date">${escapeHtml(series.date)}</div>
             </div>
           `;
-        }).join('')}
+          })
+          .join("")}
       </div>
     `;
   }
@@ -163,12 +190,16 @@ export class EconomicPanel extends Panel {
 
     return `
       <div class="economic-indicators oil-metrics">
-        ${metrics.map(metric => {
-          if (!metric) return '';
-          const trendIcon = getTrendIndicator(metric.trend);
-          const trendColor = getTrendColor(metric.trend, metric.name.includes('Production'));
+        ${metrics
+          .map((metric) => {
+            if (!metric) return "";
+            const trendIcon = getTrendIndicator(metric.trend);
+            const trendColor = getTrendColor(
+              metric.trend,
+              metric.name.includes("Production"),
+            );
 
-          return `
+            return `
             <div class="economic-indicator oil-metric">
               <div class="indicator-header">
                 <span class="indicator-name">${escapeHtml(metric.name)}</span>
@@ -176,13 +207,14 @@ export class EconomicPanel extends Panel {
               <div class="indicator-value">
                 <span class="value">${escapeHtml(formatOilValue(metric.current, metric.unit))} ${escapeHtml(metric.unit)}</span>
                 <span class="change" style="color: ${escapeHtml(trendColor)}">
-                  ${escapeHtml(trendIcon)} ${escapeHtml(String(metric.changePct > 0 ? '+' : ''))}${escapeHtml(String(metric.changePct))}%
+                  ${escapeHtml(trendIcon)} ${escapeHtml(String(metric.changePct > 0 ? "+" : ""))}${escapeHtml(String(metric.changePct))}%
                 </span>
               </div>
               <div class="indicator-date">vs previous week</div>
             </div>
           `;
-        }).join('')}
+          })
+          .join("")}
       </div>
     `;
   }
@@ -202,7 +234,10 @@ export class EconomicPanel extends Panel {
         </div>
       </div>
       <div class="spending-list">
-        ${awards.slice(0, 8).map(award => `
+        ${awards
+          .slice(0, 8)
+          .map(
+            (award) => `
           <div class="spending-award">
             <div class="award-header">
               <span class="award-icon">${escapeHtml(getAwardTypeIcon(award.awardType))}</span>
@@ -210,9 +245,11 @@ export class EconomicPanel extends Panel {
             </div>
             <div class="award-recipient">${escapeHtml(award.recipientName)}</div>
             <div class="award-agency">${escapeHtml(award.agency)}</div>
-            ${award.description ? `<div class="award-desc">${escapeHtml(award.description.slice(0, 100))}${award.description.length > 100 ? '...' : ''}</div>` : ''}
+            ${award.description ? `<div class="award-desc">${escapeHtml(award.description.slice(0, 100))}${award.description.length > 100 ? "..." : ""}</div>` : ""}
           </div>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </div>
     `;
   }

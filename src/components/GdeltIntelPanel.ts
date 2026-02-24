@@ -1,5 +1,5 @@
-import { Panel } from './Panel';
-import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import { escapeHtml, sanitizeUrl } from "@/utils/sanitize";
 import {
   INTEL_TOPICS,
   fetchTopicIntelligence,
@@ -8,7 +8,7 @@ import {
   type GdeltArticle,
   type IntelTopic,
   type TopicIntelligence,
-} from '@/services/gdelt-intel';
+} from "@/services/gdelt-intel";
 
 export class GdeltIntelPanel extends Panel {
   private activeTopic: IntelTopic = INTEL_TOPICS[0]!;
@@ -17,8 +17,8 @@ export class GdeltIntelPanel extends Panel {
 
   constructor() {
     super({
-      id: 'gdelt-intel',
-      title: 'Live Intelligence',
+      id: "gdelt-intel",
+      title: "Live Intelligence",
       showCount: true,
       trackActivity: true,
       infoTooltip: `<strong>GDELT Intelligence</strong>
@@ -35,17 +35,17 @@ export class GdeltIntelPanel extends Panel {
   }
 
   private createTabs(): void {
-    this.tabsEl = document.createElement('div');
-    this.tabsEl.className = 'gdelt-intel-tabs';
+    this.tabsEl = document.createElement("div");
+    this.tabsEl.className = "gdelt-intel-tabs";
 
-    INTEL_TOPICS.forEach(topic => {
-      const tab = document.createElement('button');
-      tab.className = `gdelt-intel-tab ${topic.id === this.activeTopic.id ? 'active' : ''}`;
+    INTEL_TOPICS.forEach((topic) => {
+      const tab = document.createElement("button");
+      tab.className = `gdelt-intel-tab ${topic.id === this.activeTopic.id ? "active" : ""}`;
       tab.dataset.topicId = topic.id;
       tab.title = topic.description;
       tab.innerHTML = `<span class="tab-icon">${topic.icon}</span><span class="tab-label">${escapeHtml(topic.name)}</span>`;
 
-      tab.addEventListener('click', () => this.selectTopic(topic));
+      tab.addEventListener("click", () => this.selectTopic(topic));
       this.tabsEl!.appendChild(tab);
     });
 
@@ -57,8 +57,11 @@ export class GdeltIntelPanel extends Panel {
 
     this.activeTopic = topic;
 
-    this.tabsEl?.querySelectorAll('.gdelt-intel-tab').forEach(tab => {
-      tab.classList.toggle('active', (tab as HTMLElement).dataset.topicId === topic.id);
+    this.tabsEl?.querySelectorAll(".gdelt-intel-tab").forEach((tab) => {
+      tab.classList.toggle(
+        "active",
+        (tab as HTMLElement).dataset.topicId === topic.id,
+      );
     });
 
     const cached = this.topicData.get(topic.id);
@@ -78,25 +81,34 @@ export class GdeltIntelPanel extends Panel {
       this.renderArticles(data.articles);
       this.setCount(data.articles.length);
     } catch (error) {
-      console.error('[GdeltIntelPanel] Load error:', error);
-      this.showError('Failed to load intelligence feed');
+      console.error("[GdeltIntelPanel] Load error:", error);
+      this.showError("Failed to load intelligence feed");
     }
   }
 
   private renderArticles(articles: GdeltArticle[]): void {
     if (articles.length === 0) {
-      this.content.innerHTML = '<div class="empty-state">No recent articles for this topic</div>';
+      this.content.innerHTML =
+        '<div class="empty-state">No recent articles for this topic</div>';
       return;
     }
 
-    const html = articles.map(article => this.renderArticle(article)).join('');
+    const html = articles
+      .map((article) => this.renderArticle(article))
+      .join("");
     this.content.innerHTML = `<div class="gdelt-intel-articles">${html}</div>`;
   }
 
   private renderArticle(article: GdeltArticle): string {
     const domain = article.source || extractDomain(article.url);
     const timeAgo = formatArticleDate(article.date);
-    const toneClass = article.tone ? (article.tone < -2 ? 'tone-negative' : article.tone > 2 ? 'tone-positive' : '') : '';
+    const toneClass = article.tone
+      ? article.tone < -2
+        ? "tone-negative"
+        : article.tone > 2
+          ? "tone-positive"
+          : ""
+      : "";
 
     return `
       <a href="${sanitizeUrl(article.url)}" target="_blank" rel="noopener" class="gdelt-intel-article ${toneClass}">

@@ -1,16 +1,23 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: "edge" };
 
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
 
 // Fetch Hacker News front page stories
 // Uses official HackerNews Firebase API
-const ALLOWED_STORY_TYPES = new Set(['top', 'new', 'best', 'ask', 'show', 'job']);
+const ALLOWED_STORY_TYPES = new Set([
+  "top",
+  "new",
+  "best",
+  "ask",
+  "show",
+  "job",
+]);
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
 const MAX_CONCURRENCY = 10;
 
 function parseLimit(rawLimit) {
-  const parsed = Number.parseInt(rawLimit || '', 10);
+  const parsed = Number.parseInt(rawLimit || "", 10);
   if (!Number.isFinite(parsed)) return DEFAULT_LIMIT;
   return Math.max(1, Math.min(MAX_LIMIT, parsed));
 }
@@ -18,13 +25,18 @@ function parseLimit(rawLimit) {
 export default async function handler(request) {
   const cors = getCorsHeaders(request);
   if (isDisallowedOrigin(request)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: cors });
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403,
+      headers: cors,
+    });
   }
   try {
     const { searchParams } = new URL(request.url);
-    const requestedType = searchParams.get('type') || 'top';
-    const storyType = ALLOWED_STORY_TYPES.has(requestedType) ? requestedType : 'top';
-    const limit = parseLimit(searchParams.get('limit'));
+    const requestedType = searchParams.get("type") || "top";
+    const storyType = ALLOWED_STORY_TYPES.has(requestedType)
+      ? requestedType
+      : "top";
+    const limit = parseLimit(searchParams.get("limit"));
 
     // HackerNews official Firebase API
     const storiesUrl = `https://hacker-news.firebaseio.com/v0/${storyType}stories.json`;
@@ -40,7 +52,7 @@ export default async function handler(request) {
 
     const storyIds = await storiesResponse.json();
     if (!Array.isArray(storyIds)) {
-      throw new Error('HackerNews API returned unexpected payload');
+      throw new Error("HackerNews API returned unexpected payload");
     }
     const limitedIds = storyIds.slice(0, limit);
 
@@ -67,32 +79,36 @@ export default async function handler(request) {
       stories.push(...batchResults.filter((story) => story !== null));
     }
 
-    return new Response(JSON.stringify({
-      type: storyType,
-      stories: stories,
-      total: stories.length,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...cors,
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60', // 5 min cache
+    return new Response(
+      JSON.stringify({
+        type: storyType,
+        stories: stories,
+        total: stories.length,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...cors,
+          "Cache-Control":
+            "public, max-age=300, s-maxage=300, stale-while-revalidate=60", // 5 min cache
+        },
       },
-    });
+    );
   } catch (error) {
     return new Response(
       JSON.stringify({
-        error: 'Failed to fetch Hacker News data',
-        message: error.message
+        error: "Failed to fetch Hacker News data",
+        message: error.message,
       }),
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...cors,
         },
-      }
+      },
     );
   }
 }

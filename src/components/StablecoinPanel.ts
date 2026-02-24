@@ -1,5 +1,5 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
 
 interface StablecoinData {
   id: string;
@@ -7,7 +7,7 @@ interface StablecoinData {
   name: string;
   price: number;
   deviation: number;
-  pegStatus: 'ON PEG' | 'SLIGHT DEPEG' | 'DEPEGGED';
+  pegStatus: "ON PEG" | "SLIGHT DEPEG" | "DEPEGGED";
   marketCap: number;
   volume24h: number;
   change24h: number;
@@ -36,15 +36,15 @@ function formatLargeNum(v: number): string {
 }
 
 function pegClass(status: string): string {
-  if (status === 'ON PEG') return 'peg-on';
-  if (status === 'SLIGHT DEPEG') return 'peg-slight';
-  return 'peg-off';
+  if (status === "ON PEG") return "peg-on";
+  if (status === "SLIGHT DEPEG") return "peg-slight";
+  return "peg-off";
 }
 
 function healthClass(status: string): string {
-  if (status === 'HEALTHY') return 'health-good';
-  if (status === 'CAUTION') return 'health-caution';
-  return 'health-warning';
+  if (status === "HEALTHY") return "health-good";
+  if (status === "CAUTION") return "health-caution";
+  return "health-warning";
 }
 
 export class StablecoinPanel extends Panel {
@@ -54,7 +54,7 @@ export class StablecoinPanel extends Panel {
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    super({ id: 'stablecoins', title: 'Stablecoins', showCount: false });
+    super({ id: "stablecoins", title: "Stablecoins", showCount: false });
     void this.fetchData();
     this.refreshInterval = setInterval(() => this.fetchData(), 3 * 60000);
   }
@@ -68,12 +68,12 @@ export class StablecoinPanel extends Panel {
 
   private async fetchData(): Promise<void> {
     try {
-      const res = await fetch('/api/stablecoin-markets');
+      const res = await fetch("/api/stablecoin-markets");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.data = await res.json();
       this.error = null;
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to fetch';
+      this.error = err instanceof Error ? err.message : "Failed to fetch";
     } finally {
       this.loading = false;
       this.renderPanel();
@@ -82,24 +82,28 @@ export class StablecoinPanel extends Panel {
 
   private renderPanel(): void {
     if (this.loading) {
-      this.showLoading('Loading stablecoins...');
+      this.showLoading("Loading stablecoins...");
       return;
     }
 
     if (this.error || !this.data) {
-      this.showError(this.error || 'No data');
+      this.showError(this.error || "No data");
       return;
     }
 
     const d = this.data;
     if (!d.stablecoins.length) {
-      this.setContent('<div class="panel-loading-text">Stablecoin data temporarily unavailable</div>');
+      this.setContent(
+        '<div class="panel-loading-text">Stablecoin data temporarily unavailable</div>',
+      );
       return;
     }
 
     const s = d.summary;
 
-    const pegRows = d.stablecoins.map(c => `
+    const pegRows = d.stablecoins
+      .map(
+        (c) => `
       <div class="stable-row">
         <div class="stable-info">
           <span class="stable-symbol">${escapeHtml(c.symbol)}</span>
@@ -111,16 +115,22 @@ export class StablecoinPanel extends Panel {
           <span class="peg-dev">${c.deviation.toFixed(2)}%</span>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
-    const supplyRows = d.stablecoins.map(c => `
+    const supplyRows = d.stablecoins
+      .map(
+        (c) => `
       <div class="stable-supply-row">
         <span class="stable-symbol">${escapeHtml(c.symbol)}</span>
         <span class="stable-mcap">${formatLargeNum(c.marketCap)}</span>
         <span class="stable-vol">${formatLargeNum(c.volume24h)}</span>
-        <span class="stable-change ${c.change24h >= 0 ? 'change-positive' : 'change-negative'}">${c.change24h >= 0 ? '+' : ''}${c.change24h.toFixed(2)}%</span>
+        <span class="stable-change ${c.change24h >= 0 ? "change-positive" : "change-negative"}">${c.change24h >= 0 ? "+" : ""}${c.change24h.toFixed(2)}%</span>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     const html = `
       <div class="stablecoin-container">

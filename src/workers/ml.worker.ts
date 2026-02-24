@@ -3,8 +3,8 @@
  * Handles embeddings, sentiment analysis, summarization, and NER
  */
 
-import { pipeline, env } from '@xenova/transformers';
-import { MODEL_CONFIGS, type ModelConfig } from '@/config/ml-config';
+import { pipeline, env } from "@xenova/transformers";
+import { MODEL_CONFIGS, type ModelConfig } from "@/config/ml-config";
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -12,60 +12,60 @@ env.useBrowserCache = true;
 
 // Message types
 interface InitMessage {
-  type: 'init';
+  type: "init";
   id: string;
 }
 
 interface LoadModelMessage {
-  type: 'load-model';
+  type: "load-model";
   id: string;
   modelId: string;
 }
 
 interface UnloadModelMessage {
-  type: 'unload-model';
+  type: "unload-model";
   id: string;
   modelId: string;
 }
 
 interface EmbedMessage {
-  type: 'embed';
+  type: "embed";
   id: string;
   texts: string[];
 }
 
 interface SummarizeMessage {
-  type: 'summarize';
+  type: "summarize";
   id: string;
   texts: string[];
 }
 
 interface SentimentMessage {
-  type: 'classify-sentiment';
+  type: "classify-sentiment";
   id: string;
   texts: string[];
 }
 
 interface NERMessage {
-  type: 'extract-entities';
+  type: "extract-entities";
   id: string;
   texts: string[];
 }
 
 interface SemanticClusterMessage {
-  type: 'cluster-semantic';
+  type: "cluster-semantic";
   id: string;
   embeddings: number[][];
   threshold: number;
 }
 
 interface StatusMessage {
-  type: 'status';
+  type: "status";
   id: string;
 }
 
 interface ResetMessage {
-  type: 'reset';
+  type: "reset";
 }
 
 type MLWorkerMessage =
@@ -86,7 +86,7 @@ const loadedPipelines = new Map<string, any>();
 const loadingPromises = new Map<string, Promise<void>>();
 
 function getModelConfig(modelId: string): ModelConfig | undefined {
-  return MODEL_CONFIGS.find(m => m.id === modelId);
+  return MODEL_CONFIGS.find((m) => m.id === modelId);
 }
 
 async function loadModel(modelId: string): Promise<void> {
@@ -105,9 +105,9 @@ async function loadModel(modelId: string): Promise<void> {
   const loadPromise = (async () => {
     const pipe = await pipeline(config.task, config.hfModel, {
       progress_callback: (progress: { status: string; progress?: number }) => {
-        if (progress.status === 'progress' && progress.progress !== undefined) {
+        if (progress.status === "progress" && progress.progress !== undefined) {
           self.postMessage({
-            type: 'model-progress',
+            type: "model-progress",
             modelId,
             progress: progress.progress,
           });
@@ -117,7 +117,9 @@ async function loadModel(modelId: string): Promise<void> {
 
     loadedPipelines.set(modelId, pipe);
     loadingPromises.delete(modelId);
-    console.log(`[MLWorker] Model loaded in ${Date.now() - startTime}ms: ${modelId}`);
+    console.log(
+      `[MLWorker] Model loaded in ${Date.now() - startTime}ms: ${modelId}`,
+    );
   })();
 
   loadingPromises.set(modelId, loadPromise);
@@ -133,12 +135,12 @@ function unloadModel(modelId: string): void {
 }
 
 async function embedTexts(texts: string[]): Promise<number[][]> {
-  await loadModel('embeddings');
-  const pipe = loadedPipelines.get('embeddings')!;
+  await loadModel("embeddings");
+  const pipe = loadedPipelines.get("embeddings")!;
 
   const results: number[][] = [];
   for (const text of texts) {
-    const output = await pipe(text, { pooling: 'mean', normalize: true });
+    const output = await pipe(text, { pooling: "mean", normalize: true });
     results.push(Array.from(output.data as Float32Array));
   }
 
@@ -146,8 +148,8 @@ async function embedTexts(texts: string[]): Promise<number[][]> {
 }
 
 async function summarizeTexts(texts: string[]): Promise<string[]> {
-  await loadModel('summarization');
-  const pipe = loadedPipelines.get('summarization')!;
+  await loadModel("summarization");
+  const pipe = loadedPipelines.get("summarization")!;
 
   const results: string[] = [];
   for (const text of texts) {
@@ -156,15 +158,17 @@ async function summarizeTexts(texts: string[]): Promise<string[]> {
       min_length: 10,
     });
     const result = (output as Array<{ generated_text: string }>)[0];
-    results.push(result?.generated_text ?? '');
+    results.push(result?.generated_text ?? "");
   }
 
   return results;
 }
 
-async function classifySentiment(texts: string[]): Promise<Array<{ label: string; score: number }>> {
-  await loadModel('sentiment');
-  const pipe = loadedPipelines.get('sentiment')!;
+async function classifySentiment(
+  texts: string[],
+): Promise<Array<{ label: string; score: number }>> {
+  await loadModel("sentiment");
+  const pipe = loadedPipelines.get("sentiment")!;
 
   const results: Array<{ label: string; score: number }> = [];
   for (const text of texts) {
@@ -172,7 +176,8 @@ async function classifySentiment(texts: string[]): Promise<Array<{ label: string
     const result = (output as Array<{ label: string; score: number }>)[0];
     if (result) {
       results.push({
-        label: result.label.toLowerCase() === 'positive' ? 'positive' : 'negative',
+        label:
+          result.label.toLowerCase() === "positive" ? "positive" : "negative",
         score: result.score,
       });
     }
@@ -190,19 +195,21 @@ interface NEREntity {
 }
 
 async function extractEntities(texts: string[]): Promise<NEREntity[][]> {
-  await loadModel('ner');
-  const pipe = loadedPipelines.get('ner')!;
+  await loadModel("ner");
+  const pipe = loadedPipelines.get("ner")!;
 
   const results: NEREntity[][] = [];
   for (const text of texts) {
     const output = await pipe(text);
-    const entities = (output as Array<{
-      entity_group: string;
-      score: number;
-      word: string;
-      start: number;
-      end: number;
-    }>).map(e => ({
+    const entities = (
+      output as Array<{
+        entity_group: string;
+        score: number;
+        word: string;
+        start: number;
+        end: number;
+      }>
+    ).map((e) => ({
       text: e.word,
       type: e.entity_group,
       confidence: e.score,
@@ -234,7 +241,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 function semanticCluster(
   embeddings: number[][],
-  threshold: number
+  threshold: number,
 ): number[][] {
   const n = embeddings.length;
   const clusters: number[][] = [];
@@ -274,99 +281,99 @@ self.onmessage = async (event: MessageEvent<MLWorkerMessage>) => {
 
   try {
     switch (message.type) {
-      case 'init': {
-        self.postMessage({ type: 'ready', id: message.id });
+      case "init": {
+        self.postMessage({ type: "ready", id: message.id });
         break;
       }
 
-      case 'load-model': {
+      case "load-model": {
         await loadModel(message.modelId);
         self.postMessage({
-          type: 'model-loaded',
+          type: "model-loaded",
           id: message.id,
           modelId: message.modelId,
         });
         break;
       }
 
-      case 'unload-model': {
+      case "unload-model": {
         unloadModel(message.modelId);
         self.postMessage({
-          type: 'model-unloaded',
+          type: "model-unloaded",
           id: message.id,
           modelId: message.modelId,
         });
         break;
       }
 
-      case 'embed': {
+      case "embed": {
         const embeddings = await embedTexts(message.texts);
         self.postMessage({
-          type: 'embed-result',
+          type: "embed-result",
           id: message.id,
           embeddings,
         });
         break;
       }
 
-      case 'summarize': {
+      case "summarize": {
         const summaries = await summarizeTexts(message.texts);
         self.postMessage({
-          type: 'summarize-result',
+          type: "summarize-result",
           id: message.id,
           summaries,
         });
         break;
       }
 
-      case 'classify-sentiment': {
+      case "classify-sentiment": {
         const results = await classifySentiment(message.texts);
         self.postMessage({
-          type: 'sentiment-result',
+          type: "sentiment-result",
           id: message.id,
           results,
         });
         break;
       }
 
-      case 'extract-entities': {
+      case "extract-entities": {
         const entities = await extractEntities(message.texts);
         self.postMessage({
-          type: 'entities-result',
+          type: "entities-result",
           id: message.id,
           entities,
         });
         break;
       }
 
-      case 'cluster-semantic': {
+      case "cluster-semantic": {
         const clusters = semanticCluster(message.embeddings, message.threshold);
         self.postMessage({
-          type: 'cluster-semantic-result',
+          type: "cluster-semantic-result",
           id: message.id,
           clusters,
         });
         break;
       }
 
-      case 'status': {
+      case "status": {
         self.postMessage({
-          type: 'status-result',
+          type: "status-result",
           id: message.id,
           loadedModels: Array.from(loadedPipelines.keys()),
         });
         break;
       }
 
-      case 'reset': {
+      case "reset": {
         loadedPipelines.clear();
-        self.postMessage({ type: 'reset-complete' });
+        self.postMessage({ type: "reset-complete" });
         break;
       }
     }
   } catch (error) {
     self.postMessage({
-      type: 'error',
+      type: "error",
       id: (message as { id?: string }).id,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -374,4 +381,4 @@ self.onmessage = async (event: MessageEvent<MLWorkerMessage>) => {
 };
 
 // Signal ready
-self.postMessage({ type: 'worker-ready' });
+self.postMessage({ type: "worker-ready" });

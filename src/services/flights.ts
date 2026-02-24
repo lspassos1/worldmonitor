@@ -1,6 +1,15 @@
-import type { AirportDelayAlert, FlightDelaySeverity, FlightDelayType, MonitoredAirport } from '@/types';
-import { MONITORED_AIRPORTS, FAA_AIRPORTS, DELAY_SEVERITY_THRESHOLDS } from '@/config/airports';
-import { createCircuitBreaker } from '@/utils';
+import type {
+  AirportDelayAlert,
+  FlightDelaySeverity,
+  FlightDelayType,
+  MonitoredAirport,
+} from "@/types";
+import {
+  MONITORED_AIRPORTS,
+  FAA_AIRPORTS,
+  DELAY_SEVERITY_THRESHOLDS,
+} from "@/config/airports";
+import { createCircuitBreaker } from "@/utils";
 
 interface FAADelayInfo {
   airport: string;
@@ -9,85 +18,109 @@ interface FAADelayInfo {
   type: FlightDelayType;
 }
 
-const breaker = createCircuitBreaker<AirportDelayAlert[]>({ name: 'FAA Flight Delays' });
-let faaCache: { data: Map<string, FAADelayInfo>; timestamp: number } | null = null;
+const breaker = createCircuitBreaker<AirportDelayAlert[]>({
+  name: "FAA Flight Delays",
+});
+let faaCache: { data: Map<string, FAADelayInfo>; timestamp: number } | null =
+  null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function determineSeverity(avgDelayMinutes: number, delayedPct?: number): FlightDelaySeverity {
+function determineSeverity(
+  avgDelayMinutes: number,
+  delayedPct?: number,
+): FlightDelaySeverity {
   const t = DELAY_SEVERITY_THRESHOLDS;
-  if (avgDelayMinutes >= t.severe.avgDelayMinutes || (delayedPct && delayedPct >= t.severe.delayedPct)) {
-    return 'severe';
+  if (
+    avgDelayMinutes >= t.severe.avgDelayMinutes ||
+    (delayedPct && delayedPct >= t.severe.delayedPct)
+  ) {
+    return "severe";
   }
-  if (avgDelayMinutes >= t.major.avgDelayMinutes || (delayedPct && delayedPct >= t.major.delayedPct)) {
-    return 'major';
+  if (
+    avgDelayMinutes >= t.major.avgDelayMinutes ||
+    (delayedPct && delayedPct >= t.major.delayedPct)
+  ) {
+    return "major";
   }
-  if (avgDelayMinutes >= t.moderate.avgDelayMinutes || (delayedPct && delayedPct >= t.moderate.delayedPct)) {
-    return 'moderate';
+  if (
+    avgDelayMinutes >= t.moderate.avgDelayMinutes ||
+    (delayedPct && delayedPct >= t.moderate.delayedPct)
+  ) {
+    return "moderate";
   }
-  if (avgDelayMinutes >= t.minor.avgDelayMinutes || (delayedPct && delayedPct >= t.minor.delayedPct)) {
-    return 'minor';
+  if (
+    avgDelayMinutes >= t.minor.avgDelayMinutes ||
+    (delayedPct && delayedPct >= t.minor.delayedPct)
+  ) {
+    return "minor";
   }
-  return 'normal';
+  return "normal";
 }
 
 function parseDelayTypeFromReason(reason: string): FlightDelayType {
   const r = reason.toLowerCase();
-  if (r.includes('ground stop')) return 'ground_stop';
-  if (r.includes('ground delay') || r.includes('gdp')) return 'ground_delay';
-  if (r.includes('departure')) return 'departure_delay';
-  if (r.includes('arrival')) return 'arrival_delay';
-  if (r.includes('clos')) return 'ground_stop';
-  return 'general';
+  if (r.includes("ground stop")) return "ground_stop";
+  if (r.includes("ground delay") || r.includes("gdp")) return "ground_delay";
+  if (r.includes("departure")) return "departure_delay";
+  if (r.includes("arrival")) return "arrival_delay";
+  if (r.includes("clos")) return "ground_stop";
+  return "general";
 }
 
 function parseXMLDelays(xml: string): Map<string, FAADelayInfo> {
   const delays = new Map<string, FAADelayInfo>();
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'text/xml');
+  const doc = parser.parseFromString(xml, "text/xml");
 
   // Parse ground delays
-  const groundDelays = doc.querySelectorAll('Ground_Delay_List Ground_Delay');
+  const groundDelays = doc.querySelectorAll("Ground_Delay_List Ground_Delay");
   groundDelays.forEach((node) => {
-    const arpt = node.querySelector('ARPT')?.textContent;
-    const reason = node.querySelector('Reason')?.textContent || 'Ground delay';
-    const avgDelay = node.querySelector('Avg')?.textContent;
+    const arpt = node.querySelector("ARPT")?.textContent;
+    const reason = node.querySelector("Reason")?.textContent || "Ground delay";
+    const avgDelay = node.querySelector("Avg")?.textContent;
     if (arpt) {
       delays.set(arpt, {
         airport: arpt,
         reason,
         avgDelay: avgDelay ? parseInt(avgDelay, 10) : 30,
-        type: 'ground_delay',
+        type: "ground_delay",
       });
     }
   });
 
   // Parse ground stops
-  const groundStops = doc.querySelectorAll('Ground_Stop_List Ground_Stop');
+  const groundStops = doc.querySelectorAll("Ground_Stop_List Ground_Stop");
   groundStops.forEach((node) => {
-    const arpt = node.querySelector('ARPT')?.textContent;
-    const reason = node.querySelector('Reason')?.textContent || 'Ground stop';
+    const arpt = node.querySelector("ARPT")?.textContent;
+    const reason = node.querySelector("Reason")?.textContent || "Ground stop";
     if (arpt) {
       delays.set(arpt, {
         airport: arpt,
         reason,
         avgDelay: 60,
-        type: 'ground_stop',
+        type: "ground_stop",
       });
     }
   });
 
   // Parse arrival/departure delays
-  const arrDepDelays = doc.querySelectorAll('Arrival_Departure_Delay_List Delay');
+  const arrDepDelays = doc.querySelectorAll(
+    "Arrival_Departure_Delay_List Delay",
+  );
   arrDepDelays.forEach((node) => {
-    const arpt = node.querySelector('ARPT')?.textContent;
-    const reason = node.querySelector('Reason')?.textContent || 'Delays';
-    const minDelay = node.querySelector('Arrival_Delay Min')?.textContent || node.querySelector('Departure_Delay Min')?.textContent;
-    const maxDelay = node.querySelector('Arrival_Delay Max')?.textContent || node.querySelector('Departure_Delay Max')?.textContent;
+    const arpt = node.querySelector("ARPT")?.textContent;
+    const reason = node.querySelector("Reason")?.textContent || "Delays";
+    const minDelay =
+      node.querySelector("Arrival_Delay Min")?.textContent ||
+      node.querySelector("Departure_Delay Min")?.textContent;
+    const maxDelay =
+      node.querySelector("Arrival_Delay Max")?.textContent ||
+      node.querySelector("Departure_Delay Max")?.textContent;
     if (arpt) {
       const min = minDelay ? parseInt(minDelay, 10) : 15;
       const max = maxDelay ? parseInt(maxDelay, 10) : 30;
       const existing = delays.get(arpt);
-      if (!existing || existing.type !== 'ground_stop') {
+      if (!existing || existing.type !== "ground_stop") {
         delays.set(arpt, {
           airport: arpt,
           reason,
@@ -99,15 +132,15 @@ function parseXMLDelays(xml: string): Map<string, FAADelayInfo> {
   });
 
   // Parse closures
-  const closures = doc.querySelectorAll('Airport_Closure_List Airport');
+  const closures = doc.querySelectorAll("Airport_Closure_List Airport");
   closures.forEach((node) => {
-    const arpt = node.querySelector('ARPT')?.textContent;
+    const arpt = node.querySelector("ARPT")?.textContent;
     if (arpt && FAA_AIRPORTS.includes(arpt)) {
       delays.set(arpt, {
         airport: arpt,
-        reason: 'Airport closure',
+        reason: "Airport closure",
         avgDelay: 120,
-        type: 'ground_stop',
+        type: "ground_stop",
       });
     }
   });
@@ -121,10 +154,10 @@ async function fetchFAADelays(): Promise<Map<string, FAADelayInfo>> {
   }
 
   try {
-    const url = '/api/faa-status';
+    const url = "/api/faa-status";
 
     const response = await fetch(url, {
-      headers: { Accept: 'application/xml' },
+      headers: { Accept: "application/xml" },
     });
 
     if (!response.ok) {
@@ -139,7 +172,7 @@ async function fetchFAADelays(): Promise<Map<string, FAADelayInfo>> {
     console.log(`[Flights] FAA reports ${delays.size} airports with delays`);
     return delays;
   } catch (error) {
-    console.error('[Flights] Failed to fetch FAA NASSTATUS:', error);
+    console.error("[Flights] Failed to fetch FAA NASSTATUS:", error);
     return new Map();
   }
 }
@@ -151,7 +184,18 @@ function generateSimulatedDelay(airport: MonitoredAirport): AirportDelayAlert {
   const isRushHour = (hour >= 6 && hour <= 10) || (hour >= 16 && hour <= 20);
 
   // Higher chance of delays during rush hours and at busier airports
-  const busyAirports = ['LHR', 'CDG', 'FRA', 'JFK', 'LAX', 'ORD', 'PEK', 'HND', 'DXB', 'SIN'];
+  const busyAirports = [
+    "LHR",
+    "CDG",
+    "FRA",
+    "JFK",
+    "LAX",
+    "ORD",
+    "PEK",
+    "HND",
+    "DXB",
+    "SIN",
+  ];
   const isBusy = busyAirports.includes(airport.iata);
 
   // Random factor with weighted probability
@@ -160,7 +204,7 @@ function generateSimulatedDelay(airport: MonitoredAirport): AirportDelayAlert {
   const hasDelay = random < (isBusy ? delayChance * 1.5 : delayChance);
 
   let avgDelayMinutes = 0;
-  let delayType: FlightDelayType = 'general';
+  let delayType: FlightDelayType = "general";
   let reason: string | undefined;
 
   if (hasDelay) {
@@ -169,23 +213,24 @@ function generateSimulatedDelay(airport: MonitoredAirport): AirportDelayAlert {
     if (severityRoll < 0.05) {
       // Severe (5% of delays)
       avgDelayMinutes = 60 + Math.floor(Math.random() * 60);
-      delayType = Math.random() < 0.3 ? 'ground_stop' : 'ground_delay';
-      reason = Math.random() < 0.5 ? 'Weather conditions' : 'Air traffic volume';
+      delayType = Math.random() < 0.3 ? "ground_stop" : "ground_delay";
+      reason =
+        Math.random() < 0.5 ? "Weather conditions" : "Air traffic volume";
     } else if (severityRoll < 0.2) {
       // Major (15% of delays)
       avgDelayMinutes = 45 + Math.floor(Math.random() * 20);
-      delayType = 'ground_delay';
-      reason = Math.random() < 0.5 ? 'Weather' : 'High traffic volume';
+      delayType = "ground_delay";
+      reason = Math.random() < 0.5 ? "Weather" : "High traffic volume";
     } else if (severityRoll < 0.5) {
       // Moderate (30% of delays)
       avgDelayMinutes = 25 + Math.floor(Math.random() * 20);
-      delayType = Math.random() < 0.5 ? 'departure_delay' : 'arrival_delay';
-      reason = 'Congestion';
+      delayType = Math.random() < 0.5 ? "departure_delay" : "arrival_delay";
+      reason = "Congestion";
     } else {
       // Minor (50% of delays)
       avgDelayMinutes = 15 + Math.floor(Math.random() * 15);
-      delayType = 'general';
-      reason = 'Minor delays';
+      delayType = "general";
+      reason = "Minor delays";
     }
   }
 
@@ -203,7 +248,7 @@ function generateSimulatedDelay(airport: MonitoredAirport): AirportDelayAlert {
     severity: determineSeverity(avgDelayMinutes),
     avgDelayMinutes,
     reason,
-    source: 'computed',
+    source: "computed",
     updatedAt: new Date(),
   };
 }
@@ -233,17 +278,17 @@ export async function fetchFlightDelays(): Promise<AirportDelayAlert[]> {
           severity: determineSeverity(faaDelay.avgDelay || 30),
           avgDelayMinutes: faaDelay.avgDelay || 30,
           reason: faaDelay.reason,
-          source: 'faa',
+          source: "faa",
           updatedAt: new Date(),
         });
       }
     }
 
     // For non-US airports, generate simulated data
-    const nonUsAirports = MONITORED_AIRPORTS.filter((a) => a.country !== 'USA');
+    const nonUsAirports = MONITORED_AIRPORTS.filter((a) => a.country !== "USA");
     for (const airport of nonUsAirports) {
       const simulated = generateSimulatedDelay(airport);
-      if (simulated.severity !== 'normal') {
+      if (simulated.severity !== "normal") {
         alerts.push(simulated);
       }
     }
@@ -258,7 +303,7 @@ export function getFlightsStatus(): string {
 
 export function getAirportByCode(code: string): MonitoredAirport | undefined {
   return MONITORED_AIRPORTS.find(
-    (a) => a.iata === code.toUpperCase() || a.icao === code.toUpperCase()
+    (a) => a.iata === code.toUpperCase() || a.icao === code.toUpperCase(),
   );
 }
 

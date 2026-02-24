@@ -1,6 +1,6 @@
-import { Panel } from './Panel';
-import { fetchLiveVideoId } from '@/services/live-news';
-import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
+import { Panel } from "./Panel";
+import { fetchLiveVideoId } from "@/services/live-news";
+import { isDesktopRuntime, getRemoteApiBaseUrl } from "@/services/runtime";
 
 // YouTube IFrame Player API types
 type YouTubePlayer = {
@@ -48,29 +48,78 @@ interface LiveChannel {
   useFallbackOnly?: boolean; // Skip auto-detection, always use fallback
 }
 
-const SITE_VARIANT = import.meta.env.VITE_VARIANT || 'full';
+const SITE_VARIANT = import.meta.env.VITE_VARIANT || "full";
 
 // Full variant: World news channels (24/7 live streams)
 const FULL_LIVE_CHANNELS: LiveChannel[] = [
-  { id: 'bloomberg', name: 'Bloomberg', handle: '@Bloomberg', fallbackVideoId: 'iEpJwprxDdk' },
-  { id: 'sky', name: 'SkyNews', handle: '@SkyNews', fallbackVideoId: 'YDvsBbKfLPA' },
-  { id: 'euronews', name: 'Euronews', handle: '@euabortnews', fallbackVideoId: 'pykpO5kQJ98' },
-  { id: 'dw', name: 'DW', handle: '@DWNews', fallbackVideoId: 'LuKwFajn37U' },
-  { id: 'cnbc', name: 'CNBC', handle: '@CNBC', fallbackVideoId: '9NyxcX3rhQs' },
-  { id: 'france24', name: 'France24', handle: '@FRANCE24English', fallbackVideoId: 'Ap-UM1O9RBU' },
-  { id: 'alarabiya', name: 'AlArabiya', handle: '@AlArabiya', fallbackVideoId: 'n7eQejkXbnM', useFallbackOnly: true },
-  { id: 'aljazeera', name: 'AlJazeera', handle: '@AlJazeeraEnglish', fallbackVideoId: 'gCNeDWCI0vo', useFallbackOnly: true },
+  {
+    id: "bloomberg",
+    name: "Bloomberg",
+    handle: "@Bloomberg",
+    fallbackVideoId: "iEpJwprxDdk",
+  },
+  {
+    id: "sky",
+    name: "SkyNews",
+    handle: "@SkyNews",
+    fallbackVideoId: "YDvsBbKfLPA",
+  },
+  {
+    id: "euronews",
+    name: "Euronews",
+    handle: "@euabortnews",
+    fallbackVideoId: "pykpO5kQJ98",
+  },
+  { id: "dw", name: "DW", handle: "@DWNews", fallbackVideoId: "LuKwFajn37U" },
+  { id: "cnbc", name: "CNBC", handle: "@CNBC", fallbackVideoId: "9NyxcX3rhQs" },
+  {
+    id: "france24",
+    name: "France24",
+    handle: "@FRANCE24English",
+    fallbackVideoId: "Ap-UM1O9RBU",
+  },
+  {
+    id: "alarabiya",
+    name: "AlArabiya",
+    handle: "@AlArabiya",
+    fallbackVideoId: "n7eQejkXbnM",
+    useFallbackOnly: true,
+  },
+  {
+    id: "aljazeera",
+    name: "AlJazeera",
+    handle: "@AlJazeeraEnglish",
+    fallbackVideoId: "gCNeDWCI0vo",
+    useFallbackOnly: true,
+  },
 ];
 
 // Tech variant: Tech & business channels
 const TECH_LIVE_CHANNELS: LiveChannel[] = [
-  { id: 'bloomberg', name: 'Bloomberg', handle: '@Bloomberg', fallbackVideoId: 'iEpJwprxDdk' },
-  { id: 'yahoo', name: 'Yahoo Finance', handle: '@YahooFinance', fallbackVideoId: 'KQp-e_XQnDE' },
-  { id: 'cnbc', name: 'CNBC', handle: '@CNBC', fallbackVideoId: '9NyxcX3rhQs' },
-  { id: 'nasa', name: 'NASA TV', handle: '@NASA', fallbackVideoId: 'fO9e9jnhYK8', useFallbackOnly: true },
+  {
+    id: "bloomberg",
+    name: "Bloomberg",
+    handle: "@Bloomberg",
+    fallbackVideoId: "iEpJwprxDdk",
+  },
+  {
+    id: "yahoo",
+    name: "Yahoo Finance",
+    handle: "@YahooFinance",
+    fallbackVideoId: "KQp-e_XQnDE",
+  },
+  { id: "cnbc", name: "CNBC", handle: "@CNBC", fallbackVideoId: "9NyxcX3rhQs" },
+  {
+    id: "nasa",
+    name: "NASA TV",
+    handle: "@NASA",
+    fallbackVideoId: "fO9e9jnhYK8",
+    useFallbackOnly: true,
+  },
 ];
 
-const LIVE_CHANNELS = SITE_VARIANT === 'tech' ? TECH_LIVE_CHANNELS : FULL_LIVE_CHANNELS;
+const LIVE_CHANNELS =
+  SITE_VARIANT === "tech" ? TECH_LIVE_CHANNELS : FULL_LIVE_CHANNELS;
 
 export class LiveNewsPanel extends Panel {
   private static apiPromise: Promise<void> | null = null;
@@ -104,10 +153,15 @@ export class LiveNewsPanel extends Panel {
   private boundMessageHandler!: (e: MessageEvent) => void;
 
   constructor() {
-    super({ id: 'live-news', title: 'Live News', showCount: false, trackActivity: false });
+    super({
+      id: "live-news",
+      title: "Live News",
+      showCount: false,
+      trackActivity: false,
+    });
     this.youtubeOrigin = LiveNewsPanel.resolveYouTubeOrigin();
     this.playerElementId = `live-news-player-${Date.now()}`;
-    this.element.classList.add('panel-wide');
+    this.element.classList.add("panel-wide");
     this.createLiveButton();
     this.createMuteButton();
     this.createChannelSwitcher();
@@ -117,23 +171,31 @@ export class LiveNewsPanel extends Panel {
   }
 
   private get embedOrigin(): string {
-    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return 'https://worldmonitor.app'; }
+    try {
+      return new URL(getRemoteApiBaseUrl()).origin;
+    } catch {
+      return "https://worldmonitor.app";
+    }
   }
 
   private setupBridgeMessageListener(): void {
     this.boundMessageHandler = (e: MessageEvent) => {
       if (e.source !== this.desktopEmbedIframe?.contentWindow) return;
       const expected = this.embedOrigin;
-      if (e.origin !== expected && e.origin !== 'http://127.0.0.1:46123') return;
+      if (e.origin !== expected && e.origin !== "http://127.0.0.1:46123")
+        return;
       const msg = e.data;
-      if (!msg || typeof msg !== 'object' || !msg.type) return;
-      if (msg.type === 'yt-ready') {
+      if (!msg || typeof msg !== "object" || !msg.type) return;
+      if (msg.type === "yt-ready") {
         this.isPlayerReady = true;
         this.syncDesktopEmbedState();
-      } else if (msg.type === 'yt-error') {
+      } else if (msg.type === "yt-error") {
         const code = Number(msg.code ?? 0);
-        if (code === 153 && this.activeChannel.fallbackVideoId &&
-            this.activeChannel.videoId !== this.activeChannel.fallbackVideoId) {
+        if (
+          code === 153 &&
+          this.activeChannel.fallbackVideoId &&
+          this.activeChannel.videoId !== this.activeChannel.fallbackVideoId
+        ) {
           this.activeChannel.videoId = this.activeChannel.fallbackVideoId;
           this.renderDesktopEmbed(true);
         } else {
@@ -141,25 +203,26 @@ export class LiveNewsPanel extends Panel {
         }
       }
     };
-    window.addEventListener('message', this.boundMessageHandler);
+    window.addEventListener("message", this.boundMessageHandler);
   }
 
   private static resolveYouTubeOrigin(): string | null {
-    const fallbackOrigin = SITE_VARIANT === 'tech'
-      ? 'https://worldmonitor.app'
-      : 'https://worldmonitor.app';
+    const fallbackOrigin =
+      SITE_VARIANT === "tech"
+        ? "https://worldmonitor.app"
+        : "https://worldmonitor.app";
 
     try {
       const { protocol, origin, host } = window.location;
-      if (protocol === 'http:' || protocol === 'https:') {
+      if (protocol === "http:" || protocol === "https:") {
         // Desktop webviews commonly run from tauri.localhost which can trigger
         // YouTube embed restrictions. Use canonical public origin instead.
-        if (host === 'tauri.localhost' || host.endsWith('.tauri.localhost')) {
+        if (host === "tauri.localhost" || host.endsWith(".tauri.localhost")) {
           return fallbackOrigin;
         }
         return origin;
       }
-      if (protocol === 'tauri:' || protocol === 'asset:') {
+      if (protocol === "tauri:" || protocol === "asset:") {
         return fallbackOrigin;
       }
     } catch {
@@ -179,16 +242,21 @@ export class LiveNewsPanel extends Panel {
         this.boundIdleResetHandler();
       }
     };
-    document.addEventListener('visibilitychange', this.boundVisibilityHandler);
+    document.addEventListener("visibilitychange", this.boundVisibilityHandler);
 
     // Track user activity to detect idle (pauses after 5 min inactivity)
     this.boundIdleResetHandler = () => {
       if (this.idleTimeout) clearTimeout(this.idleTimeout);
-      this.idleTimeout = setTimeout(() => this.pauseForIdle(), this.IDLE_PAUSE_MS);
+      this.idleTimeout = setTimeout(
+        () => this.pauseForIdle(),
+        this.IDLE_PAUSE_MS,
+      );
     };
 
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
-      document.addEventListener(event, this.boundIdleResetHandler, { passive: true });
+    ["mousedown", "keydown", "scroll", "touchstart"].forEach((event) => {
+      document.addEventListener(event, this.boundIdleResetHandler, {
+        passive: true,
+      });
     });
 
     // Start the idle timer
@@ -217,11 +285,11 @@ export class LiveNewsPanel extends Panel {
 
     // Clear the container to remove player/iframe
     if (this.playerContainer) {
-      this.playerContainer.innerHTML = '';
+      this.playerContainer.innerHTML = "";
 
       if (!this.useDesktopEmbedProxy) {
         // Recreate player element for JS API mode
-        this.playerElement = document.createElement('div');
+        this.playerElement = document.createElement("div");
         this.playerElement.id = this.playerElementId;
         this.playerContainer.appendChild(this.playerElement);
       } else {
@@ -239,16 +307,16 @@ export class LiveNewsPanel extends Panel {
   }
 
   private createLiveButton(): void {
-    this.liveBtn = document.createElement('button');
-    this.liveBtn.className = 'live-indicator-btn';
-    this.liveBtn.title = 'Toggle playback';
+    this.liveBtn = document.createElement("button");
+    this.liveBtn.className = "live-indicator-btn";
+    this.liveBtn.title = "Toggle playback";
     this.updateLiveIndicator();
-    this.liveBtn.addEventListener('click', (e) => {
+    this.liveBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.togglePlayback();
     });
 
-    const header = this.element.querySelector('.panel-header');
+    const header = this.element.querySelector(".panel-header");
     header?.appendChild(this.liveBtn);
   }
 
@@ -257,7 +325,7 @@ export class LiveNewsPanel extends Panel {
     this.liveBtn.innerHTML = this.isPlaying
       ? '<span class="live-dot"></span>Live'
       : '<span class="live-dot paused"></span>Paused';
-    this.liveBtn.classList.toggle('paused', !this.isPlaying);
+    this.liveBtn.classList.toggle("paused", !this.isPlaying);
   }
 
   private togglePlayback(): void {
@@ -268,16 +336,16 @@ export class LiveNewsPanel extends Panel {
   }
 
   private createMuteButton(): void {
-    this.muteBtn = document.createElement('button');
-    this.muteBtn.className = 'live-mute-btn';
-    this.muteBtn.title = 'Toggle sound';
+    this.muteBtn = document.createElement("button");
+    this.muteBtn.className = "live-mute-btn";
+    this.muteBtn.title = "Toggle sound";
     this.updateMuteIcon();
-    this.muteBtn.addEventListener('click', (e) => {
+    this.muteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.toggleMute();
     });
 
-    const header = this.element.querySelector('.panel-header');
+    const header = this.element.querySelector(".panel-header");
     header?.appendChild(this.muteBtn);
   }
 
@@ -286,7 +354,7 @@ export class LiveNewsPanel extends Panel {
     this.muteBtn.innerHTML = this.isMuted
       ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
       : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
-    this.muteBtn.classList.toggle('unmuted', !this.isMuted);
+    this.muteBtn.classList.toggle("unmuted", !this.isMuted);
   }
 
   private toggleMute(): void {
@@ -296,24 +364,29 @@ export class LiveNewsPanel extends Panel {
   }
 
   private createChannelSwitcher(): void {
-    this.channelSwitcher = document.createElement('div');
-    this.channelSwitcher.className = 'live-news-switcher';
+    this.channelSwitcher = document.createElement("div");
+    this.channelSwitcher.className = "live-news-switcher";
 
-    LIVE_CHANNELS.forEach(channel => {
-      const btn = document.createElement('button');
-      btn.className = `live-channel-btn ${channel.id === this.activeChannel.id ? 'active' : ''}`;
+    LIVE_CHANNELS.forEach((channel) => {
+      const btn = document.createElement("button");
+      btn.className = `live-channel-btn ${channel.id === this.activeChannel.id ? "active" : ""}`;
       btn.dataset.channelId = channel.id;
       btn.textContent = channel.name;
-      btn.addEventListener('click', () => this.switchChannel(channel));
+      btn.addEventListener("click", () => this.switchChannel(channel));
       this.channelSwitcher!.appendChild(btn);
     });
 
     this.element.insertBefore(this.channelSwitcher, this.content);
   }
 
-  private async resolveChannelVideo(channel: LiveChannel, forceFallback = false): Promise<void> {
+  private async resolveChannelVideo(
+    channel: LiveChannel,
+    forceFallback = false,
+  ): Promise<void> {
     const useFallbackVideo = channel.useFallbackOnly || forceFallback;
-    const liveVideoId = useFallbackVideo ? null : await fetchLiveVideoId(channel.handle);
+    const liveVideoId = useFallbackVideo
+      ? null
+      : await fetchLiveVideoId(channel.handle);
     channel.videoId = liveVideoId || channel.fallbackVideoId;
     channel.isLive = !!liveVideoId;
   }
@@ -323,23 +396,30 @@ export class LiveNewsPanel extends Panel {
 
     this.activeChannel = channel;
 
-    this.channelSwitcher?.querySelectorAll('.live-channel-btn').forEach(btn => {
-      const btnEl = btn as HTMLElement;
-      btnEl.classList.toggle('active', btnEl.dataset.channelId === channel.id);
-      if (btnEl.dataset.channelId === channel.id) {
-        btnEl.classList.add('loading');
-      }
-    });
+    this.channelSwitcher
+      ?.querySelectorAll(".live-channel-btn")
+      .forEach((btn) => {
+        const btnEl = btn as HTMLElement;
+        btnEl.classList.toggle(
+          "active",
+          btnEl.dataset.channelId === channel.id,
+        );
+        if (btnEl.dataset.channelId === channel.id) {
+          btnEl.classList.add("loading");
+        }
+      });
 
     await this.resolveChannelVideo(channel);
 
-    this.channelSwitcher?.querySelectorAll('.live-channel-btn').forEach(btn => {
-      const btnEl = btn as HTMLElement;
-      btnEl.classList.remove('loading');
-      if (btnEl.dataset.channelId === channel.id && !channel.videoId) {
-        btnEl.classList.add('offline');
-      }
-    });
+    this.channelSwitcher
+      ?.querySelectorAll(".live-channel-btn")
+      .forEach((btn) => {
+        const btnEl = btn as HTMLElement;
+        btnEl.classList.remove("loading");
+        if (btnEl.dataset.channelId === channel.id && !channel.videoId) {
+          btnEl.classList.add("offline");
+        }
+      });
 
     if (!channel.videoId) {
       this.showOfflineMessage(channel);
@@ -390,12 +470,12 @@ export class LiveNewsPanel extends Panel {
   }
 
   private ensurePlayerContainer(): void {
-    this.content.innerHTML = '';
-    this.playerContainer = document.createElement('div');
-    this.playerContainer.className = 'live-news-player';
+    this.content.innerHTML = "";
+    this.playerContainer = document.createElement("div");
+    this.playerContainer.className = "live-news-player";
 
     if (!this.useDesktopEmbedProxy) {
-      this.playerElement = document.createElement('div');
+      this.playerElement = document.createElement("div");
       this.playerElement.id = this.playerElementId;
       this.playerContainer.appendChild(this.playerElement);
     } else {
@@ -408,14 +488,12 @@ export class LiveNewsPanel extends Panel {
   private buildDesktopEmbedPath(videoId: string, origin?: string): string {
     const params = new URLSearchParams({
       videoId,
-      autoplay: this.isPlaying ? '1' : '0',
-      mute: this.isMuted ? '1' : '0',
+      autoplay: this.isPlaying ? "1" : "0",
+      mute: this.isMuted ? "1" : "0",
     });
-    if (origin) params.set('origin', origin);
+    if (origin) params.set("origin", origin);
     return `/api/youtube/embed?${params.toString()}`;
   }
-
-
 
   private postToEmbed(msg: Record<string, unknown>): void {
     if (!this.desktopEmbedIframe?.contentWindow) return;
@@ -423,8 +501,8 @@ export class LiveNewsPanel extends Panel {
   }
 
   private syncDesktopEmbedState(): void {
-    this.postToEmbed({ type: this.isPlaying ? 'play' : 'pause' });
-    this.postToEmbed({ type: this.isMuted ? 'mute' : 'unmute' });
+    this.postToEmbed({ type: this.isPlaying ? "play" : "pause" });
+    this.postToEmbed({ type: this.isMuted ? "mute" : "unmute" });
   }
 
   private renderDesktopEmbed(force = false): void {
@@ -458,7 +536,7 @@ export class LiveNewsPanel extends Panel {
       return;
     }
 
-    this.playerContainer.innerHTML = '';
+    this.playerContainer.innerHTML = "";
 
     // Always use cloud URL for iframe embeds — the local sidecar requires
     // an Authorization header that iframe src requests cannot carry.
@@ -469,18 +547,21 @@ export class LiveNewsPanel extends Panel {
       return;
     }
 
-    const iframe = document.createElement('iframe');
-    iframe.className = 'live-news-embed-frame';
+    const iframe = document.createElement("iframe");
+    iframe.className = "live-news-embed-frame";
     iframe.src = embedUrl;
     iframe.title = `${this.activeChannel.name} live feed`;
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = '0';
-    iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "0";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     iframe.allowFullscreen = true;
-    iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
-    iframe.setAttribute('loading', 'eager');
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+    iframe.setAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-presentation",
+    );
+    iframe.setAttribute("loading", "eager");
 
     this.playerContainer.appendChild(iframe);
     this.desktopEmbedIframe = iframe;
@@ -518,11 +599,12 @@ export class LiveNewsPanel extends Panel {
         resolve();
       };
 
-      const script = document.createElement('script');
-      script.src = 'https://www.youtube.com/iframe_api';
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
-      script.dataset.youtubeIframeApi = 'true';
-      script.onerror = () => reject(new Error('Failed to load YouTube IFrame API'));
+      script.dataset.youtubeIframeApi = "true";
+      script.onerror = () =>
+        reject(new Error("Failed to load YouTube IFrame API"));
       document.head.appendChild(script);
     });
 
@@ -532,7 +614,8 @@ export class LiveNewsPanel extends Panel {
   private async initializePlayer(): Promise<void> {
     if (!this.useDesktopEmbedProxy && this.player) return;
 
-    const useFallbackVideo = this.activeChannel.useFallbackOnly || this.forceFallbackVideoForNextInit;
+    const useFallbackVideo =
+      this.activeChannel.useFallbackOnly || this.forceFallbackVideoForNextInit;
     this.forceFallbackVideoForNextInit = false;
     await this.resolveChannelVideo(this.activeChannel, useFallbackVideo);
 
@@ -550,7 +633,7 @@ export class LiveNewsPanel extends Panel {
     if (this.player || !this.playerElement) return;
 
     this.player = new window.YT!.Player(this.playerElement, {
-      host: 'https://www.youtube-nocookie.com',
+      host: "https://www.youtube-nocookie.com",
       videoId: this.activeChannel.videoId,
       playerVars: {
         autoplay: this.isPlaying ? 1 : 0,
@@ -570,7 +653,7 @@ export class LiveNewsPanel extends Panel {
           this.isPlayerReady = true;
           this.currentVideoId = this.activeChannel.videoId || null;
           const iframe = this.player?.getIframe?.();
-          if (iframe) iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+          if (iframe) iframe.referrerPolicy = "strict-origin-when-cross-origin";
           this.syncPlayerState();
         },
         onError: (event) => {
@@ -625,7 +708,10 @@ export class LiveNewsPanel extends Panel {
     const isNewVideo = this.currentVideoId !== videoId;
     if (isNewVideo) {
       this.currentVideoId = videoId;
-      if (!this.playerElement || !document.getElementById(this.playerElementId)) {
+      if (
+        !this.playerElement ||
+        !document.getElementById(this.playerElementId)
+      ) {
         this.ensurePlayerContainer();
         void this.initializePlayer();
         return;
@@ -654,7 +740,9 @@ export class LiveNewsPanel extends Panel {
             this.player.playVideo();
             // Restore mute state after play starts
             if (!this.isMuted) {
-              setTimeout(() => { if (this.player) this.player.unMute(); }, 500);
+              setTimeout(() => {
+                if (this.player) this.player.unMute();
+              }, 500);
             }
           }
         }, 800);
@@ -676,9 +764,12 @@ export class LiveNewsPanel extends Panel {
       this.idleTimeout = null;
     }
 
-    document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
-    window.removeEventListener('message', this.boundMessageHandler);
-    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    document.removeEventListener(
+      "visibilitychange",
+      this.boundVisibilityHandler,
+    );
+    window.removeEventListener("message", this.boundMessageHandler);
+    ["mousedown", "keydown", "scroll", "touchstart"].forEach((event) => {
       document.removeEventListener(event, this.boundIdleResetHandler);
     });
 

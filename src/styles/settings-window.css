@@ -7,7 +7,7 @@
   --settings-border-strong: rgba(255, 255, 255, 0.18);
   --settings-text: #f0f0f0;
   --settings-text-secondary: #999;
-  --settings-accent: #0A84FF;
+  --settings-accent: #0a84ff;
   --settings-green: #30d158;
   --settings-yellow: #ffd60a;
   --settings-red: #ff453a;
@@ -15,7 +15,8 @@
   height: 100vh;
   background: var(--settings-bg);
   color: var(--settings-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
   padding: 0;
   box-sizing: border-box;
@@ -45,7 +46,9 @@
   font-weight: 500;
   padding: 7px 20px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   margin-bottom: -1px;
 }
 
@@ -73,8 +76,12 @@
   white-space: nowrap;
 }
 
-.settings-action-status.ok { color: var(--settings-green); }
-.settings-action-status.error { color: var(--settings-red); }
+.settings-action-status.ok {
+  color: var(--settings-green);
+}
+.settings-action-status.error {
+  color: var(--settings-red);
+}
 
 /* Tab panels */
 .settings-tab-panels {
@@ -185,7 +192,7 @@
   color: var(--settings-text);
   padding: 6px 10px;
   font-size: 12px;
-  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
   transition: border-color 0.15s;
 }
 
@@ -263,7 +270,9 @@
   font-size: 12px;
   line-height: 1;
   opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 
 .runtime-secret-link:hover {
@@ -292,7 +301,9 @@
   cursor: pointer;
   min-width: 70px;
   text-align: center;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .settings-btn-secondary {
@@ -420,7 +431,9 @@
   padding: 3px 10px;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .diag-traffic-controls button:hover {
@@ -444,7 +457,7 @@
 .diag-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
   font-size: 11px;
 }
 
@@ -473,9 +486,15 @@
   max-width: 260px;
 }
 
-tr.diag-ok td { color: var(--settings-text-secondary); }
-tr.diag-warn td { color: var(--settings-yellow); }
-tr.diag-err td { color: var(--settings-red); }
+tr.diag-ok td {
+  color: var(--settings-text-secondary);
+}
+tr.diag-warn td {
+  color: var(--settings-yellow);
+}
+tr.diag-err td {
+  color: var(--settings-red);
+}
 
 @media (max-width: 860px) {
   .debug-actions {

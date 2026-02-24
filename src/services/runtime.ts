@@ -1,14 +1,14 @@
 const DEFAULT_REMOTE_HOSTS: Record<string, string> = {
-  tech: 'https://tech.worldmonitor.app',
-  full: 'https://worldmonitor.app',
-  world: 'https://worldmonitor.app',
+  tech: "https://tech.worldmonitor.app",
+  full: "https://worldmonitor.app",
+  world: "https://worldmonitor.app",
 };
 
-const DEFAULT_LOCAL_API_BASE = 'http://127.0.0.1:46123';
-const FORCE_DESKTOP_RUNTIME = import.meta.env.VITE_DESKTOP_RUNTIME === '1';
+const DEFAULT_LOCAL_API_BASE = "http://127.0.0.1:46123";
+const FORCE_DESKTOP_RUNTIME = import.meta.env.VITE_DESKTOP_RUNTIME === "1";
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/$/, '');
+  return baseUrl.replace(/\/$/, "");
 }
 
 type RuntimeProbe = {
@@ -20,26 +20,23 @@ type RuntimeProbe = {
 };
 
 export function detectDesktopRuntime(probe: RuntimeProbe): boolean {
-  const tauriInUserAgent = probe.userAgent.includes('Tauri');
-  const secureLocalhostOrigin = (
-    probe.locationProtocol === 'https:' && (
-      probe.locationHost === 'localhost' ||
-      probe.locationHost.startsWith('localhost:') ||
-      probe.locationHost === '127.0.0.1' ||
-      probe.locationHost.startsWith('127.0.0.1:')
-    )
-  );
+  const tauriInUserAgent = probe.userAgent.includes("Tauri");
+  const secureLocalhostOrigin =
+    probe.locationProtocol === "https:" &&
+    (probe.locationHost === "localhost" ||
+      probe.locationHost.startsWith("localhost:") ||
+      probe.locationHost === "127.0.0.1" ||
+      probe.locationHost.startsWith("127.0.0.1:"));
 
   // Tauri production windows can expose tauri-like hosts/schemes without
   // always exposing bridge globals at first paint.
-  const tauriLikeLocation = (
-    probe.locationProtocol === 'tauri:' ||
-    probe.locationProtocol === 'asset:' ||
-    probe.locationHost === 'tauri.localhost' ||
-    probe.locationHost.endsWith('.tauri.localhost') ||
-    probe.locationOrigin.startsWith('tauri://') ||
-    secureLocalhostOrigin
-  );
+  const tauriLikeLocation =
+    probe.locationProtocol === "tauri:" ||
+    probe.locationProtocol === "asset:" ||
+    probe.locationHost === "tauri.localhost" ||
+    probe.locationHost.endsWith(".tauri.localhost") ||
+    probe.locationOrigin.startsWith("tauri://") ||
+    secureLocalhostOrigin;
 
   return probe.hasTauriGlobals || tauriInUserAgent || tauriLikeLocation;
 }
@@ -49,22 +46,22 @@ export function isDesktopRuntime(): boolean {
     return true;
   }
 
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return false;
   }
 
   return detectDesktopRuntime({
-    hasTauriGlobals: '__TAURI_INTERNALS__' in window || '__TAURI__' in window,
-    userAgent: window.navigator?.userAgent ?? '',
-    locationProtocol: window.location?.protocol ?? '',
-    locationHost: window.location?.host ?? '',
-    locationOrigin: window.location?.origin ?? '',
+    hasTauriGlobals: "__TAURI_INTERNALS__" in window || "__TAURI__" in window,
+    userAgent: window.navigator?.userAgent ?? "",
+    locationProtocol: window.location?.protocol ?? "",
+    locationHost: window.location?.host ?? "",
+    locationOrigin: window.location?.origin ?? "",
   });
 }
 
 export function getApiBaseUrl(): string {
   if (!isDesktopRuntime()) {
-    return '';
+    return "";
   }
 
   const configuredBaseUrl = import.meta.env.VITE_TAURI_API_BASE_URL;
@@ -81,12 +78,16 @@ export function getRemoteApiBaseUrl(): string {
     return normalizeBaseUrl(configuredRemoteBase);
   }
 
-  const variant = import.meta.env.VITE_VARIANT || 'full';
-  return DEFAULT_REMOTE_HOSTS[variant] ?? DEFAULT_REMOTE_HOSTS.full ?? 'https://worldmonitor.app';
+  const variant = import.meta.env.VITE_VARIANT || "full";
+  return (
+    DEFAULT_REMOTE_HOSTS[variant] ??
+    DEFAULT_REMOTE_HOSTS.full ??
+    "https://worldmonitor.app"
+  );
 }
 
 export function toRuntimeUrl(path: string): string {
-  if (!path.startsWith('/')) {
+  if (!path.startsWith("/")) {
     return path;
   }
 
@@ -99,26 +100,26 @@ export function toRuntimeUrl(path: string): string {
 }
 
 const APP_HOSTS = new Set([
-  'worldmonitor.app',
-  'www.worldmonitor.app',
-  'tech.worldmonitor.app',
-  'localhost',
-  '127.0.0.1',
+  "worldmonitor.app",
+  "www.worldmonitor.app",
+  "tech.worldmonitor.app",
+  "localhost",
+  "127.0.0.1",
 ]);
 
 function isAppOriginUrl(urlStr: string): boolean {
   try {
     const u = new URL(urlStr);
     const host = u.hostname;
-    return APP_HOSTS.has(host) || host.endsWith('.worldmonitor.app');
+    return APP_HOSTS.has(host) || host.endsWith(".worldmonitor.app");
   } catch {
     return false;
   }
 }
 
 function getApiTargetFromRequestInput(input: RequestInfo | URL): string | null {
-  if (typeof input === 'string') {
-    if (input.startsWith('/')) return input;
+  if (typeof input === "string") {
+    if (input.startsWith("/")) return input;
     if (isAppOriginUrl(input)) {
       const u = new URL(input);
       return `${u.pathname}${u.search}`;
@@ -173,11 +174,15 @@ async function fetchLocalWithStartupRetry(
 
   throw lastError instanceof Error
     ? lastError
-    : new Error('Local API unavailable');
+    : new Error("Local API unavailable");
 }
 
 export function installRuntimeFetchPatch(): void {
-  if (!isDesktopRuntime() || typeof window === 'undefined' || (window as unknown as Record<string, unknown>).__wmFetchPatched) {
+  if (
+    !isDesktopRuntime() ||
+    typeof window === "undefined" ||
+    (window as unknown as Record<string, unknown>).__wmFetchPatched
+  ) {
     return;
   }
 
@@ -185,13 +190,21 @@ export function installRuntimeFetchPatch(): void {
   const localBase = getApiBaseUrl();
   let localApiToken: string | null = null;
 
-  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  window.fetch = async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const target = getApiTargetFromRequestInput(input);
-    const debug = localStorage.getItem('wm-debug-log') === '1';
+    const debug = localStorage.getItem("wm-debug-log") === "1";
 
-    if (!target?.startsWith('/api/')) {
+    if (!target?.startsWith("/api/")) {
       if (debug) {
-        const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        const raw =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
         console.log(`[fetch] passthrough → ${raw.slice(0, 120)}`);
       }
       return nativeFetch(input, init);
@@ -199,14 +212,16 @@ export function installRuntimeFetchPatch(): void {
 
     if (!localApiToken) {
       try {
-        const { tryInvokeTauri } = await import('@/services/tauri-bridge');
-        localApiToken = await tryInvokeTauri<string>('get_local_api_token');
-      } catch { /* token unavailable — sidecar may not require it */ }
+        const { tryInvokeTauri } = await import("@/services/tauri-bridge");
+        localApiToken = await tryInvokeTauri<string>("get_local_api_token");
+      } catch {
+        /* token unavailable — sidecar may not require it */
+      }
     }
 
     const headers = new Headers(init?.headers);
     if (localApiToken) {
-      headers.set('Authorization', `Bearer ${localApiToken}`);
+      headers.set("Authorization", `Bearer ${localApiToken}`);
     }
     const localInit = { ...init, headers };
 
@@ -221,15 +236,26 @@ export function installRuntimeFetchPatch(): void {
 
     try {
       const t0 = performance.now();
-      const response = await fetchLocalWithStartupRetry(nativeFetch, localUrl, localInit);
-      if (debug) console.log(`[fetch] ${target} → ${response.status} (${Math.round(performance.now() - t0)}ms)`);
+      const response = await fetchLocalWithStartupRetry(
+        nativeFetch,
+        localUrl,
+        localInit,
+      );
+      if (debug)
+        console.log(
+          `[fetch] ${target} → ${response.status} (${Math.round(performance.now() - t0)}ms)`,
+        );
       if (!response.ok) {
-        if (debug) console.log(`[fetch] local ${response.status}, falling back to cloud`);
+        if (debug)
+          console.log(
+            `[fetch] local ${response.status}, falling back to cloud`,
+          );
         return cloudFallback();
       }
       return response;
     } catch (error) {
-      if (debug) console.warn(`[runtime] Local API unavailable for ${target}`, error);
+      if (debug)
+        console.warn(`[runtime] Local API unavailable for ${target}`, error);
       return cloudFallback();
     }
   };

@@ -1,7 +1,7 @@
-import { escapeHtml } from '@/utils/sanitize';
-import { SITE_VARIANT } from '@/config';
+import { escapeHtml } from "@/utils/sanitize";
+import { SITE_VARIANT } from "@/config";
 
-type StatusLevel = 'ok' | 'warning' | 'error' | 'disabled';
+type StatusLevel = "ok" | "warning" | "error" | "disabled";
 
 interface FeedStatus {
   name: string;
@@ -19,27 +19,71 @@ interface ApiStatus {
 
 // Allowlists for each variant
 const TECH_FEEDS = new Set([
-  'Tech', 'Ai', 'Startups', 'Vcblogs', 'RegionalStartups',
-  'Unicorns', 'Accelerators', 'Security', 'Policy', 'Layoffs',
-  'Finance', 'Hardware', 'Cloud', 'Dev', 'Tech Events', 'Crypto',
-  'Markets', 'Events', 'Producthunt', 'Funding', 'Polymarket',
-  'Cyber Threats'
+  "Tech",
+  "Ai",
+  "Startups",
+  "Vcblogs",
+  "RegionalStartups",
+  "Unicorns",
+  "Accelerators",
+  "Security",
+  "Policy",
+  "Layoffs",
+  "Finance",
+  "Hardware",
+  "Cloud",
+  "Dev",
+  "Tech Events",
+  "Crypto",
+  "Markets",
+  "Events",
+  "Producthunt",
+  "Funding",
+  "Polymarket",
+  "Cyber Threats",
 ]);
 const TECH_APIS = new Set([
-  'RSS Proxy', 'Finnhub', 'CoinGecko', 'Tech Events API', 'Service Status', 'Polymarket',
-  'Cyber Threats API'
+  "RSS Proxy",
+  "Finnhub",
+  "CoinGecko",
+  "Tech Events API",
+  "Service Status",
+  "Polymarket",
+  "Cyber Threats API",
 ]);
 
 const WORLD_FEEDS = new Set([
-  'Politics', 'Middleeast', 'Tech', 'Ai', 'Finance',
-  'Gov', 'Intel', 'Layoffs', 'Thinktanks', 'Energy',
-  'Polymarket', 'Weather', 'NetBlocks', 'Shipping', 'Military',
-  'Cyber Threats'
+  "Politics",
+  "Middleeast",
+  "Tech",
+  "Ai",
+  "Finance",
+  "Gov",
+  "Intel",
+  "Layoffs",
+  "Thinktanks",
+  "Energy",
+  "Polymarket",
+  "Weather",
+  "NetBlocks",
+  "Shipping",
+  "Military",
+  "Cyber Threats",
 ]);
 const WORLD_APIS = new Set([
-  'RSS2JSON', 'Finnhub', 'CoinGecko', 'Polymarket', 'USGS', 'FRED',
-  'AISStream', 'GDELT Doc', 'EIA', 'USASpending', 'PizzINT', 'FIRMS',
-  'Cyber Threats API'
+  "RSS2JSON",
+  "Finnhub",
+  "CoinGecko",
+  "Polymarket",
+  "USGS",
+  "FRED",
+  "AISStream",
+  "GDELT Doc",
+  "EIA",
+  "USASpending",
+  "PizzINT",
+  "FIRMS",
+  "Cyber Threats API",
 ]);
 
 export class StatusPanel {
@@ -52,11 +96,11 @@ export class StatusPanel {
 
   constructor() {
     // Set allowlists based on variant
-    this.allowedFeeds = SITE_VARIANT === 'tech' ? TECH_FEEDS : WORLD_FEEDS;
-    this.allowedApis = SITE_VARIANT === 'tech' ? TECH_APIS : WORLD_APIS;
+    this.allowedFeeds = SITE_VARIANT === "tech" ? TECH_FEEDS : WORLD_FEEDS;
+    this.allowedApis = SITE_VARIANT === "tech" ? TECH_APIS : WORLD_APIS;
 
-    this.element = document.createElement('div');
-    this.element.className = 'status-panel-container';
+    this.element = document.createElement("div");
+    this.element.className = "status-panel-container";
     this.element.innerHTML = `
       <button class="status-panel-toggle" title="System Status">
         <span class="status-icon">◉</span>
@@ -91,31 +135,36 @@ export class StatusPanel {
   }
 
   private setupEventListeners(): void {
-    const toggle = this.element.querySelector('.status-panel-toggle')!;
-    const panel = this.element.querySelector('.status-panel')!;
-    const closeBtn = this.element.querySelector('.status-panel-close')!;
+    const toggle = this.element.querySelector(".status-panel-toggle")!;
+    const panel = this.element.querySelector(".status-panel")!;
+    const closeBtn = this.element.querySelector(".status-panel-close")!;
 
-    toggle.addEventListener('click', () => {
+    toggle.addEventListener("click", () => {
       this.isOpen = !this.isOpen;
-      panel.classList.toggle('hidden', !this.isOpen);
+      panel.classList.toggle("hidden", !this.isOpen);
       if (this.isOpen) this.updateDisplay();
     });
 
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener("click", () => {
       this.isOpen = false;
-      panel.classList.add('hidden');
+      panel.classList.add("hidden");
     });
   }
 
   private initDefaultStatuses(): void {
     // Initialize all allowed feeds/APIs as disabled
     // They get enabled when App.ts reports data
-    this.allowedFeeds.forEach(name => {
-      this.feeds.set(name, { name, lastUpdate: null, status: 'disabled', itemCount: 0 });
+    this.allowedFeeds.forEach((name) => {
+      this.feeds.set(name, {
+        name,
+        lastUpdate: null,
+        status: "disabled",
+        itemCount: 0,
+      });
     });
 
-    this.allowedApis.forEach(name => {
-      this.apis.set(name, { name, status: 'disabled' });
+    this.allowedApis.forEach((name) => {
+      this.apis.set(name, { name, status: "disabled" });
     });
   }
 
@@ -123,7 +172,12 @@ export class StatusPanel {
     // Only track feeds relevant to current variant
     if (!this.allowedFeeds.has(name)) return;
 
-    const existing = this.feeds.get(name) || { name, lastUpdate: null, status: 'ok' as const, itemCount: 0 };
+    const existing = this.feeds.get(name) || {
+      name,
+      lastUpdate: null,
+      status: "ok" as const,
+      itemCount: 0,
+    };
     this.feeds.set(name, { ...existing, ...status, lastUpdate: new Date() });
     this.updateStatusIcon();
     if (this.isOpen) this.updateDisplay();
@@ -133,7 +187,7 @@ export class StatusPanel {
     // Only track APIs relevant to current variant
     if (!this.allowedApis.has(name)) return;
 
-    const existing = this.apis.get(name) || { name, status: 'ok' as const };
+    const existing = this.apis.get(name) || { name, status: "ok" as const };
     this.apis.set(name, { ...existing, ...status });
     this.updateStatusIcon();
     if (this.isOpen) this.updateDisplay();
@@ -142,7 +196,12 @@ export class StatusPanel {
   public setFeedDisabled(name: string): void {
     const existing = this.feeds.get(name);
     if (existing) {
-      this.feeds.set(name, { ...existing, status: 'disabled', itemCount: 0, lastUpdate: null });
+      this.feeds.set(name, {
+        ...existing,
+        status: "disabled",
+        itemCount: 0,
+        lastUpdate: null,
+      });
       this.updateStatusIcon();
       if (this.isOpen) this.updateDisplay();
     }
@@ -151,58 +210,72 @@ export class StatusPanel {
   public setApiDisabled(name: string): void {
     const existing = this.apis.get(name);
     if (existing) {
-      this.apis.set(name, { ...existing, status: 'disabled' });
+      this.apis.set(name, { ...existing, status: "disabled" });
       this.updateStatusIcon();
       if (this.isOpen) this.updateDisplay();
     }
   }
 
   private updateStatusIcon(): void {
-    const icon = this.element.querySelector('.status-icon')!;
+    const icon = this.element.querySelector(".status-icon")!;
     // Only count enabled feeds/APIs (not 'disabled') for status indicator
-    const enabledFeeds = [...this.feeds.values()].filter(f => f.status !== 'disabled');
-    const enabledApis = [...this.apis.values()].filter(a => a.status !== 'disabled');
+    const enabledFeeds = [...this.feeds.values()].filter(
+      (f) => f.status !== "disabled",
+    );
+    const enabledApis = [...this.apis.values()].filter(
+      (a) => a.status !== "disabled",
+    );
 
-    const hasError = enabledFeeds.some(f => f.status === 'error') ||
-                     enabledApis.some(a => a.status === 'error');
-    const hasWarning = enabledFeeds.some(f => f.status === 'warning') ||
-                       enabledApis.some(a => a.status === 'warning');
+    const hasError =
+      enabledFeeds.some((f) => f.status === "error") ||
+      enabledApis.some((a) => a.status === "error");
+    const hasWarning =
+      enabledFeeds.some((f) => f.status === "warning") ||
+      enabledApis.some((a) => a.status === "warning");
 
-    icon.className = 'status-icon';
+    icon.className = "status-icon";
     if (hasError) {
-      icon.classList.add('error');
-      icon.textContent = '◉';
+      icon.classList.add("error");
+      icon.textContent = "◉";
     } else if (hasWarning) {
-      icon.classList.add('warning');
-      icon.textContent = '◉';
+      icon.classList.add("warning");
+      icon.textContent = "◉";
     } else {
-      icon.classList.add('ok');
-      icon.textContent = '◉';
+      icon.classList.add("ok");
+      icon.textContent = "◉";
     }
   }
 
   private updateDisplay(): void {
-    const feedsList = this.element.querySelector('.feeds-list')!;
-    const apisList = this.element.querySelector('.apis-list')!;
-    const storageInfo = this.element.querySelector('.storage-info')!;
-    const lastCheck = this.element.querySelector('.last-check')!;
+    const feedsList = this.element.querySelector(".feeds-list")!;
+    const apisList = this.element.querySelector(".apis-list")!;
+    const storageInfo = this.element.querySelector(".storage-info")!;
+    const lastCheck = this.element.querySelector(".last-check")!;
 
-    feedsList.innerHTML = [...this.feeds.values()].map(feed => `
+    feedsList.innerHTML = [...this.feeds.values()]
+      .map(
+        (feed) => `
       <div class="status-row">
         <span class="status-dot ${escapeHtml(feed.status)}"></span>
         <span class="status-name">${escapeHtml(feed.name)}</span>
         <span class="status-detail">${escapeHtml(String(feed.itemCount))} items</span>
-        <span class="status-time">${escapeHtml(feed.lastUpdate ? this.formatTime(feed.lastUpdate) : 'Never')}</span>
+        <span class="status-time">${escapeHtml(feed.lastUpdate ? this.formatTime(feed.lastUpdate) : "Never")}</span>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
-    apisList.innerHTML = [...this.apis.values()].map(api => `
+    apisList.innerHTML = [...this.apis.values()]
+      .map(
+        (api) => `
       <div class="status-row">
         <span class="status-dot ${escapeHtml(api.status)}"></span>
         <span class="status-name">${escapeHtml(api.name)}</span>
-        ${api.latency ? `<span class="status-detail">${escapeHtml(String(api.latency))}ms</span>` : ''}
+        ${api.latency ? `<span class="status-detail">${escapeHtml(String(api.latency))}ms</span>` : ""}
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     this.updateStorageInfo(storageInfo);
     lastCheck.textContent = `Updated ${this.formatTime(new Date())}`;
@@ -210,10 +283,14 @@ export class StatusPanel {
 
   private async updateStorageInfo(container: Element): Promise<void> {
     try {
-      if ('storage' in navigator && 'estimate' in navigator.storage) {
+      if ("storage" in navigator && "estimate" in navigator.storage) {
         const estimate = await navigator.storage.estimate();
-        const used = estimate.usage ? (estimate.usage / 1024 / 1024).toFixed(2) : '0';
-        const quota = estimate.quota ? (estimate.quota / 1024 / 1024).toFixed(0) : 'N/A';
+        const used = estimate.usage
+          ? (estimate.usage / 1024 / 1024).toFixed(2)
+          : "0";
+        const quota = estimate.quota
+          ? (estimate.quota / 1024 / 1024).toFixed(0)
+          : "N/A";
         container.innerHTML = `
           <div class="status-row">
             <span class="status-name">IndexedDB</span>
@@ -231,9 +308,12 @@ export class StatusPanel {
   private formatTime(date: Date): string {
     const now = Date.now();
     const diff = now - date.getTime();
-    if (diff < 60000) return 'just now';
+    if (diff < 60000) return "just now";
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   public getElement(): HTMLElement {

@@ -1,16 +1,16 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
-import type { UcdpGeoEvent, UcdpEventType } from '@/types';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
+import type { UcdpGeoEvent, UcdpEventType } from "@/types";
 
 export class UcdpEventsPanel extends Panel {
   private events: UcdpGeoEvent[] = [];
-  private activeTab: UcdpEventType = 'state-based';
+  private activeTab: UcdpEventType = "state-based";
   private onEventClick?: (lat: number, lon: number) => void;
 
   constructor() {
     super({
-      id: 'ucdp-events',
-      title: 'UCDP Conflict Events',
+      id: "ucdp-events",
+      title: "UCDP Conflict Events",
       showCount: true,
       trackActivity: true,
       infoTooltip: `<strong>UCDP Georeferenced Events</strong>
@@ -23,10 +23,12 @@ export class UcdpEventsPanel extends Panel {
         Deaths shown as best estimate (low-high range).
         ACLED duplicates are filtered out automatically.`,
     });
-    this.showLoading('Loading UCDP events');
+    this.showLoading("Loading UCDP events");
   }
 
-  public setEventClickHandler(handler: (lat: number, lon: number) => void): void {
+  public setEventClickHandler(
+    handler: (lat: number, lon: number) => void,
+  ): void {
     this.onEventClick = handler;
   }
 
@@ -41,17 +43,19 @@ export class UcdpEventsPanel extends Panel {
   }
 
   private renderContent(): void {
-    const filtered = this.events.filter(e => e.type_of_violence === this.activeTab);
+    const filtered = this.events.filter(
+      (e) => e.type_of_violence === this.activeTab,
+    );
     const tabs: { key: UcdpEventType; label: string }[] = [
-      { key: 'state-based', label: 'State-Based' },
-      { key: 'non-state', label: 'Non-State' },
-      { key: 'one-sided', label: 'One-Sided' },
+      { key: "state-based", label: "State-Based" },
+      { key: "non-state", label: "Non-State" },
+      { key: "one-sided", label: "One-Sided" },
     ];
 
     const tabCounts: Record<UcdpEventType, number> = {
-      'state-based': 0,
-      'non-state': 0,
-      'one-sided': 0,
+      "state-based": 0,
+      "non-state": 0,
+      "one-sided": 0,
     };
     for (const event of this.events) {
       tabCounts[event.type_of_violence] += 1;
@@ -59,9 +63,12 @@ export class UcdpEventsPanel extends Panel {
 
     const totalDeaths = filtered.reduce((sum, e) => sum + e.deaths_best, 0);
 
-    const tabsHtml = tabs.map(t =>
-      `<button class="ucdp-tab ${t.key === this.activeTab ? 'ucdp-tab-active' : ''}" data-tab="${t.key}">${t.label} <span class="ucdp-tab-count">${tabCounts[t.key]}</span></button>`
-    ).join('');
+    const tabsHtml = tabs
+      .map(
+        (t) =>
+          `<button class="ucdp-tab ${t.key === this.activeTab ? "ucdp-tab-active" : ""}" data-tab="${t.key}">${t.label} <span class="ucdp-tab-count">${tabCounts[t.key]}</span></button>`,
+      )
+      .join("");
 
     const displayed = filtered.slice(0, 50);
     let bodyHtml: string;
@@ -69,22 +76,28 @@ export class UcdpEventsPanel extends Panel {
     if (displayed.length === 0) {
       bodyHtml = '<div class="panel-empty">No events in this category</div>';
     } else {
-      const rows = displayed.map(e => {
-        const deathsClass = e.type_of_violence === 'state-based' ? 'ucdp-deaths-state'
-          : e.type_of_violence === 'non-state' ? 'ucdp-deaths-nonstate'
-          : 'ucdp-deaths-onesided';
-        const deathsHtml = e.deaths_best > 0
-          ? `<span class="${deathsClass}">${e.deaths_best}</span> <small class="ucdp-range">(${e.deaths_low}-${e.deaths_high})</small>`
-          : '<span class="ucdp-deaths-zero">0</span>';
-        const actors = `${escapeHtml(e.side_a)} vs ${escapeHtml(e.side_b)}`;
+      const rows = displayed
+        .map((e) => {
+          const deathsClass =
+            e.type_of_violence === "state-based"
+              ? "ucdp-deaths-state"
+              : e.type_of_violence === "non-state"
+                ? "ucdp-deaths-nonstate"
+                : "ucdp-deaths-onesided";
+          const deathsHtml =
+            e.deaths_best > 0
+              ? `<span class="${deathsClass}">${e.deaths_best}</span> <small class="ucdp-range">(${e.deaths_low}-${e.deaths_high})</small>`
+              : '<span class="ucdp-deaths-zero">0</span>';
+          const actors = `${escapeHtml(e.side_a)} vs ${escapeHtml(e.side_b)}`;
 
-        return `<tr class="ucdp-row" data-lat="${e.latitude}" data-lon="${e.longitude}">
+          return `<tr class="ucdp-row" data-lat="${e.latitude}" data-lon="${e.longitude}">
           <td class="ucdp-country">${escapeHtml(e.country)}</td>
           <td class="ucdp-deaths">${deathsHtml}</td>
           <td class="ucdp-date">${e.date_start}</td>
           <td class="ucdp-actors">${actors}</td>
         </tr>`;
-      }).join('');
+        })
+        .join("");
 
       bodyHtml = `
         <table class="ucdp-table">
@@ -100,15 +113,16 @@ export class UcdpEventsPanel extends Panel {
         </table>`;
     }
 
-    const moreHtml = filtered.length > 50
-      ? `<div class="panel-more">${filtered.length - 50} more events not shown</div>`
-      : '';
+    const moreHtml =
+      filtered.length > 50
+        ? `<div class="panel-more">${filtered.length - 50} more events not shown</div>`
+        : "";
 
     this.setContent(`
       <div class="ucdp-panel-content">
         <div class="ucdp-header">
           <div class="ucdp-tabs">${tabsHtml}</div>
-          ${totalDeaths > 0 ? `<span class="ucdp-total-deaths">${totalDeaths.toLocaleString()} deaths</span>` : ''}
+          ${totalDeaths > 0 ? `<span class="ucdp-total-deaths">${totalDeaths.toLocaleString()} deaths</span>` : ""}
         </div>
         ${bodyHtml}
         ${moreHtml}
@@ -140,18 +154,19 @@ export class UcdpEventsPanel extends Panel {
       </style>
     `);
 
-    this.content.querySelectorAll('.ucdp-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
+    this.content.querySelectorAll(".ucdp-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
         this.activeTab = (btn as HTMLElement).dataset.tab as UcdpEventType;
         this.renderContent();
       });
     });
 
-    this.content.querySelectorAll('.ucdp-row').forEach(el => {
-      el.addEventListener('click', () => {
+    this.content.querySelectorAll(".ucdp-row").forEach((el) => {
+      el.addEventListener("click", () => {
         const lat = Number((el as HTMLElement).dataset.lat);
         const lon = Number((el as HTMLElement).dataset.lon);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) this.onEventClick?.(lat, lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon))
+          this.onEventClick?.(lat, lon);
       });
     });
   }

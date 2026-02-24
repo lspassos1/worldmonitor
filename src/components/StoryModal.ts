@@ -1,6 +1,10 @@
-import type { StoryData } from '@/services/story-data';
-import { renderStoryToCanvas } from '@/services/story-renderer';
-import { generateStoryDeepLink, getShareUrls, shareTexts } from '@/services/story-share';
+import type { StoryData } from "@/services/story-data";
+import { renderStoryToCanvas } from "@/services/story-renderer";
+import {
+  generateStoryDeepLink,
+  getShareUrls,
+  shareTexts,
+} from "@/services/story-share";
 
 let modalEl: HTMLElement | null = null;
 let currentDataUrl: string | null = null;
@@ -11,8 +15,8 @@ export function openStoryModal(data: StoryData): void {
   closeStoryModal();
   currentData = data;
 
-  modalEl = document.createElement('div');
-  modalEl.className = 'story-modal-overlay';
+  modalEl = document.createElement("div");
+  modalEl.className = "story-modal-overlay";
   modalEl.innerHTML = `
     <div class="story-modal">
       <button class="story-close-x" aria-label="Close">
@@ -49,15 +53,33 @@ export function openStoryModal(data: StoryData): void {
     </div>
   `;
 
-  modalEl.addEventListener('click', (e) => {
+  modalEl.addEventListener("click", (e) => {
     if (e.target === modalEl) closeStoryModal();
   });
-  modalEl.querySelector('.story-close-x')?.addEventListener('click', closeStoryModal);
-  modalEl.querySelector('.story-save')?.addEventListener('click', downloadStory);
-  modalEl.querySelector('.story-whatsapp')?.addEventListener('click', () => currentData && shareWhatsApp(currentData));
-  modalEl.querySelector('.story-twitter')?.addEventListener('click', () => currentData && shareTwitter(currentData));
-  modalEl.querySelector('.story-linkedin')?.addEventListener('click', () => currentData && shareLinkedIn(currentData));
-  modalEl.querySelector('.story-copy')?.addEventListener('click', () => currentData && copyDeepLink(currentData));
+  modalEl
+    .querySelector(".story-close-x")
+    ?.addEventListener("click", closeStoryModal);
+  modalEl
+    .querySelector(".story-save")
+    ?.addEventListener("click", downloadStory);
+  modalEl
+    .querySelector(".story-whatsapp")
+    ?.addEventListener(
+      "click",
+      () => currentData && shareWhatsApp(currentData),
+    );
+  modalEl
+    .querySelector(".story-twitter")
+    ?.addEventListener("click", () => currentData && shareTwitter(currentData));
+  modalEl
+    .querySelector(".story-linkedin")
+    ?.addEventListener(
+      "click",
+      () => currentData && shareLinkedIn(currentData),
+    );
+  modalEl
+    .querySelector(".story-copy")
+    ?.addEventListener("click", () => currentData && copyDeepLink(currentData));
 
   document.body.appendChild(modalEl);
 
@@ -66,34 +88,36 @@ export function openStoryModal(data: StoryData): void {
     try {
       await renderAndDisplay(data);
     } catch (err) {
-      console.error('[StoryModal] Render error:', err);
-      const content = modalEl?.querySelector('.story-modal-content');
-      if (content) content.innerHTML = '<div class="story-error">Failed to generate story.</div>';
+      console.error("[StoryModal] Render error:", err);
+      const content = modalEl?.querySelector(".story-modal-content");
+      if (content)
+        content.innerHTML =
+          '<div class="story-error">Failed to generate story.</div>';
     }
   });
 }
 
 async function renderAndDisplay(data: StoryData): Promise<void> {
   const canvas = await renderStoryToCanvas(data);
-  currentDataUrl = canvas.toDataURL('image/png');
-  
-  const binStr = atob(currentDataUrl.split(',')[1] ?? '');
+  currentDataUrl = canvas.toDataURL("image/png");
+
+  const binStr = atob(currentDataUrl.split(",")[1] ?? "");
   const bytes = new Uint8Array(binStr.length);
   for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
-  currentBlob = new Blob([bytes], { type: 'image/png' });
+  currentBlob = new Blob([bytes], { type: "image/png" });
 
-  const content = modalEl?.querySelector('.story-modal-content');
+  const content = modalEl?.querySelector(".story-modal-content");
   if (content) {
-    content.innerHTML = '';
-    const img = document.createElement('img');
-    img.className = 'story-image';
+    content.innerHTML = "";
+    const img = document.createElement("img");
+    img.className = "story-image";
     img.src = currentDataUrl;
     img.alt = `${data.countryName} Intelligence Story`;
     content.appendChild(img);
   }
-  
-  const shareBar = modalEl?.querySelector('.story-share-bar') as HTMLElement;
-  if (shareBar) shareBar.style.display = 'flex';
+
+  const shareBar = modalEl?.querySelector(".story-share-bar") as HTMLElement;
+  if (shareBar) shareBar.style.display = "flex";
 }
 
 export function closeStoryModal(): void {
@@ -108,11 +132,11 @@ export function closeStoryModal(): void {
 
 function downloadStory(): void {
   if (!currentDataUrl) return;
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = currentDataUrl;
-  a.download = `worldmonitor-${currentData?.countryCode.toLowerCase() || 'story'}-${Date.now()}.png`;
+  a.download = `worldmonitor-${currentData?.countryCode.toLowerCase() || "story"}-${Date.now()}.png`;
   a.click();
-  flashButton('.story-save', 'Saved!', 'Save');
+  flashButton(".story-save", "Saved!", "Save");
 }
 
 async function shareWhatsApp(data: StoryData): Promise<void> {
@@ -121,55 +145,67 @@ async function shareWhatsApp(data: StoryData): Promise<void> {
     return;
   }
 
-  const file = new File([currentBlob], `${data.countryCode.toLowerCase()}-worldmonitor.png`, { type: 'image/png' });
+  const file = new File(
+    [currentBlob],
+    `${data.countryCode.toLowerCase()}-worldmonitor.png`,
+    { type: "image/png" },
+  );
   const urls = getShareUrls(data);
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ 
-        text: shareTexts.whatsapp(data).replace('\n\n', '\n'), 
-        files: [file] 
+      await navigator.share({
+        text: shareTexts.whatsapp(data).replace("\n\n", "\n"),
+        files: [file],
       });
       return;
-    } catch { /* user cancelled */ }
+    } catch {
+      /* user cancelled */
+    }
   }
 
   try {
     await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': currentBlob }),
+      new ClipboardItem({ "image/png": currentBlob }),
     ]);
-    flashButton('.story-whatsapp', 'Copied!', 'WhatsApp');
+    flashButton(".story-whatsapp", "Copied!", "WhatsApp");
   } catch {
     downloadStory();
-    flashButton('.story-whatsapp', 'Saved!', 'WhatsApp');
+    flashButton(".story-whatsapp", "Saved!", "WhatsApp");
   }
-  window.open(urls.whatsapp, '_blank');
+  window.open(urls.whatsapp, "_blank");
 }
 
 async function shareTwitter(data: StoryData): Promise<void> {
   const urls = getShareUrls(data);
-  window.open(urls.twitter, '_blank');
-  flashButton('.story-twitter', 'Opening...', 'X');
+  window.open(urls.twitter, "_blank");
+  flashButton(".story-twitter", "Opening...", "X");
 }
 
 async function shareLinkedIn(data: StoryData): Promise<void> {
   const urls = getShareUrls(data);
-  window.open(urls.linkedin, '_blank');
-  flashButton('.story-linkedin', 'Opening...', 'LinkedIn');
+  window.open(urls.linkedin, "_blank");
+  flashButton(".story-linkedin", "Opening...", "LinkedIn");
 }
 
 async function copyDeepLink(data: StoryData): Promise<void> {
   const link = generateStoryDeepLink(data.countryCode);
   await navigator.clipboard.writeText(link);
-  flashButton('.story-copy', 'Copied!', 'Link');
+  flashButton(".story-copy", "Copied!", "Link");
 }
 
-function flashButton(selector: string, flashText: string, originalText: string): void {
+function flashButton(
+  selector: string,
+  flashText: string,
+  originalText: string,
+): void {
   const btn = modalEl?.querySelector(selector) as HTMLButtonElement;
   if (!btn) return;
-  const span = btn.querySelector('span');
+  const span = btn.querySelector("span");
   if (span) {
     span.textContent = flashText;
-    setTimeout(() => { if (span) span.textContent = originalText; }, 2500);
+    setTimeout(() => {
+      if (span) span.textContent = originalText;
+    }, 2500);
   }
 }

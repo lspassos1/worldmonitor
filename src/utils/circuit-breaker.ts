@@ -9,7 +9,7 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-export type BreakerDataMode = 'live' | 'cached' | 'unavailable';
+export type BreakerDataMode = "live" | "cached" | "unavailable";
 
 export interface BreakerDataState {
   mode: BreakerDataMode;
@@ -28,11 +28,14 @@ const DEFAULT_MAX_FAILURES = 2;
 const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-
 function isDesktopOfflineMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  const hasTauri = Boolean((window as unknown as { __TAURI__?: unknown }).__TAURI__);
-  return hasTauri && typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (typeof window === "undefined") return false;
+  const hasTauri = Boolean(
+    (window as unknown as { __TAURI__?: unknown }).__TAURI__,
+  );
+  return (
+    hasTauri && typeof navigator !== "undefined" && navigator.onLine === false
+  );
 }
 
 export class CircuitBreaker<T> {
@@ -42,7 +45,11 @@ export class CircuitBreaker<T> {
   private maxFailures: number;
   private cooldownMs: number;
   private cacheTtlMs: number;
-  private lastDataState: BreakerDataState = { mode: 'unavailable', timestamp: null, offline: false };
+  private lastDataState: BreakerDataState = {
+    mode: "unavailable",
+    timestamp: null,
+    offline: false,
+  };
 
   constructor(options: CircuitBreakerOptions) {
     this.name = options.name;
@@ -62,19 +69,22 @@ export class CircuitBreaker<T> {
   }
 
   getCooldownRemaining(): number {
-    return Math.max(0, Math.ceil((this.state.cooldownUntil - Date.now()) / 1000));
+    return Math.max(
+      0,
+      Math.ceil((this.state.cooldownUntil - Date.now()) / 1000),
+    );
   }
 
   getStatus(): string {
     if (this.lastDataState.offline) {
-      return this.lastDataState.mode === 'cached'
-        ? 'offline mode (serving cached data)'
-        : 'offline mode (live API unavailable)';
+      return this.lastDataState.mode === "cached"
+        ? "offline mode (serving cached data)"
+        : "offline mode (live API unavailable)";
     }
     if (this.isOnCooldown()) {
       return `temporarily unavailable (retry in ${this.getCooldownRemaining()}s)`;
     }
-    return 'ok';
+    return "ok";
   }
 
   getDataState(): BreakerDataState {
@@ -95,7 +105,11 @@ export class CircuitBreaker<T> {
   recordSuccess(data: T): void {
     this.state = { failures: 0, cooldownUntil: 0 };
     this.cache = { data, timestamp: Date.now() };
-    this.lastDataState = { mode: 'live', timestamp: Date.now(), offline: false };
+    this.lastDataState = {
+      mode: "live",
+      timestamp: Date.now(),
+      offline: false,
+    };
   }
 
   clearCache(): void {
@@ -107,30 +121,42 @@ export class CircuitBreaker<T> {
     this.state.lastError = error;
     if (this.state.failures >= this.maxFailures) {
       this.state.cooldownUntil = Date.now() + this.cooldownMs;
-      console.warn(`[${this.name}] On cooldown for ${this.cooldownMs / 1000}s after ${this.state.failures} failures`);
+      console.warn(
+        `[${this.name}] On cooldown for ${this.cooldownMs / 1000}s after ${this.state.failures} failures`,
+      );
     }
   }
 
   async execute<R extends T>(
     fn: () => Promise<R>,
-    defaultValue: R
+    defaultValue: R,
   ): Promise<R> {
     const offline = isDesktopOfflineMode();
 
     if (this.isOnCooldown()) {
-      console.log(`[${this.name}] Currently unavailable, ${this.getCooldownRemaining()}s remaining`);
+      console.log(
+        `[${this.name}] Currently unavailable, ${this.getCooldownRemaining()}s remaining`,
+      );
       const cachedFallback = this.getCached();
       if (cachedFallback !== null) {
-        this.lastDataState = { mode: 'cached', timestamp: this.cache?.timestamp ?? null, offline };
+        this.lastDataState = {
+          mode: "cached",
+          timestamp: this.cache?.timestamp ?? null,
+          offline,
+        };
         return cachedFallback as R;
       }
-      this.lastDataState = { mode: 'unavailable', timestamp: null, offline };
+      this.lastDataState = { mode: "unavailable", timestamp: null, offline };
       return this.getCachedOrDefault(defaultValue) as R;
     }
 
     const cached = this.getCached();
     if (cached !== null) {
-      this.lastDataState = { mode: 'cached', timestamp: this.cache?.timestamp ?? null, offline };
+      this.lastDataState = {
+        mode: "cached",
+        timestamp: this.cache?.timestamp ?? null,
+        offline,
+      };
       return cached as R;
     }
 
@@ -142,7 +168,11 @@ export class CircuitBreaker<T> {
       const msg = String(e);
       console.error(`[${this.name}] Failed:`, msg);
       this.recordFailure(msg);
-      this.lastDataState = { mode: 'unavailable', timestamp: this.cache?.timestamp ?? null, offline };
+      this.lastDataState = {
+        mode: "unavailable",
+        timestamp: this.cache?.timestamp ?? null,
+        offline,
+      };
       return this.getCachedOrDefault(defaultValue) as R;
     }
   }
@@ -151,7 +181,9 @@ export class CircuitBreaker<T> {
 // Registry of circuit breakers for global status
 const breakers = new Map<string, CircuitBreaker<unknown>>();
 
-export function createCircuitBreaker<T>(options: CircuitBreakerOptions): CircuitBreaker<T> {
+export function createCircuitBreaker<T>(
+  options: CircuitBreakerOptions,
+): CircuitBreaker<T> {
   const breaker = new CircuitBreaker<T>(options);
   breakers.set(options.name, breaker as CircuitBreaker<unknown>);
   return breaker;
@@ -170,12 +202,15 @@ export function isCircuitBreakerOnCooldown(name: string): boolean {
   return breaker ? breaker.isOnCooldown() : false;
 }
 
-export function getCircuitBreakerCooldownInfo(name: string): { onCooldown: boolean; remainingSeconds: number } {
+export function getCircuitBreakerCooldownInfo(name: string): {
+  onCooldown: boolean;
+  remainingSeconds: number;
+} {
   const breaker = breakers.get(name);
   if (!breaker) return { onCooldown: false, remainingSeconds: 0 };
   return {
     onCooldown: breaker.isOnCooldown(),
-    remainingSeconds: breaker.getCooldownRemaining()
+    remainingSeconds: breaker.getCooldownRemaining(),
   };
 }
 

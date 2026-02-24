@@ -1,11 +1,11 @@
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-import { getCachedJson, setCachedJson } from './_upstash-cache.js';
-import { recordCacheTelemetry } from './_cache-telemetry.js';
-import { createIpRateLimiter } from './_ip-rate-limit.js';
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
+import { getCachedJson, setCachedJson } from "./_upstash-cache.js";
+import { recordCacheTelemetry } from "./_cache-telemetry.js";
+import { createIpRateLimiter } from "./_ip-rate-limit.js";
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: "edge" };
 
-const CACHE_KEY = 'ucdp:gedevents:v2';
+const CACHE_KEY = "ucdp:gedevents:v2";
 const CACHE_TTL_SECONDS = 6 * 60 * 60;
 const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
 const UCDP_PAGE_SIZE = 1000;
@@ -21,24 +21,26 @@ const rateLimiter = createIpRateLimiter({
 });
 
 function getClientIp(req) {
-  return req.headers.get('x-forwarded-for')?.split(',')[0] ||
-    req.headers.get('x-real-ip') ||
-    'unknown';
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0] ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
 }
 
 function toErrorMessage(error) {
   if (error instanceof Error) return error.message;
-  return String(error || 'unknown error');
+  return String(error || "unknown error");
 }
 
 function isValidResult(data) {
-  return Boolean(data && typeof data === 'object' && Array.isArray(data.data));
+  return Boolean(data && typeof data === "object" && Array.isArray(data.data));
 }
 
 const VIOLENCE_TYPE_MAP = {
-  1: 'state-based',
-  2: 'non-state',
-  3: 'one-sided',
+  1: "state-based",
+  2: "non-state",
+  3: "one-sided",
 };
 
 function parseDateMs(value) {
@@ -60,12 +62,7 @@ function getMaxDateMs(events) {
 
 function buildVersionCandidates() {
   const year = new Date().getFullYear() - 2000;
-  return Array.from(new Set([
-    `${year}.1`,
-    `${year - 1}.1`,
-    '25.1',
-    '24.1',
-  ]));
+  return Array.from(new Set([`${year}.1`, `${year - 1}.1`, "25.1", "24.1"]));
 }
 
 async function fetchGedPage(version, page) {
@@ -74,10 +71,12 @@ async function fetchGedPage(version, page) {
   try {
     const response = await fetch(
       `https://ucdpapi.pcr.uu.se/api/gedevents/${version}?pagesize=${UCDP_PAGE_SIZE}&page=${page}`,
-      { headers: { Accept: 'application/json' }, signal: controller.signal }
+      { headers: { Accept: "application/json" }, signal: controller.signal },
     );
     if (!response.ok) {
-      throw new Error(`UCDP GED API error (${version}, page ${page}): ${response.status}`);
+      throw new Error(
+        `UCDP GED API error (${version}, page ${page}): ${response.status}`,
+      );
     }
     return response.json();
   } finally {
@@ -97,54 +96,78 @@ async function discoverGedVersion() {
       // Try the next version candidate.
     }
   }
-  throw new Error('Unable to fetch UCDP GED metadata from known API versions');
+  throw new Error("Unable to fetch UCDP GED metadata from known API versions");
 }
 
 export default async function handler(req) {
-  const corsHeaders = getCorsHeaders(req, 'GET, OPTIONS');
+  const corsHeaders = getCorsHeaders(req, "GET, OPTIONS");
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     if (isDisallowedOrigin(req)) {
       return new Response(null, { status: 403, headers: corsHeaders });
     }
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (req.method !== 'GET') {
-    return Response.json({ error: 'Method not allowed', data: [] }, {
-      status: 405, headers: corsHeaders,
-    });
+  if (req.method !== "GET") {
+    return Response.json(
+      { error: "Method not allowed", data: [] },
+      {
+        status: 405,
+        headers: corsHeaders,
+      },
+    );
   }
 
   if (isDisallowedOrigin(req)) {
-    return Response.json({ error: 'Origin not allowed', data: [] }, {
-      status: 403, headers: corsHeaders,
-    });
+    return Response.json(
+      { error: "Origin not allowed", data: [] },
+      {
+        status: 403,
+        headers: corsHeaders,
+      },
+    );
   }
 
   const ip = getClientIp(req);
   if (!rateLimiter.check(ip)) {
-    return Response.json({ error: 'Rate limited', data: [] }, {
-      status: 429,
-      headers: { ...corsHeaders, 'Retry-After': '60' },
-    });
+    return Response.json(
+      { error: "Rate limited", data: [] },
+      {
+        status: 429,
+        headers: { ...corsHeaders, "Retry-After": "60" },
+      },
+    );
   }
 
   const now = Date.now();
   const cached = await getCachedJson(CACHE_KEY);
   if (isValidResult(cached)) {
-    recordCacheTelemetry('/api/ucdp-events', 'REDIS-HIT');
+    recordCacheTelemetry("/api/ucdp-events", "REDIS-HIT");
     return Response.json(cached, {
       status: 200,
-      headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600', 'X-Cache': 'REDIS-HIT' },
+      headers: {
+        ...corsHeaders,
+        "Cache-Control":
+          "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600",
+        "X-Cache": "REDIS-HIT",
+      },
     });
   }
 
-  if (isValidResult(fallbackCache.data) && now - fallbackCache.timestamp < CACHE_TTL_MS) {
-    recordCacheTelemetry('/api/ucdp-events', 'MEMORY-HIT');
+  if (
+    isValidResult(fallbackCache.data) &&
+    now - fallbackCache.timestamp < CACHE_TTL_MS
+  ) {
+    recordCacheTelemetry("/api/ucdp-events", "MEMORY-HIT");
     return Response.json(fallbackCache.data, {
       status: 200,
-      headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600', 'X-Cache': 'MEMORY-HIT' },
+      headers: {
+        ...corsHeaders,
+        "Cache-Control":
+          "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600",
+        "X-Cache": "MEMORY-HIT",
+      },
     });
   }
 
@@ -156,7 +179,11 @@ export default async function handler(req) {
     let allEvents = [];
     let latestDatasetMs = NaN;
 
-    for (let offset = 0; offset < MAX_PAGES && (newestPage - offset) >= 0; offset++) {
+    for (
+      let offset = 0;
+      offset < MAX_PAGES && newestPage - offset >= 0;
+      offset++
+    ) {
       const page = newestPage - offset;
       const rawData = page === 0 ? page0 : await fetchGedPage(version, page);
       const events = Array.isArray(rawData?.Result) ? rawData.Result : [];
@@ -181,27 +208,30 @@ export default async function handler(req) {
         if (!Number.isFinite(latestDatasetMs)) return true;
         const eventMs = parseDateMs(event?.date_start);
         if (!Number.isFinite(eventMs)) return false;
-        return eventMs >= (latestDatasetMs - TRAILING_WINDOW_MS);
+        return eventMs >= latestDatasetMs - TRAILING_WINDOW_MS;
       })
-      .map(e => ({
-        id: String(e.id || ''),
-        date_start: e.date_start || '',
-        date_end: e.date_end || '',
+      .map((e) => ({
+        id: String(e.id || ""),
+        date_start: e.date_start || "",
+        date_end: e.date_end || "",
         latitude: Number(e.latitude) || 0,
         longitude: Number(e.longitude) || 0,
-        country: e.country || '',
-        side_a: (e.side_a || '').substring(0, 200),
-        side_b: (e.side_b || '').substring(0, 200),
+        country: e.country || "",
+        side_a: (e.side_a || "").substring(0, 200),
+        side_b: (e.side_b || "").substring(0, 200),
         deaths_best: Number(e.best) || 0,
         deaths_low: Number(e.low) || 0,
         deaths_high: Number(e.high) || 0,
-        type_of_violence: VIOLENCE_TYPE_MAP[e.type_of_violence] || 'state-based',
-        source_original: (e.source_original || '').substring(0, 300),
+        type_of_violence:
+          VIOLENCE_TYPE_MAP[e.type_of_violence] || "state-based",
+        source_original: (e.source_original || "").substring(0, 300),
       }))
       .sort((a, b) => {
         const bMs = parseDateMs(b.date_start);
         const aMs = parseDateMs(a.date_start);
-        return (Number.isFinite(bMs) ? bMs : 0) - (Number.isFinite(aMs) ? aMs : 0);
+        return (
+          (Number.isFinite(bMs) ? bMs : 0) - (Number.isFinite(aMs) ? aMs : 0)
+        );
       });
 
     const result = {
@@ -214,24 +244,38 @@ export default async function handler(req) {
 
     fallbackCache = { data: result, timestamp: now };
     void setCachedJson(CACHE_KEY, result, CACHE_TTL_SECONDS);
-    recordCacheTelemetry('/api/ucdp-events', 'MISS');
+    recordCacheTelemetry("/api/ucdp-events", "MISS");
 
     return Response.json(result, {
       status: 200,
-      headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600', 'X-Cache': 'MISS' },
+      headers: {
+        ...corsHeaders,
+        "Cache-Control":
+          "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600",
+        "X-Cache": "MISS",
+      },
     });
   } catch (error) {
     if (isValidResult(fallbackCache.data)) {
-      recordCacheTelemetry('/api/ucdp-events', 'STALE');
+      recordCacheTelemetry("/api/ucdp-events", "STALE");
       return Response.json(fallbackCache.data, {
         status: 200,
-        headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=600, s-maxage=600, stale-while-revalidate=120', 'X-Cache': 'STALE' },
+        headers: {
+          ...corsHeaders,
+          "Cache-Control":
+            "public, max-age=600, s-maxage=600, stale-while-revalidate=120",
+          "X-Cache": "STALE",
+        },
       });
     }
 
-    recordCacheTelemetry('/api/ucdp-events', 'ERROR');
-    return Response.json({ error: `Fetch failed: ${toErrorMessage(error)}`, data: [] }, {
-      status: 500, headers: corsHeaders,
-    });
+    recordCacheTelemetry("/api/ucdp-events", "ERROR");
+    return Response.json(
+      { error: `Fetch failed: ${toErrorMessage(error)}`, data: [] },
+      {
+        status: 500,
+        headers: corsHeaders,
+      },
+    );
   }
 }

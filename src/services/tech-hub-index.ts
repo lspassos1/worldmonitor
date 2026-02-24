@@ -1,6 +1,6 @@
-import { STARTUP_ECOSYSTEMS } from '@/config/startup-ecosystems';
-import { TECH_COMPANIES } from '@/config/tech-companies';
-import { STARTUP_HUBS } from '@/config/tech-geo';
+import { STARTUP_ECOSYSTEMS } from "@/config/startup-ecosystems";
+import { TECH_COMPANIES } from "@/config/tech-companies";
+import { STARTUP_HUBS } from "@/config/tech-geo";
 
 export interface TechHubLocation {
   id: string;
@@ -9,8 +9,8 @@ export interface TechHubLocation {
   country: string;
   lat: number;
   lon: number;
-  type: 'ecosystem' | 'company' | 'hub';
-  tier: 'mega' | 'major' | 'emerging';
+  type: "ecosystem" | "company" | "hub";
+  tier: "mega" | "major" | "emerging";
   keywords: string[];
 }
 
@@ -21,11 +21,13 @@ interface TechHubIndex {
 
 let cachedIndex: TechHubIndex | null = null;
 
-function normalizeTier(tier: string | undefined): 'mega' | 'major' | 'emerging' {
-  if (!tier) return 'emerging';
-  if (tier === 'tier1' || tier === 'mega') return 'mega';
-  if (tier === 'tier2' || tier === 'major') return 'major';
-  return 'emerging';
+function normalizeTier(
+  tier: string | undefined,
+): "mega" | "major" | "emerging" {
+  if (!tier) return "emerging";
+  if (tier === "tier1" || tier === "mega") return "mega";
+  if (tier === "tier2" || tier === "major") return "major";
+  return "emerging";
 }
 
 function buildTechHubIndex(): TechHubIndex {
@@ -52,7 +54,7 @@ function buildTechHubIndex(): TechHubIndex {
       country: eco.country,
       lat: eco.lat,
       lon: eco.lon,
-      type: 'ecosystem',
+      type: "ecosystem",
       tier: normalizeTier(eco.ecosystemTier),
       keywords: [],
     };
@@ -121,8 +123,8 @@ function buildTechHubIndex(): TechHubIndex {
         country: company.country,
         lat: company.lat,
         lon: company.lon,
-        type: 'company',
-        tier: 'major',
+        type: "company",
+        tier: "major",
         keywords: [company.name.toLowerCase(), company.city.toLowerCase()],
       };
 
@@ -164,7 +166,7 @@ function buildTechHubIndex(): TechHubIndex {
         country: sh.country,
         lat: sh.lat,
         lon: sh.lon,
-        type: 'hub',
+        type: "hub",
         tier: sh.tier,
         keywords: [sh.city.toLowerCase()],
       };
@@ -181,16 +183,16 @@ function buildTechHubIndex(): TechHubIndex {
 
   // Add common region aliases
   const regionAliases: Record<string, string> = {
-    'silicon valley': 'sf-bay-area',
-    'bay area': 'sf-bay-area',
-    'san francisco bay': 'sf-bay-area',
-    'research triangle': 'raleigh-durham',
-    'startup nation': 'telaviv',
-    'silicon beach': 'la',
-    'silicon savannah': 'nairobi',
-    'station f': 'paris',
-    'zhongguancun': 'beijing',
-    'tech city': 'london',
+    "silicon valley": "sf-bay-area",
+    "bay area": "sf-bay-area",
+    "san francisco bay": "sf-bay-area",
+    "research triangle": "raleigh-durham",
+    "startup nation": "telaviv",
+    "silicon beach": "la",
+    "silicon savannah": "nairobi",
+    "station f": "paris",
+    zhongguancun: "beijing",
+    "tech city": "london",
   };
 
   for (const [alias, hubId] of Object.entries(regionAliases)) {
@@ -228,11 +230,12 @@ export function inferHubsFromTitle(title: string): HubMatch[] {
 
         // Calculate confidence based on keyword length and specificity
         let confidence = 0.5;
-        if (keyword.length >= 10) confidence = 0.9; // Long keywords are specific
+        if (keyword.length >= 10)
+          confidence = 0.9; // Long keywords are specific
         else if (keyword.length >= 6) confidence = 0.7;
 
         // Boost for company names (more specific)
-        if (hub.type === 'company' || keyword === hub.name.toLowerCase()) {
+        if (hub.type === "company" || keyword === hub.name.toLowerCase()) {
           confidence = Math.min(1, confidence + 0.2);
         }
 
@@ -262,7 +265,9 @@ export function getAllHubs(): TechHubLocation[] {
   return Array.from(index.hubs.values());
 }
 
-export function getHubsByTier(tier: 'mega' | 'major' | 'emerging'): TechHubLocation[] {
+export function getHubsByTier(
+  tier: "mega" | "major" | "emerging",
+): TechHubLocation[] {
   const index = buildTechHubIndex();
-  return Array.from(index.hubs.values()).filter(h => h.tier === tier);
+  return Array.from(index.hubs.values()).filter((h) => h.tier === tier);
 }

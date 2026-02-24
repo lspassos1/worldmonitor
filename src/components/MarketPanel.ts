@@ -1,30 +1,42 @@
-import { Panel } from './Panel';
-import type { MarketData, CryptoData } from '@/types';
-import { formatPrice, formatChange, getChangeClass, getHeatmapClass } from '@/utils';
-import { escapeHtml } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import type { MarketData, CryptoData } from "@/types";
+import {
+  formatPrice,
+  formatChange,
+  getChangeClass,
+  getHeatmapClass,
+} from "@/utils";
+import { escapeHtml } from "@/utils/sanitize";
 
-function miniSparkline(data: number[] | undefined, change: number | null, w = 50, h = 16): string {
-  if (!data || data.length < 2) return '';
+function miniSparkline(
+  data: number[] | undefined,
+  change: number | null,
+  w = 50,
+  h = 16,
+): string {
+  if (!data || data.length < 2) return "";
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-  const color = change != null && change >= 0 ? 'var(--green)' : 'var(--red)';
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 2) - 1;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  const color = change != null && change >= 0 ? "var(--green)" : "var(--red)";
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" class="mini-sparkline"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
 export class MarketPanel extends Panel {
   constructor() {
-    super({ id: 'markets', title: 'Markets' });
+    super({ id: "markets", title: "Markets" });
   }
 
   public renderMarkets(data: MarketData[]): void {
     if (data.length === 0) {
-      this.showError('Failed to load market data');
+      this.showError("Failed to load market data");
       return;
     }
 
@@ -42,9 +54,9 @@ export class MarketPanel extends Panel {
           <span class="market-change ${getChangeClass(stock.change!)}">${formatChange(stock.change!)}</span>
         </div>
       </div>
-    `
+    `,
       )
-      .join('');
+      .join("");
 
     this.setContent(html);
   }
@@ -52,14 +64,16 @@ export class MarketPanel extends Panel {
 
 export class HeatmapPanel extends Panel {
   constructor() {
-    super({ id: 'heatmap', title: 'Sector Heatmap' });
+    super({ id: "heatmap", title: "Sector Heatmap" });
   }
 
-  public renderHeatmap(data: Array<{ name: string; change: number | null }>): void {
+  public renderHeatmap(
+    data: Array<{ name: string; change: number | null }>,
+  ): void {
     const validData = data.filter((d) => d.change !== null);
 
     if (validData.length === 0) {
-      this.showError('Failed to load sector data');
+      this.showError("Failed to load sector data");
       return;
     }
 
@@ -72,10 +86,10 @@ export class HeatmapPanel extends Panel {
           <div class="sector-name">${escapeHtml(sector.name)}</div>
           <div class="sector-change ${getChangeClass(sector.change!)}">${formatChange(sector.change!)}</div>
         </div>
-      `
+      `,
         )
-        .join('') +
-      '</div>';
+        .join("") +
+      "</div>";
 
     this.setContent(html);
   }
@@ -83,14 +97,21 @@ export class HeatmapPanel extends Panel {
 
 export class CommoditiesPanel extends Panel {
   constructor() {
-    super({ id: 'commodities', title: 'Commodities / VIX' });
+    super({ id: "commodities", title: "Commodities / VIX" });
   }
 
-  public renderCommodities(data: Array<{ display: string; price: number | null; change: number | null; sparkline?: number[] }>): void {
+  public renderCommodities(
+    data: Array<{
+      display: string;
+      price: number | null;
+      change: number | null;
+      sparkline?: number[];
+    }>,
+  ): void {
     const validData = data.filter((d) => d.price !== null);
 
     if (validData.length === 0) {
-      this.showError('Failed to load commodities');
+      this.showError("Failed to load commodities");
       return;
     }
 
@@ -105,10 +126,10 @@ export class CommoditiesPanel extends Panel {
           <div class="commodity-price">${formatPrice(c.price!)}</div>
           <div class="commodity-change ${getChangeClass(c.change!)}">${formatChange(c.change!)}</div>
         </div>
-      `
+      `,
         )
-        .join('') +
-      '</div>';
+        .join("") +
+      "</div>";
 
     this.setContent(html);
   }
@@ -116,12 +137,12 @@ export class CommoditiesPanel extends Panel {
 
 export class CryptoPanel extends Panel {
   constructor() {
-    super({ id: 'crypto', title: 'Crypto' });
+    super({ id: "crypto", title: "Crypto" });
   }
 
   public renderCrypto(data: CryptoData[]): void {
     if (data.length === 0) {
-      this.showError('Failed to load crypto data');
+      this.showError("Failed to load crypto data");
       return;
     }
 
@@ -139,9 +160,9 @@ export class CryptoPanel extends Panel {
           <span class="market-change ${getChangeClass(coin.change)}">${formatChange(coin.change)}</span>
         </div>
       </div>
-    `
+    `,
       )
-      .join('');
+      .join("");
 
     this.setContent(html);
   }

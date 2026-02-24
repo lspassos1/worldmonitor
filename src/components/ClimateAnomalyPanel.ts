@@ -1,7 +1,7 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
-import type { ClimateAnomaly } from '@/types';
-import { getSeverityIcon, formatDelta } from '@/services/climate';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
+import type { ClimateAnomaly } from "@/types";
+import { getSeverityIcon, formatDelta } from "@/services/climate";
 
 export class ClimateAnomalyPanel extends Panel {
   private anomalies: ClimateAnomaly[] = [];
@@ -9,8 +9,8 @@ export class ClimateAnomalyPanel extends Panel {
 
   constructor() {
     super({
-      id: 'climate',
-      title: 'Climate Anomalies',
+      id: "climate",
+      title: "Climate Anomalies",
       showCount: true,
       trackActivity: true,
       infoTooltip: `<strong>Climate Anomaly Monitor</strong>
@@ -22,10 +22,12 @@ export class ClimateAnomalyPanel extends Panel {
         </ul>
         Monitors 15 conflict/disaster-prone zones.`,
     });
-    this.showLoading('Loading climate data');
+    this.showLoading("Loading climate data");
   }
 
-  public setZoneClickHandler(handler: (lat: number, lon: number) => void): void {
+  public setZoneClickHandler(
+    handler: (lat: number, lon: number) => void,
+  ): void {
     this.onZoneClick = handler;
   }
 
@@ -37,29 +39,35 @@ export class ClimateAnomalyPanel extends Panel {
 
   private renderContent(): void {
     if (this.anomalies.length === 0) {
-      this.setContent('<div class="panel-empty">No significant anomalies detected</div>');
+      this.setContent(
+        '<div class="panel-empty">No significant anomalies detected</div>',
+      );
       return;
     }
 
     const sorted = [...this.anomalies].sort((a, b) => {
       const severityOrder = { extreme: 0, moderate: 1, normal: 2 };
-      return (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2);
+      return (
+        (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2)
+      );
     });
 
-    const rows = sorted.map(a => {
-      const icon = getSeverityIcon(a);
-      const tempClass = a.tempDelta > 0 ? 'climate-warm' : 'climate-cold';
-      const precipClass = a.precipDelta > 0 ? 'climate-wet' : 'climate-dry';
-      const sevClass = `severity-${a.severity}`;
-      const rowClass = a.severity === 'extreme' ? ' climate-extreme-row' : '';
+    const rows = sorted
+      .map((a) => {
+        const icon = getSeverityIcon(a);
+        const tempClass = a.tempDelta > 0 ? "climate-warm" : "climate-cold";
+        const precipClass = a.precipDelta > 0 ? "climate-wet" : "climate-dry";
+        const sevClass = `severity-${a.severity}`;
+        const rowClass = a.severity === "extreme" ? " climate-extreme-row" : "";
 
-      return `<tr class="climate-row${rowClass}" data-lat="${a.lat}" data-lon="${a.lon}">
+        return `<tr class="climate-row${rowClass}" data-lat="${a.lat}" data-lon="${a.lon}">
         <td class="climate-zone"><span class="climate-icon">${icon}</span>${escapeHtml(a.zone)}</td>
-        <td class="climate-num ${tempClass}">${formatDelta(a.tempDelta, '°C')}</td>
-        <td class="climate-num ${precipClass}">${formatDelta(a.precipDelta, 'mm')}</td>
+        <td class="climate-num ${tempClass}">${formatDelta(a.tempDelta, "°C")}</td>
+        <td class="climate-num ${precipClass}">${formatDelta(a.precipDelta, "mm")}</td>
         <td><span class="climate-badge ${sevClass}">${a.severity.toUpperCase()}</span></td>
       </tr>`;
-    }).join('');
+      })
+      .join("");
 
     this.setContent(`
       <div class="climate-panel-content">
@@ -99,11 +107,12 @@ export class ClimateAnomalyPanel extends Panel {
       </style>
     `);
 
-    this.content.querySelectorAll('.climate-row').forEach(el => {
-      el.addEventListener('click', () => {
+    this.content.querySelectorAll(".climate-row").forEach((el) => {
+      el.addEventListener("click", () => {
         const lat = Number((el as HTMLElement).dataset.lat);
         const lon = Number((el as HTMLElement).dataset.lon);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) this.onZoneClick?.(lat, lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon))
+          this.onZoneClick?.(lat, lon);
       });
     });
   }

@@ -1,5 +1,5 @@
-import { createCircuitBreaker } from '@/utils';
-import type { CountryPopulation, PopulationExposure } from '@/types';
+import { createCircuitBreaker } from "@/utils";
+import type { CountryPopulation, PopulationExposure } from "@/types";
 
 interface CountriesResponse {
   success: boolean;
@@ -14,25 +14,34 @@ interface ExposureResponse {
   densityPerKm2: number;
 }
 
-const countriesBreaker = createCircuitBreaker<CountriesResponse>({ name: 'WorldPop Countries' });
+const countriesBreaker = createCircuitBreaker<CountriesResponse>({
+  name: "WorldPop Countries",
+});
 
 export async function fetchCountryPopulations(): Promise<CountryPopulation[]> {
-  const result = await countriesBreaker.execute(async () => {
-    const response = await fetch('/api/worldpop-exposure?mode=countries', {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
-  }, { success: false, countries: [] });
+  const result = await countriesBreaker.execute(
+    async () => {
+      const response = await fetch("/api/worldpop-exposure?mode=countries", {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    },
+    { success: false, countries: [] },
+  );
 
   return result.countries;
 }
 
-export async function fetchExposure(lat: number, lon: number, radiusKm: number): Promise<ExposureResponse | null> {
+export async function fetchExposure(
+  lat: number,
+  lon: number,
+  radiusKm: number,
+): Promise<ExposureResponse | null> {
   try {
     const response = await fetch(
       `/api/worldpop-exposure?mode=exposure&lat=${lat}&lon=${lon}&radius=${radiusKm}`,
-      { headers: { Accept: 'application/json' } }
+      { headers: { Accept: "application/json" } },
     );
     if (!response.ok) return null;
     return response.json();
@@ -51,18 +60,18 @@ interface EventForExposure {
 
 function getRadiusForEventType(type: string): number {
   switch (type) {
-    case 'conflict':
-    case 'battle':
-    case 'state-based':
-    case 'non-state':
-    case 'one-sided':
+    case "conflict":
+    case "battle":
+    case "state-based":
+    case "non-state":
+    case "one-sided":
       return 50;
-    case 'earthquake':
+    case "earthquake":
       return 100;
-    case 'flood':
+    case "flood":
       return 100;
-    case 'fire':
-    case 'wildfire':
+    case "fire":
+    case "wildfire":
       return 30;
     default:
       return 50;
@@ -91,11 +100,11 @@ export async function enrichEventsWithExposure(
           exposedPopulation: exposure.exposedPopulation,
           exposureRadiusKm: radius,
         } as PopulationExposure;
-      })
+      }),
     );
 
     for (const r of batchResults) {
-      if (r.status === 'fulfilled' && r.value) results.push(r.value);
+      if (r.status === "fulfilled" && r.value) results.push(r.value);
     }
   }
 

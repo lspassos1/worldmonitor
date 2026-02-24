@@ -1,18 +1,19 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: "edge" };
 
-const RELEASES_URL = 'https://api.github.com/repos/koala73/worldmonitor/releases/latest';
-const RELEASES_PAGE = 'https://github.com/koala73/worldmonitor/releases/latest';
+const RELEASES_URL =
+  "https://api.github.com/repos/koala73/worldmonitor/releases/latest";
+const RELEASES_PAGE = "https://github.com/koala73/worldmonitor/releases/latest";
 
 const PLATFORM_PATTERNS = {
-  'windows-exe': (name) => name.endsWith('_x64-setup.exe'),
-  'windows-msi': (name) => name.endsWith('_x64_en-US.msi'),
-  'macos-arm64': (name) => name.endsWith('_aarch64.dmg'),
-  'macos-x64': (name) => name.endsWith('_x64.dmg') && !name.includes('setup'),
+  "windows-exe": (name) => name.endsWith("_x64-setup.exe"),
+  "windows-msi": (name) => name.endsWith("_x64_en-US.msi"),
+  "macos-arm64": (name) => name.endsWith("_aarch64.dmg"),
+  "macos-x64": (name) => name.endsWith("_x64.dmg") && !name.includes("setup"),
 };
 
 export default async function handler(req) {
   const url = new URL(req.url);
-  const platform = url.searchParams.get('platform');
+  const platform = url.searchParams.get("platform");
 
   if (!platform || !PLATFORM_PATTERNS[platform]) {
     return Response.redirect(RELEASES_PAGE, 302);
@@ -21,8 +22,8 @@ export default async function handler(req) {
   try {
     const res = await fetch(RELEASES_URL, {
       headers: {
-        'Accept': 'application/vnd.github+json',
-        'User-Agent': 'WorldMonitor-Download-Redirect',
+        Accept: "application/vnd.github+json",
+        "User-Agent": "WorldMonitor-Download-Redirect",
       },
     });
 
@@ -41,8 +42,8 @@ export default async function handler(req) {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': asset.browser_download_url,
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
+        Location: asset.browser_download_url,
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60",
       },
     });
   } catch {

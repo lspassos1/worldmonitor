@@ -10,45 +10,49 @@ export interface ModelConfig {
   size: number;
   priority: number;
   required: boolean;
-  task: 'feature-extraction' | 'text-classification' | 'text2text-generation' | 'token-classification';
+  task:
+    | "feature-extraction"
+    | "text-classification"
+    | "text2text-generation"
+    | "token-classification";
 }
 
 export const MODEL_CONFIGS: ModelConfig[] = [
   {
-    id: 'embeddings',
-    name: 'all-MiniLM-L6-v2',
-    hfModel: 'Xenova/all-MiniLM-L6-v2',
+    id: "embeddings",
+    name: "all-MiniLM-L6-v2",
+    hfModel: "Xenova/all-MiniLM-L6-v2",
     size: 23_000_000,
     priority: 1,
     required: true,
-    task: 'feature-extraction',
+    task: "feature-extraction",
   },
   {
-    id: 'sentiment',
-    name: 'DistilBERT-SST2',
-    hfModel: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english',
+    id: "sentiment",
+    name: "DistilBERT-SST2",
+    hfModel: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
     size: 65_000_000,
     priority: 2,
     required: false,
-    task: 'text-classification',
+    task: "text-classification",
   },
   {
-    id: 'summarization',
-    name: 'Flan-T5-base',
-    hfModel: 'Xenova/flan-t5-base',
+    id: "summarization",
+    name: "Flan-T5-base",
+    hfModel: "Xenova/flan-t5-base",
     size: 250_000_000,
     priority: 3,
     required: false,
-    task: 'text2text-generation',
+    task: "text2text-generation",
   },
   {
-    id: 'ner',
-    name: 'BERT-NER',
-    hfModel: 'Xenova/bert-base-NER',
+    id: "ner",
+    name: "BERT-NER",
+    hfModel: "Xenova/bert-base-NER",
     size: 65_000_000,
     priority: 4,
     required: false,
-    task: 'token-classification',
+    task: "token-classification",
   },
 ];
 
@@ -70,11 +74,11 @@ export const ML_THRESHOLDS = {
 };
 
 export function getModelConfig(modelId: string): ModelConfig | undefined {
-  return MODEL_CONFIGS.find(m => m.id === modelId);
+  return MODEL_CONFIGS.find((m) => m.id === modelId);
 }
 
 export function getRequiredModels(): ModelConfig[] {
-  return MODEL_CONFIGS.filter(m => m.required);
+  return MODEL_CONFIGS.filter((m) => m.required);
 }
 
 export function getModelsByPriority(): ModelConfig[] {

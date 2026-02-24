@@ -1,12 +1,12 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: "edge" };
 
-function parseFlag(value, fallback = '1') {
-  if (value === '0' || value === '1') return value;
+function parseFlag(value, fallback = "1") {
+  if (value === "0" || value === "1") return value;
   return fallback;
 }
 
 function sanitizeVideoId(value) {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== "string") return null;
   return /^[A-Za-z0-9_-]{11}$/.test(value) ? value : null;
 }
 
@@ -20,43 +20,49 @@ const ALLOWED_ORIGINS = [
 ];
 
 function sanitizeOrigin(raw) {
-  if (!raw) return 'https://worldmonitor.app';
+  if (!raw) return "https://worldmonitor.app";
   try {
     const parsed = new URL(raw);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:' && parsed.protocol !== 'tauri:') {
-      return 'https://worldmonitor.app';
+    if (
+      parsed.protocol !== "https:" &&
+      parsed.protocol !== "http:" &&
+      parsed.protocol !== "tauri:"
+    ) {
+      return "https://worldmonitor.app";
     }
-    const origin = parsed.origin !== 'null' ? parsed.origin : raw;
-    if (ALLOWED_ORIGINS.some(p => p.test(origin))) return origin;
-  } catch { /* invalid URL */ }
-  return 'https://worldmonitor.app';
+    const origin = parsed.origin !== "null" ? parsed.origin : raw;
+    if (ALLOWED_ORIGINS.some((p) => p.test(origin))) return origin;
+  } catch {
+    /* invalid URL */
+  }
+  return "https://worldmonitor.app";
 }
 
 export default async function handler(request) {
   const url = new URL(request.url);
-  const videoId = sanitizeVideoId(url.searchParams.get('videoId'));
+  const videoId = sanitizeVideoId(url.searchParams.get("videoId"));
 
   if (!videoId) {
-    return new Response('Missing or invalid videoId', {
+    return new Response("Missing or invalid videoId", {
       status: 400,
-      headers: { 'content-type': 'text/plain; charset=utf-8' },
+      headers: { "content-type": "text/plain; charset=utf-8" },
     });
   }
 
-  const autoplay = parseFlag(url.searchParams.get('autoplay'), '1');
-  const mute = parseFlag(url.searchParams.get('mute'), '1');
+  const autoplay = parseFlag(url.searchParams.get("autoplay"), "1");
+  const mute = parseFlag(url.searchParams.get("mute"), "1");
 
-  const origin = sanitizeOrigin(url.searchParams.get('origin'));
+  const origin = sanitizeOrigin(url.searchParams.get("origin"));
 
   const embedSrc = new URL(`https://www.youtube-nocookie.com/embed/${videoId}`);
-  embedSrc.searchParams.set('autoplay', autoplay);
-  embedSrc.searchParams.set('mute', mute);
-  embedSrc.searchParams.set('playsinline', '1');
-  embedSrc.searchParams.set('rel', '0');
-  embedSrc.searchParams.set('controls', '1');
-  embedSrc.searchParams.set('enablejsapi', '1');
-  embedSrc.searchParams.set('origin', origin);
-  embedSrc.searchParams.set('widget_referrer', origin);
+  embedSrc.searchParams.set("autoplay", autoplay);
+  embedSrc.searchParams.set("mute", mute);
+  embedSrc.searchParams.set("playsinline", "1");
+  embedSrc.searchParams.set("rel", "0");
+  embedSrc.searchParams.set("controls", "1");
+  embedSrc.searchParams.set("enablejsapi", "1");
+  embedSrc.searchParams.set("origin", origin);
+  embedSrc.searchParams.set("widget_referrer", origin);
 
   const html = `<!doctype html>
 <html lang="en">
@@ -121,8 +127,8 @@ export default async function handler(request) {
   return new Response(html, {
     status: 200,
     headers: {
-      'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'public, s-maxage=60, stale-while-revalidate=300',
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
     },
   });
 }

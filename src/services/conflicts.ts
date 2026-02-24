@@ -1,7 +1,11 @@
-import { createCircuitBreaker } from '@/utils';
-import { isFeatureAvailable } from './runtime-config';
+import { createCircuitBreaker } from "@/utils";
+import { isFeatureAvailable } from "./runtime-config";
 
-export type ConflictEventType = 'battle' | 'explosion' | 'remote_violence' | 'violence_against_civilians';
+export type ConflictEventType =
+  | "battle"
+  | "explosion"
+  | "remote_violence"
+  | "violence_against_civilians";
 
 export interface ConflictEvent {
   id: string;
@@ -42,46 +46,50 @@ interface AcledConflictEvent {
   source: string;
 }
 
-const conflictBreaker = createCircuitBreaker<ConflictEvent[]>({ name: 'ACLED Conflicts' });
+const conflictBreaker = createCircuitBreaker<ConflictEvent[]>({
+  name: "ACLED Conflicts",
+});
 
 function mapEventType(eventType: string): ConflictEventType {
   const lower = eventType.toLowerCase();
-  if (lower.includes('battle')) return 'battle';
-  if (lower.includes('explosion')) return 'explosion';
-  if (lower.includes('remote violence')) return 'remote_violence';
-  if (lower.includes('violence against')) return 'violence_against_civilians';
-  return 'battle';
+  if (lower.includes("battle")) return "battle";
+  if (lower.includes("explosion")) return "explosion";
+  if (lower.includes("remote violence")) return "remote_violence";
+  if (lower.includes("violence against")) return "violence_against_civilians";
+  return "battle";
 }
 
 async function fetchAcledConflictEvents(): Promise<ConflictEvent[]> {
-  if (!isFeatureAvailable('acledConflicts')) return [];
+  if (!isFeatureAvailable("acledConflicts")) return [];
 
   return conflictBreaker.execute(async () => {
-    const response = await fetch('/api/acled-conflict', {
-      headers: { Accept: 'application/json' },
+    const response = await fetch("/api/acled-conflict", {
+      headers: { Accept: "application/json" },
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const result = await response.json();
-    if (result.configured === false) throw new Error('ACLED not configured');
+    if (result.configured === false) throw new Error("ACLED not configured");
 
     const events: AcledConflictEvent[] = result.data || [];
 
-    return events.map((e): ConflictEvent => ({
-      id: `conflict-${e.event_id_cnty}`,
-      eventType: mapEventType(e.event_type),
-      subEventType: e.sub_event_type || '',
-      country: e.country,
-      region: e.admin1,
-      location: e.location,
-      lat: parseFloat(e.latitude),
-      lon: parseFloat(e.longitude),
-      time: new Date(e.event_date),
-      fatalities: parseInt(e.fatalities, 10) || 0,
-      actors: [e.actor1, e.actor2].filter(Boolean) as string[],
-      source: e.source || '',
-    }));
+    return events.map(
+      (e): ConflictEvent => ({
+        id: `conflict-${e.event_id_cnty}`,
+        eventType: mapEventType(e.event_type),
+        subEventType: e.sub_event_type || "",
+        country: e.country,
+        region: e.admin1,
+        location: e.location,
+        lat: parseFloat(e.latitude),
+        lon: parseFloat(e.longitude),
+        time: new Date(e.event_date),
+        fatalities: parseInt(e.fatalities, 10) || 0,
+        actors: [e.actor1, e.actor2].filter(Boolean) as string[],
+        source: e.source || "",
+      }),
+    );
   }, []);
 }
 

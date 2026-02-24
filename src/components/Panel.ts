@@ -1,4 +1,4 @@
-import { escapeHtml } from '../utils/sanitize';
+import { escapeHtml } from "../utils/sanitize";
 
 export interface PanelOptions {
   id: string;
@@ -9,7 +9,7 @@ export interface PanelOptions {
   infoTooltip?: string;
 }
 
-const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+const PANEL_SPANS_KEY = "worldmonitor-panel-spans";
 
 function loadPanelSpans(): Record<string, number> {
   try {
@@ -39,9 +39,9 @@ function heightToSpan(height: number): number {
 }
 
 function setSpanClass(element: HTMLElement, span: number): void {
-  element.classList.remove('span-1', 'span-2', 'span-3', 'span-4');
+  element.classList.remove("span-1", "span-2", "span-3", "span-4");
   element.classList.add(`span-${span}`);
-  element.classList.add('resized');
+  element.classList.add("resized");
 }
 
 export class Panel {
@@ -63,41 +63,41 @@ export class Panel {
 
   constructor(options: PanelOptions) {
     this.panelId = options.id;
-    this.element = document.createElement('div');
-    this.element.className = `panel ${options.className || ''}`;
+    this.element = document.createElement("div");
+    this.element.className = `panel ${options.className || ""}`;
     this.element.dataset.panel = options.id;
 
-    this.header = document.createElement('div');
-    this.header.className = 'panel-header';
+    this.header = document.createElement("div");
+    this.header.className = "panel-header";
 
-    const headerLeft = document.createElement('div');
-    headerLeft.className = 'panel-header-left';
+    const headerLeft = document.createElement("div");
+    headerLeft.className = "panel-header-left";
 
-    const title = document.createElement('span');
-    title.className = 'panel-title';
+    const title = document.createElement("span");
+    title.className = "panel-title";
     title.textContent = options.title;
     headerLeft.appendChild(title);
 
     if (options.infoTooltip) {
-      const infoBtn = document.createElement('button');
-      infoBtn.className = 'panel-info-btn';
-      infoBtn.innerHTML = '?';
-      infoBtn.setAttribute('aria-label', 'Show methodology info');
+      const infoBtn = document.createElement("button");
+      infoBtn.className = "panel-info-btn";
+      infoBtn.innerHTML = "?";
+      infoBtn.setAttribute("aria-label", "Show methodology info");
 
-      const tooltip = document.createElement('div');
-      tooltip.className = 'panel-info-tooltip';
+      const tooltip = document.createElement("div");
+      tooltip.className = "panel-info-tooltip";
       tooltip.innerHTML = options.infoTooltip;
 
-      infoBtn.addEventListener('click', (e) => {
+      infoBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        tooltip.classList.toggle('visible');
+        tooltip.classList.toggle("visible");
       });
 
-      this.tooltipCloseHandler = () => tooltip.classList.remove('visible');
-      document.addEventListener('click', this.tooltipCloseHandler);
+      this.tooltipCloseHandler = () => tooltip.classList.remove("visible");
+      document.addEventListener("click", this.tooltipCloseHandler);
 
-      const infoWrapper = document.createElement('div');
-      infoWrapper.className = 'panel-info-wrapper';
+      const infoWrapper = document.createElement("div");
+      infoWrapper.className = "panel-info-wrapper";
       infoWrapper.appendChild(infoBtn);
       infoWrapper.appendChild(tooltip);
       headerLeft.appendChild(infoWrapper);
@@ -105,37 +105,37 @@ export class Panel {
 
     // Add "new" badge element (hidden by default)
     if (options.trackActivity !== false) {
-      this.newBadgeEl = document.createElement('span');
-      this.newBadgeEl.className = 'panel-new-badge';
-      this.newBadgeEl.style.display = 'none';
+      this.newBadgeEl = document.createElement("span");
+      this.newBadgeEl.className = "panel-new-badge";
+      this.newBadgeEl.style.display = "none";
       headerLeft.appendChild(this.newBadgeEl);
     }
 
     this.header.appendChild(headerLeft);
 
-    this.statusBadgeEl = document.createElement('span');
-    this.statusBadgeEl.className = 'panel-data-badge';
-    this.statusBadgeEl.style.display = 'none';
+    this.statusBadgeEl = document.createElement("span");
+    this.statusBadgeEl.className = "panel-data-badge";
+    this.statusBadgeEl.style.display = "none";
     this.header.appendChild(this.statusBadgeEl);
 
     if (options.showCount) {
-      this.countEl = document.createElement('span');
-      this.countEl.className = 'panel-count';
-      this.countEl.textContent = '0';
+      this.countEl = document.createElement("span");
+      this.countEl.className = "panel-count";
+      this.countEl.textContent = "0";
       this.header.appendChild(this.countEl);
     }
 
-    this.content = document.createElement('div');
-    this.content.className = 'panel-content';
+    this.content = document.createElement("div");
+    this.content.className = "panel-content";
     this.content.id = `${options.id}Content`;
 
     this.element.appendChild(this.header);
     this.element.appendChild(this.content);
 
     // Add resize handle
-    this.resizeHandle = document.createElement('div');
-    this.resizeHandle.className = 'panel-resize-handle';
-    this.resizeHandle.title = 'Drag to resize (double-click to reset)';
+    this.resizeHandle = document.createElement("div");
+    this.resizeHandle.className = "panel-resize-handle";
+    this.resizeHandle.title = "Drag to resize (double-click to reset)";
     this.resizeHandle.draggable = false; // Prevent parent's drag from capturing
     this.element.appendChild(this.resizeHandle);
     this.setupResizeHandlers();
@@ -159,11 +159,11 @@ export class Panel {
       this.isResizing = true;
       this.startY = e.clientY;
       this.startHeight = this.element.getBoundingClientRect().height;
-      this.element.classList.add('resizing');
+      this.element.classList.add("resizing");
       this.element.draggable = false;
-      this.resizeHandle?.classList.add('active');
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      this.resizeHandle?.classList.add("active");
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
     };
 
     const onMouseMove = (e: MouseEvent) => {
@@ -177,54 +177,70 @@ export class Panel {
     const onMouseUp = () => {
       if (!this.isResizing) return;
       this.isResizing = false;
-      this.element.classList.remove('resizing');
+      this.element.classList.remove("resizing");
       this.element.draggable = true;
-      this.resizeHandle?.classList.remove('active');
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      this.resizeHandle?.classList.remove("active");
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
 
-      const currentSpan = this.element.classList.contains('span-4') ? 4 :
-                          this.element.classList.contains('span-3') ? 3 :
-                          this.element.classList.contains('span-2') ? 2 : 1;
+      const currentSpan = this.element.classList.contains("span-4")
+        ? 4
+        : this.element.classList.contains("span-3")
+          ? 3
+          : this.element.classList.contains("span-2")
+            ? 2
+            : 1;
       savePanelSpan(this.panelId, currentSpan);
     };
 
-    this.resizeHandle.addEventListener('mousedown', onMouseDown);
+    this.resizeHandle.addEventListener("mousedown", onMouseDown);
 
     // Prevent panel drag when resizing (capture phase runs before App.ts listener)
-    this.element.addEventListener('dragstart', (e) => {
-      const target = e.target as HTMLElement;
-      if (this.isResizing || target === this.resizeHandle || target.closest('.panel-resize-handle')) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return false;
-      }
-    }, true);
+    this.element.addEventListener(
+      "dragstart",
+      (e) => {
+        const target = e.target as HTMLElement;
+        if (
+          this.isResizing ||
+          target === this.resizeHandle ||
+          target.closest(".panel-resize-handle")
+        ) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return false;
+        }
+      },
+      true,
+    );
 
     // Mark element as resizing for external listeners
-    this.resizeHandle.addEventListener('mousedown', () => {
-      this.element.dataset.resizing = 'true';
+    this.resizeHandle.addEventListener("mousedown", () => {
+      this.element.dataset.resizing = "true";
     });
 
     // Double-click to reset
-    this.resizeHandle.addEventListener('dblclick', () => {
+    this.resizeHandle.addEventListener("dblclick", () => {
       this.resetHeight();
     });
 
     // Touch support
-    this.resizeHandle.addEventListener('touchstart', (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const touch = e.touches[0];
-      if (!touch) return;
-      this.isResizing = true;
-      this.startY = touch.clientY;
-      this.startHeight = this.element.getBoundingClientRect().height;
-      this.element.classList.add('resizing');
-      this.element.draggable = false;
-      this.element.dataset.resizing = 'true';
-      this.resizeHandle?.classList.add('active');
-    }, { passive: false });
+    this.resizeHandle.addEventListener(
+      "touchstart",
+      (e: TouchEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        if (!touch) return;
+        this.isResizing = true;
+        this.startY = touch.clientY;
+        this.startHeight = this.element.getBoundingClientRect().height;
+        this.element.classList.add("resizing");
+        this.element.draggable = false;
+        this.element.dataset.resizing = "true";
+        this.resizeHandle?.classList.add("active");
+      },
+      { passive: false },
+    );
 
     // Use bound handlers so they can be removed in destroy()
     this.onTouchMove = (e: TouchEvent) => {
@@ -240,13 +256,17 @@ export class Panel {
     this.onTouchEnd = () => {
       if (!this.isResizing) return;
       this.isResizing = false;
-      this.element.classList.remove('resizing');
+      this.element.classList.remove("resizing");
       this.element.draggable = true;
       delete this.element.dataset.resizing;
-      this.resizeHandle?.classList.remove('active');
-      const currentSpan = this.element.classList.contains('span-4') ? 4 :
-                          this.element.classList.contains('span-3') ? 3 :
-                          this.element.classList.contains('span-2') ? 2 : 1;
+      this.resizeHandle?.classList.remove("active");
+      const currentSpan = this.element.classList.contains("span-4")
+        ? 4
+        : this.element.classList.contains("span-3")
+          ? 3
+          : this.element.classList.contains("span-2")
+            ? 2
+            : 1;
       savePanelSpan(this.panelId, currentSpan);
     };
 
@@ -256,29 +276,39 @@ export class Panel {
       }
     };
 
-    document.addEventListener('touchmove', this.onTouchMove, { passive: false });
-    document.addEventListener('touchend', this.onTouchEnd);
-    document.addEventListener('mouseup', this.onDocMouseUp);
+    document.addEventListener("touchmove", this.onTouchMove, {
+      passive: false,
+    });
+    document.addEventListener("touchend", this.onTouchEnd);
+    document.addEventListener("mouseup", this.onDocMouseUp);
   }
 
-
-  protected setDataBadge(state: 'live' | 'cached' | 'unavailable', detail?: string): void {
+  protected setDataBadge(
+    state: "live" | "cached" | "unavailable",
+    detail?: string,
+  ): void {
     if (!this.statusBadgeEl) return;
-    const labels = { live: 'LIVE', cached: 'CACHED', unavailable: 'UNAVAILABLE' } as const;
-    this.statusBadgeEl.textContent = detail ? `${labels[state]} · ${detail}` : labels[state];
+    const labels = {
+      live: "LIVE",
+      cached: "CACHED",
+      unavailable: "UNAVAILABLE",
+    } as const;
+    this.statusBadgeEl.textContent = detail
+      ? `${labels[state]} · ${detail}`
+      : labels[state];
     this.statusBadgeEl.className = `panel-data-badge ${state}`;
-    this.statusBadgeEl.style.display = 'inline-flex';
+    this.statusBadgeEl.style.display = "inline-flex";
   }
 
   protected clearDataBadge(): void {
     if (!this.statusBadgeEl) return;
-    this.statusBadgeEl.style.display = 'none';
+    this.statusBadgeEl.style.display = "none";
   }
   public getElement(): HTMLElement {
     return this.element;
   }
 
-  public showLoading(message = 'Loading'): void {
+  public showLoading(message = "Loading"): void {
     this.content.innerHTML = `
       <div class="panel-loading">
         <div class="panel-loading-radar">
@@ -290,7 +320,7 @@ export class Panel {
     `;
   }
 
-  public showError(message = 'Failed to load data'): void {
+  public showError(message = "Failed to load data"): void {
     this.content.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
   }
 
@@ -301,11 +331,11 @@ export class Panel {
   }
 
   public setErrorState(hasError: boolean, tooltip?: string): void {
-    this.header.classList.toggle('panel-header-error', hasError);
+    this.header.classList.toggle("panel-header-error", hasError);
     if (tooltip) {
       this.header.title = tooltip;
     } else {
-      this.header.removeAttribute('title');
+      this.header.removeAttribute("title");
     }
   }
 
@@ -314,11 +344,11 @@ export class Panel {
   }
 
   public show(): void {
-    this.element.classList.remove('hidden');
+    this.element.classList.remove("hidden");
   }
 
   public hide(): void {
-    this.element.classList.add('hidden');
+    this.element.classList.add("hidden");
   }
 
   public toggle(visible: boolean): void {
@@ -335,20 +365,20 @@ export class Panel {
     if (!this.newBadgeEl) return;
 
     if (count <= 0) {
-      this.newBadgeEl.style.display = 'none';
-      this.newBadgeEl.classList.remove('pulse');
-      this.element.classList.remove('has-new');
+      this.newBadgeEl.style.display = "none";
+      this.newBadgeEl.classList.remove("pulse");
+      this.element.classList.remove("has-new");
       return;
     }
 
-    this.newBadgeEl.textContent = count > 99 ? '99+' : `${count} new`;
-    this.newBadgeEl.style.display = 'inline-flex';
-    this.element.classList.add('has-new');
+    this.newBadgeEl.textContent = count > 99 ? "99+" : `${count} new`;
+    this.newBadgeEl.style.display = "inline-flex";
+    this.element.classList.add("has-new");
 
     if (pulse) {
-      this.newBadgeEl.classList.add('pulse');
+      this.newBadgeEl.classList.add("pulse");
     } else {
-      this.newBadgeEl.classList.remove('pulse');
+      this.newBadgeEl.classList.remove("pulse");
     }
   }
 
@@ -370,7 +400,13 @@ export class Panel {
    * Reset panel height to default
    */
   public resetHeight(): void {
-    this.element.classList.remove('resized', 'span-1', 'span-2', 'span-3', 'span-4');
+    this.element.classList.remove(
+      "resized",
+      "span-1",
+      "span-2",
+      "span-3",
+      "span-4",
+    );
     const spans = loadPanelSpans();
     delete spans[this.panelId];
     localStorage.setItem(PANEL_SPANS_KEY, JSON.stringify(spans));
@@ -381,19 +417,19 @@ export class Panel {
    */
   public destroy(): void {
     if (this.tooltipCloseHandler) {
-      document.removeEventListener('click', this.tooltipCloseHandler);
+      document.removeEventListener("click", this.tooltipCloseHandler);
       this.tooltipCloseHandler = null;
     }
     if (this.onTouchMove) {
-      document.removeEventListener('touchmove', this.onTouchMove);
+      document.removeEventListener("touchmove", this.onTouchMove);
       this.onTouchMove = null;
     }
     if (this.onTouchEnd) {
-      document.removeEventListener('touchend', this.onTouchEnd);
+      document.removeEventListener("touchend", this.onTouchEnd);
       this.onTouchEnd = null;
     }
     if (this.onDocMouseUp) {
-      document.removeEventListener('mouseup', this.onDocMouseUp);
+      document.removeEventListener("mouseup", this.onDocMouseUp);
       this.onDocMouseUp = null;
     }
   }

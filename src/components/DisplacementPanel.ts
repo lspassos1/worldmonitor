@@ -1,19 +1,19 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
-import type { UnhcrSummary, CountryDisplacement } from '@/types';
-import { formatPopulation } from '@/services/unhcr';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
+import type { UnhcrSummary, CountryDisplacement } from "@/types";
+import { formatPopulation } from "@/services/unhcr";
 
-type DisplacementTab = 'origins' | 'hosts';
+type DisplacementTab = "origins" | "hosts";
 
 export class DisplacementPanel extends Panel {
   private data: UnhcrSummary | null = null;
-  private activeTab: DisplacementTab = 'origins';
+  private activeTab: DisplacementTab = "origins";
   private onCountryClick?: (lat: number, lon: number) => void;
 
   constructor() {
     super({
-      id: 'displacement',
-      title: 'UNHCR Displacement',
+      id: "displacement",
+      title: "UNHCR Displacement",
       showCount: true,
       trackActivity: true,
       infoTooltip: `<strong>UNHCR Displacement Data</strong>
@@ -25,10 +25,12 @@ export class DisplacementPanel extends Panel {
         </ul>
         Data updates yearly. CC BY 4.0 license.`,
     });
-    this.showLoading('Loading displacement data');
+    this.showLoading("Loading displacement data");
   }
 
-  public setCountryClickHandler(handler: (lat: number, lon: number) => void): void {
+  public setCountryClickHandler(
+    handler: (lat: number, lon: number) => void,
+  ): void {
     this.onCountryClick = handler;
   }
 
@@ -44,34 +46,52 @@ export class DisplacementPanel extends Panel {
     const g = this.data.globalTotals;
 
     const stats = [
-      { label: 'Refugees', value: formatPopulation(g.refugees), cls: 'disp-stat-refugees' },
-      { label: 'Asylum Seekers', value: formatPopulation(g.asylumSeekers), cls: 'disp-stat-asylum' },
-      { label: 'IDPs', value: formatPopulation(g.idps), cls: 'disp-stat-idps' },
-      { label: 'Total', value: formatPopulation(g.total), cls: 'disp-stat-total' },
+      {
+        label: "Refugees",
+        value: formatPopulation(g.refugees),
+        cls: "disp-stat-refugees",
+      },
+      {
+        label: "Asylum Seekers",
+        value: formatPopulation(g.asylumSeekers),
+        cls: "disp-stat-asylum",
+      },
+      { label: "IDPs", value: formatPopulation(g.idps), cls: "disp-stat-idps" },
+      {
+        label: "Total",
+        value: formatPopulation(g.total),
+        cls: "disp-stat-total",
+      },
     ];
 
-    const statsHtml = stats.map(s =>
-      `<div class="disp-stat-box ${s.cls}">
+    const statsHtml = stats
+      .map(
+        (s) =>
+          `<div class="disp-stat-box ${s.cls}">
         <span class="disp-stat-value">${s.value}</span>
         <span class="disp-stat-label">${s.label}</span>
-      </div>`
-    ).join('');
+      </div>`,
+      )
+      .join("");
 
     const tabsHtml = `
       <div class="disp-tabs">
-        <button class="disp-tab ${this.activeTab === 'origins' ? 'disp-tab-active' : ''}" data-tab="origins">Origins</button>
-        <button class="disp-tab ${this.activeTab === 'hosts' ? 'disp-tab-active' : ''}" data-tab="hosts">Hosts</button>
+        <button class="disp-tab ${this.activeTab === "origins" ? "disp-tab-active" : ""}" data-tab="origins">Origins</button>
+        <button class="disp-tab ${this.activeTab === "hosts" ? "disp-tab-active" : ""}" data-tab="hosts">Hosts</button>
       </div>
     `;
 
     let countries: CountryDisplacement[];
-    if (this.activeTab === 'origins') {
+    if (this.activeTab === "origins") {
       countries = [...this.data.countries]
-        .filter(c => c.refugees + c.asylumSeekers > 0)
-        .sort((a, b) => (b.refugees + b.asylumSeekers) - (a.refugees + a.asylumSeekers));
+        .filter((c) => c.refugees + c.asylumSeekers > 0)
+        .sort(
+          (a, b) =>
+            b.refugees + b.asylumSeekers - (a.refugees + a.asylumSeekers),
+        );
     } else {
       countries = [...this.data.countries]
-        .filter(c => (c.hostTotal || 0) > 0)
+        .filter((c) => (c.hostTotal || 0) > 0)
         .sort((a, b) => (b.hostTotal || 0) - (a.hostTotal || 0));
     }
 
@@ -81,28 +101,42 @@ export class DisplacementPanel extends Panel {
     if (displayed.length === 0) {
       tableHtml = '<div class="panel-empty">No data</div>';
     } else {
-      const rows = displayed.map(c => {
-        const hostTotal = c.hostTotal || 0;
-        const count = this.activeTab === 'origins' ? c.refugees + c.asylumSeekers : hostTotal;
-        const total = this.activeTab === 'origins' ? c.totalDisplaced : hostTotal;
-        const badgeCls = total >= 1_000_000 ? 'disp-crisis'
-          : total >= 500_000 ? 'disp-high'
-          : total >= 100_000 ? 'disp-elevated'
-          : '';
-        const badgeLabel = total >= 1_000_000 ? 'CRISIS'
-          : total >= 500_000 ? 'HIGH'
-          : total >= 100_000 ? 'ELEVATED'
-          : '';
-        const badgeHtml = badgeLabel
-          ? `<span class="disp-badge ${badgeCls}">${badgeLabel}</span>`
-          : '';
+      const rows = displayed
+        .map((c) => {
+          const hostTotal = c.hostTotal || 0;
+          const count =
+            this.activeTab === "origins"
+              ? c.refugees + c.asylumSeekers
+              : hostTotal;
+          const total =
+            this.activeTab === "origins" ? c.totalDisplaced : hostTotal;
+          const badgeCls =
+            total >= 1_000_000
+              ? "disp-crisis"
+              : total >= 500_000
+                ? "disp-high"
+                : total >= 100_000
+                  ? "disp-elevated"
+                  : "";
+          const badgeLabel =
+            total >= 1_000_000
+              ? "CRISIS"
+              : total >= 500_000
+                ? "HIGH"
+                : total >= 100_000
+                  ? "ELEVATED"
+                  : "";
+          const badgeHtml = badgeLabel
+            ? `<span class="disp-badge ${badgeCls}">${badgeLabel}</span>`
+            : "";
 
-        return `<tr class="disp-row" data-lat="${c.lat || ''}" data-lon="${c.lon || ''}">
+          return `<tr class="disp-row" data-lat="${c.lat || ""}" data-lon="${c.lon || ""}">
           <td class="disp-name">${escapeHtml(c.name)}</td>
           <td class="disp-status">${badgeHtml}</td>
           <td class="disp-count">${formatPopulation(count)}</td>
         </tr>`;
-      }).join('');
+        })
+        .join("");
 
       tableHtml = `
         <table class="disp-table">
@@ -153,18 +187,19 @@ export class DisplacementPanel extends Panel {
       </style>
     `);
 
-    this.content.querySelectorAll('.disp-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
+    this.content.querySelectorAll(".disp-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
         this.activeTab = (btn as HTMLElement).dataset.tab as DisplacementTab;
         this.renderContent();
       });
     });
 
-    this.content.querySelectorAll('.disp-row').forEach(el => {
-      el.addEventListener('click', () => {
+    this.content.querySelectorAll(".disp-row").forEach((el) => {
+      el.addEventListener("click", () => {
         const lat = Number((el as HTMLElement).dataset.lat);
         const lon = Number((el as HTMLElement).dataset.lon);
-        if (Number.isFinite(lat) && Number.isFinite(lon)) this.onCountryClick?.(lat, lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon))
+          this.onCountryClick?.(lat, lon);
       });
     });
   }

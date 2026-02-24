@@ -8,29 +8,41 @@
  * = CRITICAL focal point with rich narrative for AI
  */
 
-import type { ClusteredEvent, FocalPoint, FocalPointSummary, EntityMention } from '@/types';
-import type { SignalSummary, CountrySignalCluster, SignalType } from './signal-aggregator';
-import { extractEntitiesFromClusters, type NewsEntityContext } from './entity-extraction';
-import { getEntityIndex, type EntityIndex } from './entity-index';
+import type {
+  ClusteredEvent,
+  FocalPoint,
+  FocalPointSummary,
+  EntityMention,
+} from "@/types";
+import type {
+  SignalSummary,
+  CountrySignalCluster,
+  SignalType,
+} from "./signal-aggregator";
+import {
+  extractEntitiesFromClusters,
+  type NewsEntityContext,
+} from "./entity-extraction";
+import { getEntityIndex, type EntityIndex } from "./entity-index";
 
 const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
-  internet_outage: 'internet outage',
-  military_flight: 'military flights',
-  military_vessel: 'naval vessels',
-  protest: 'protests',
-  ais_disruption: 'shipping disruption',
-  satellite_fire: 'satellite fires',
-  temporal_anomaly: 'anomaly detection',
+  internet_outage: "internet outage",
+  military_flight: "military flights",
+  military_vessel: "naval vessels",
+  protest: "protests",
+  ais_disruption: "shipping disruption",
+  satellite_fire: "satellite fires",
+  temporal_anomaly: "anomaly detection",
 };
 
 const SIGNAL_TYPE_ICONS: Record<SignalType, string> = {
-  internet_outage: '🌐',
-  military_flight: '✈️',
-  military_vessel: '⚓',
-  protest: '📢',
-  ais_disruption: '🚢',
-  satellite_fire: '🔥',
-  temporal_anomaly: '📊',
+  internet_outage: "🌐",
+  military_flight: "✈️",
+  military_vessel: "⚓",
+  protest: "📢",
+  ais_disruption: "🚢",
+  satellite_fire: "🔥",
+  temporal_anomaly: "📊",
 };
 
 class FocalPointDetector {
@@ -40,7 +52,11 @@ class FocalPointDetector {
    * Check if entity name/alias appears in headline title (case-insensitive)
    * This ensures we only show headlines that are actually ABOUT the entity
    */
-  private entityAppearsInTitle(entityId: string, title: string, index: EntityIndex): boolean {
+  private entityAppearsInTitle(
+    entityId: string,
+    title: string,
+    index: EntityIndex,
+  ): boolean {
     const entity = index.byId.get(entityId);
     if (!entity) return false;
 
@@ -60,7 +76,10 @@ class FocalPointDetector {
   /**
    * Main analysis entry point - correlates news clusters with map signals
    */
-  analyze(clusters: ClusteredEvent[], signalSummary: SignalSummary): FocalPointSummary {
+  analyze(
+    clusters: ClusteredEvent[],
+    signalSummary: SignalSummary,
+  ): FocalPointSummary {
     const entityContexts = extractEntitiesFromClusters(clusters);
     const entityMentions = this.aggregateEntities(entityContexts, clusters);
     const focalPoints = this.buildFocalPoints(entityMentions, signalSummary);
@@ -70,8 +89,12 @@ class FocalPointDetector {
       timestamp: new Date(),
       focalPoints,
       aiContext,
-      topCountries: focalPoints.filter(fp => fp.entityType === 'country').slice(0, 5),
-      topCompanies: focalPoints.filter(fp => fp.entityType === 'company').slice(0, 3),
+      topCountries: focalPoints
+        .filter((fp) => fp.entityType === "country")
+        .slice(0, 5),
+      topCompanies: focalPoints
+        .filter((fp) => fp.entityType === "company")
+        .slice(0, 3),
     };
 
     return this.lastSummary;
@@ -82,13 +105,13 @@ class FocalPointDetector {
    */
   private aggregateEntities(
     entityContexts: Map<string, NewsEntityContext>,
-    clusters: ClusteredEvent[]
+    clusters: ClusteredEvent[],
   ): Map<string, EntityMention> {
     const mentions = new Map<string, EntityMention>();
     const index = getEntityIndex();
 
     for (const [clusterId, context] of entityContexts) {
-      const cluster = clusters.find(c => c.id === clusterId);
+      const cluster = clusters.find((c) => c.id === clusterId);
       if (!cluster) continue;
 
       for (const entity of context.entities) {
@@ -96,16 +119,26 @@ class FocalPointDetector {
         if (!entityEntry) continue;
 
         // Only add headline if entity appears in the title (not just mentioned in body)
-        const titleHasEntity = this.entityAppearsInTitle(entity.entityId, cluster.primaryTitle, index);
+        const titleHasEntity = this.entityAppearsInTitle(
+          entity.entityId,
+          cluster.primaryTitle,
+          index,
+        );
 
         const existing = mentions.get(entity.entityId);
         if (existing) {
           existing.mentionCount++;
-          existing.avgConfidence = (existing.avgConfidence * (existing.mentionCount - 1) + entity.confidence) / existing.mentionCount;
+          existing.avgConfidence =
+            (existing.avgConfidence * (existing.mentionCount - 1) +
+              entity.confidence) /
+            existing.mentionCount;
           existing.clusterIds.push(clusterId);
           // Only add headlines where entity is prominent in title
           if (existing.topHeadlines.length < 3 && titleHasEntity) {
-            existing.topHeadlines.push({ title: cluster.primaryTitle, url: cluster.primaryLink });
+            existing.topHeadlines.push({
+              title: cluster.primaryTitle,
+              url: cluster.primaryLink,
+            });
           }
         } else {
           mentions.set(entity.entityId, {
@@ -116,7 +149,9 @@ class FocalPointDetector {
             avgConfidence: entity.confidence,
             clusterIds: [clusterId],
             // Only include headline if entity appears in title
-            topHeadlines: titleHasEntity ? [{ title: cluster.primaryTitle, url: cluster.primaryLink }] : [],
+            topHeadlines: titleHasEntity
+              ? [{ title: cluster.primaryTitle, url: cluster.primaryLink }]
+              : [],
           });
         }
       }
@@ -130,7 +165,7 @@ class FocalPointDetector {
    */
   private buildFocalPoints(
     entityMentions: Map<string, EntityMention>,
-    signalSummary: SignalSummary
+    signalSummary: SignalSummary,
   ): FocalPoint[] {
     const focalPoints: FocalPoint[] = [];
     const index = getEntityIndex();
@@ -147,13 +182,13 @@ class FocalPointDetector {
       let signals: CountrySignalCluster | undefined;
       let signalCountry: string | undefined;
 
-      if (entityEntry.type === 'country') {
+      if (entityEntry.type === "country") {
         signals = countrySignals.get(entityId);
         signalCountry = entityId;
       } else if (entityEntry.related) {
         for (const relatedId of entityEntry.related) {
           const relatedEntity = index.byId.get(relatedId);
-          if (relatedEntity?.type === 'country') {
+          if (relatedEntity?.type === "country") {
             signals = countrySignals.get(relatedId);
             if (signals) {
               signalCountry = relatedId;
@@ -173,14 +208,18 @@ class FocalPointDetector {
         if (countryEntity) {
           const mention: EntityMention = {
             entityId: countryCode,
-            entityType: 'country',
+            entityType: "country",
             displayName: countryEntity.name,
             mentionCount: 0,
             avgConfidence: 0,
             clusterIds: [],
             topHeadlines: [],
           };
-          const focalPoint = this.createFocalPoint(mention, signals, countryCode);
+          const focalPoint = this.createFocalPoint(
+            mention,
+            signals,
+            countryCode,
+          );
           if (focalPoint.focalScore > 20) {
             focalPoints.push(focalPoint);
           }
@@ -197,7 +236,7 @@ class FocalPointDetector {
   private createFocalPoint(
     mention: EntityMention,
     signals: CountrySignalCluster | undefined,
-    _signalCountry: string | undefined
+    _signalCountry: string | undefined,
   ): FocalPoint {
     const newsScore = this.calculateNewsScore(mention);
     const signalScore = signals ? this.calculateSignalScore(signals) : 0;
@@ -206,12 +245,13 @@ class FocalPointDetector {
 
     const signalTypes = signals ? Array.from(signals.signalTypes) : [];
     const urgency = this.determineUrgency(rawScore, signalTypes.length);
-    const urgencyMultiplier = urgency === 'critical' ? 1.3 : urgency === 'elevated' ? 1.15 : 1.0;
+    const urgencyMultiplier =
+      urgency === "critical" ? 1.3 : urgency === "elevated" ? 1.15 : 1.0;
     const focalScore = Math.min(100, rawScore * urgencyMultiplier);
 
     const signalDescriptions = signals
-      ? signalTypes.map(type => {
-          const count = signals.signals.filter(s => s.type === type).length;
+      ? signalTypes.map((type) => {
+          const count = signals.signals.filter((s) => s.type === type).length;
           return `${count} ${SIGNAL_TYPE_LABELS[type]}`;
         })
       : [];
@@ -254,7 +294,7 @@ class FocalPointDetector {
 
   private calculateCorrelationBonus(
     mention: EntityMention,
-    signals: CountrySignalCluster | undefined
+    signals: CountrySignalCluster | undefined,
   ): number {
     let bonus = 0;
 
@@ -262,29 +302,41 @@ class FocalPointDetector {
       bonus += 10;
     }
 
-    if (signals && mention.topHeadlines.some(h => {
-      const lower = h.title.toLowerCase();
-      return (signals.signalTypes.has('military_flight') && /military|troops|forces|army|air force/.test(lower)) ||
-             (signals.signalTypes.has('military_vessel') && /navy|naval|ships|fleet|carrier/.test(lower)) ||
-             (signals.signalTypes.has('protest') && /protest|demonstrat|unrest|riot/.test(lower)) ||
-             (signals.signalTypes.has('internet_outage') && /internet|blackout|outage|connectivity/.test(lower));
-    })) {
+    if (
+      signals &&
+      mention.topHeadlines.some((h) => {
+        const lower = h.title.toLowerCase();
+        return (
+          (signals.signalTypes.has("military_flight") &&
+            /military|troops|forces|army|air force/.test(lower)) ||
+          (signals.signalTypes.has("military_vessel") &&
+            /navy|naval|ships|fleet|carrier/.test(lower)) ||
+          (signals.signalTypes.has("protest") &&
+            /protest|demonstrat|unrest|riot/.test(lower)) ||
+          (signals.signalTypes.has("internet_outage") &&
+            /internet|blackout|outage|connectivity/.test(lower))
+        );
+      })
+    ) {
       bonus += 5;
     }
 
     return bonus;
   }
 
-  private determineUrgency(score: number, signalTypeCount: number): 'watch' | 'elevated' | 'critical' {
-    if (score > 70 || signalTypeCount >= 3) return 'critical';
-    if (score > 50 || signalTypeCount >= 2) return 'elevated';
-    return 'watch';
+  private determineUrgency(
+    score: number,
+    signalTypeCount: number,
+  ): "watch" | "elevated" | "critical" {
+    if (score > 70 || signalTypeCount >= 3) return "critical";
+    if (score > 50 || signalTypeCount >= 2) return "elevated";
+    return "watch";
   }
 
   private generateNarrative(
     mention: EntityMention,
     signals: CountrySignalCluster | undefined,
-    signalTypes: SignalType[]
+    signalTypes: SignalType[],
   ): string {
     const parts: string[] = [];
 
@@ -293,11 +345,11 @@ class FocalPointDetector {
     }
 
     if (signals && signalTypes.length > 0) {
-      const signalParts = signalTypes.map(type => {
-        const count = signals.signals.filter(s => s.type === type).length;
+      const signalParts = signalTypes.map((type) => {
+        const count = signals.signals.filter((s) => s.type === type).length;
         return `${count} ${SIGNAL_TYPE_LABELS[type]}`;
       });
-      parts.push(signalParts.join(', '));
+      parts.push(signalParts.join(", "));
     }
 
     if (mention.topHeadlines.length > 0 && mention.topHeadlines[0]) {
@@ -305,26 +357,32 @@ class FocalPointDetector {
       parts.push(`"${headline}..."`);
     }
 
-    return parts.join(' | ');
+    return parts.join(" | ");
   }
 
   private getCorrelationEvidence(
     mention: EntityMention,
-    signals: CountrySignalCluster | undefined
+    signals: CountrySignalCluster | undefined,
   ): string[] {
     const evidence: string[] = [];
 
     if (mention.mentionCount > 0 && signals && signals.totalCount > 0) {
-      evidence.push(`${mention.displayName} appears in both news (${mention.mentionCount}) and map signals (${signals.totalCount})`);
+      evidence.push(
+        `${mention.displayName} appears in both news (${mention.mentionCount}) and map signals (${signals.totalCount})`,
+      );
     }
 
     if (signals && signals.signalTypes.size >= 2) {
-      const types = Array.from(signals.signalTypes).map(t => SIGNAL_TYPE_LABELS[t]);
-      evidence.push(`Multiple signal convergence: ${types.join(' + ')}`);
+      const types = Array.from(signals.signalTypes).map(
+        (t) => SIGNAL_TYPE_LABELS[t],
+      );
+      evidence.push(`Multiple signal convergence: ${types.join(" + ")}`);
     }
 
     if (signals && signals.highSeverityCount > 0) {
-      evidence.push(`${signals.highSeverityCount} high-severity signals detected`);
+      evidence.push(
+        `${signals.highSeverityCount} high-severity signals detected`,
+      );
     }
 
     return evidence;
@@ -335,20 +393,28 @@ class FocalPointDetector {
    */
   private generateAIContext(focalPoints: FocalPoint[]): string {
     if (focalPoints.length === 0) {
-      return '';
+      return "";
     }
 
-    const lines: string[] = ['[INTELLIGENCE SYNTHESIS]'];
+    const lines: string[] = ["[INTELLIGENCE SYNTHESIS]"];
 
-    const critical = focalPoints.filter(fp => fp.urgency === 'critical').slice(0, 3);
-    const elevated = focalPoints.filter(fp => fp.urgency === 'elevated').slice(0, 3);
-    const correlatedFPs = focalPoints.filter(fp => fp.newsMentions > 0 && fp.signalCount > 0).slice(0, 5);
+    const critical = focalPoints
+      .filter((fp) => fp.urgency === "critical")
+      .slice(0, 3);
+    const elevated = focalPoints
+      .filter((fp) => fp.urgency === "elevated")
+      .slice(0, 3);
+    const correlatedFPs = focalPoints
+      .filter((fp) => fp.newsMentions > 0 && fp.signalCount > 0)
+      .slice(0, 5);
 
     if (critical.length > 0) {
-      lines.push('');
-      lines.push('CRITICAL FOCAL POINTS:');
+      lines.push("");
+      lines.push("CRITICAL FOCAL POINTS:");
       for (const fp of critical) {
-        const icons = fp.signalTypes.map(t => SIGNAL_TYPE_ICONS[t as SignalType]).join('');
+        const icons = fp.signalTypes
+          .map((t) => SIGNAL_TYPE_ICONS[t as SignalType])
+          .join("");
         lines.push(`- ${fp.displayName} [CRITICAL] ${icons}: ${fp.narrative}`);
         if (fp.correlationEvidence.length > 0) {
           lines.push(`  → ${fp.correlationEvidence[0]}`);
@@ -357,30 +423,38 @@ class FocalPointDetector {
     }
 
     if (elevated.length > 0) {
-      lines.push('');
-      lines.push('ELEVATED WATCH:');
+      lines.push("");
+      lines.push("ELEVATED WATCH:");
       for (const fp of elevated) {
-        lines.push(`- ${fp.displayName}: ${fp.newsMentions} news, ${fp.signalCount} signals`);
+        lines.push(
+          `- ${fp.displayName}: ${fp.newsMentions} news, ${fp.signalCount} signals`,
+        );
       }
     }
 
     if (correlatedFPs.length > 0) {
-      lines.push('');
-      lines.push('NEWS-SIGNAL CORRELATIONS:');
+      lines.push("");
+      lines.push("NEWS-SIGNAL CORRELATIONS:");
       for (const fp of correlatedFPs) {
-        const signalDesc = fp.signalTypes.map(t => SIGNAL_TYPE_LABELS[t as SignalType]).join(', ');
-        lines.push(`- ${fp.displayName}: news coverage + ${signalDesc} detected`);
+        const signalDesc = fp.signalTypes
+          .map((t) => SIGNAL_TYPE_LABELS[t as SignalType])
+          .join(", ");
+        lines.push(
+          `- ${fp.displayName}: news coverage + ${signalDesc} detected`,
+        );
       }
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
    * Get signal icons for UI display
    */
   getSignalIcons(signalTypes: string[]): string {
-    return signalTypes.map(t => SIGNAL_TYPE_ICONS[t as SignalType] || '').join(' ');
+    return signalTypes
+      .map((t) => SIGNAL_TYPE_ICONS[t as SignalType] || "")
+      .join(" ");
   }
 
   /**
@@ -394,10 +468,12 @@ class FocalPointDetector {
    * Get urgency level for a specific country (for CII integration)
    * Returns the focal point urgency if found, null otherwise
    */
-  getCountryUrgency(countryCode: string): 'watch' | 'elevated' | 'critical' | null {
+  getCountryUrgency(
+    countryCode: string,
+  ): "watch" | "elevated" | "critical" | null {
     if (!this.lastSummary) return null;
     const fp = this.lastSummary.focalPoints.find(
-      fp => fp.entityType === 'country' && fp.entityId === countryCode
+      (fp) => fp.entityType === "country" && fp.entityId === countryCode,
     );
     return fp?.urgency || null;
   }
@@ -405,11 +481,11 @@ class FocalPointDetector {
   /**
    * Get all country urgencies as a map (for batch CII calculation)
    */
-  getCountryUrgencyMap(): Map<string, 'watch' | 'elevated' | 'critical'> {
-    const map = new Map<string, 'watch' | 'elevated' | 'critical'>();
+  getCountryUrgencyMap(): Map<string, "watch" | "elevated" | "critical"> {
+    const map = new Map<string, "watch" | "elevated" | "critical">();
     if (!this.lastSummary) return map;
     for (const fp of this.lastSummary.focalPoints) {
-      if (fp.entityType === 'country') {
+      if (fp.entityType === "country") {
         map.set(fp.entityId, fp.urgency);
       }
     }
@@ -422,9 +498,11 @@ class FocalPointDetector {
    */
   getFocalPointForCountry(countryCode: string): FocalPoint | null {
     if (!this.lastSummary) return null;
-    return this.lastSummary.focalPoints.find(
-      fp => fp.entityType === 'country' && fp.entityId === countryCode
-    ) || null;
+    return (
+      this.lastSummary.focalPoints.find(
+        (fp) => fp.entityType === "country" && fp.entityId === countryCode,
+      ) || null
+    );
   }
 
   /**
@@ -435,7 +513,10 @@ class FocalPointDetector {
     if (!this.lastSummary) return null;
 
     const relevantFPs = this.lastSummary.focalPoints.filter(
-      fp => fp.entityType === 'country' && countryCodes.includes(fp.entityId) && fp.newsMentions > 0
+      (fp) =>
+        fp.entityType === "country" &&
+        countryCodes.includes(fp.entityId) &&
+        fp.newsMentions > 0,
     );
 
     if (relevantFPs.length === 0) return null;
@@ -452,7 +533,7 @@ class FocalPointDetector {
       }
     }
 
-    return lines.length > 0 ? lines.join('\n') : null;
+    return lines.length > 0 ? lines.join("\n") : null;
   }
 
   /**
@@ -460,25 +541,34 @@ class FocalPointDetector {
    */
   logSummary(): void {
     if (!this.lastSummary) {
-      console.log('[FocalPointDetector] No summary available');
+      console.log("[FocalPointDetector] No summary available");
       return;
     }
 
-    console.group('%c[FocalPointDetector]', 'color: #8b5cf6; font-weight: bold');
+    console.group(
+      "%c[FocalPointDetector]",
+      "color: #8b5cf6; font-weight: bold",
+    );
     console.log(`Total focal points: ${this.lastSummary.focalPoints.length}`);
 
-    const critical = this.lastSummary.focalPoints.filter(fp => fp.urgency === 'critical');
-    const elevated = this.lastSummary.focalPoints.filter(fp => fp.urgency === 'elevated');
+    const critical = this.lastSummary.focalPoints.filter(
+      (fp) => fp.urgency === "critical",
+    );
+    const elevated = this.lastSummary.focalPoints.filter(
+      (fp) => fp.urgency === "elevated",
+    );
 
     if (critical.length > 0) {
-      console.log('%cCritical:', 'color: #ef4444; font-weight: bold');
+      console.log("%cCritical:", "color: #ef4444; font-weight: bold");
       for (const fp of critical) {
-        console.log(`  ${fp.displayName}: score ${fp.focalScore.toFixed(0)}, ${fp.newsMentions} news, ${fp.signalCount} signals`);
+        console.log(
+          `  ${fp.displayName}: score ${fp.focalScore.toFixed(0)}, ${fp.newsMentions} news, ${fp.signalCount} signals`,
+        );
       }
     }
 
     if (elevated.length > 0) {
-      console.log('%cElevated:', 'color: #f59e0b; font-weight: bold');
+      console.log("%cElevated:", "color: #f59e0b; font-weight: bold");
       for (const fp of elevated.slice(0, 5)) {
         console.log(`  ${fp.displayName}: score ${fp.focalScore.toFixed(0)}`);
       }

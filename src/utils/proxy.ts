@@ -1,4 +1,4 @@
-import { isDesktopRuntime, toRuntimeUrl } from '../services/runtime';
+import { isDesktopRuntime, toRuntimeUrl } from "../services/runtime";
 
 const isDev = import.meta.env.DEV;
 

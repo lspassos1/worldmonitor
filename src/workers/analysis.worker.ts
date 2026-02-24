@@ -16,18 +16,18 @@ import {
   type CorrelationSignalCore,
   type SourceType,
   type StreamSnapshot,
-} from '@/services/analysis-core';
+} from "@/services/analysis-core";
 
 // Message types for worker communication
 interface ClusterMessage {
-  type: 'cluster';
+  type: "cluster";
   id: string;
   items: NewsItemCore[];
   sourceTiers: Record<string, number>;
 }
 
 interface CorrelationMessage {
-  type: 'correlation';
+  type: "correlation";
   id: string;
   clusters: ClusteredEventCore[];
   predictions: PredictionMarketCore[];
@@ -36,19 +36,19 @@ interface CorrelationMessage {
 }
 
 interface ResetMessage {
-  type: 'reset';
+  type: "reset";
 }
 
 type WorkerMessage = ClusterMessage | CorrelationMessage | ResetMessage;
 
 interface ClusterResult {
-  type: 'cluster-result';
+  type: "cluster-result";
   id: string;
   clusters: ClusteredEventCore[];
 }
 
 interface CorrelationResult {
-  type: 'correlation-result';
+  type: "correlation-result";
   id: string;
   signals: CorrelationSignalCore[];
 }
@@ -71,18 +71,19 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
   const message = event.data;
 
   switch (message.type) {
-    case 'cluster': {
+    case "cluster": {
       // Deserialize dates (they come as strings over postMessage)
-      const items = message.items.map(item => ({
+      const items = message.items.map((item) => ({
         ...item,
         pubDate: new Date(item.pubDate),
       }));
 
-      const getSourceTier = (source: string): number => message.sourceTiers[source] ?? 4;
+      const getSourceTier = (source: string): number =>
+        message.sourceTiers[source] ?? 4;
       const clusters = clusterNewsCore(items, getSourceTier);
 
       const result: ClusterResult = {
-        type: 'cluster-result',
+        type: "cluster-result",
         id: message.id,
         clusters,
       };
@@ -90,19 +91,20 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       break;
     }
 
-    case 'correlation': {
+    case "correlation": {
       // Deserialize dates in clusters
-      const clusters = message.clusters.map(cluster => ({
+      const clusters = message.clusters.map((cluster) => ({
         ...cluster,
         firstSeen: new Date(cluster.firstSeen),
         lastUpdated: new Date(cluster.lastUpdated),
-        allItems: cluster.allItems.map(item => ({
+        allItems: cluster.allItems.map((item) => ({
           ...item,
           pubDate: new Date(item.pubDate),
         })),
       }));
 
-      const getSourceType = (source: string): SourceType => message.sourceTypes[source] ?? 'other';
+      const getSourceType = (source: string): SourceType =>
+        message.sourceTypes[source] ?? "other";
 
       const { signals, snapshot } = analyzeCorrelationsCore(
         clusters,
@@ -111,13 +113,13 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         previousSnapshot,
         getSourceType,
         isRecentDuplicate,
-        markSignalSeen
+        markSignalSeen,
       );
 
       previousSnapshot = snapshot;
 
       const result: CorrelationResult = {
-        type: 'correlation-result',
+        type: "correlation-result",
         id: message.id,
         signals,
       };
@@ -125,7 +127,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       break;
     }
 
-    case 'reset': {
+    case "reset": {
       previousSnapshot = null;
       recentSignalKeys.clear();
       break;
@@ -134,4 +136,4 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
 };
 
 // Signal that worker is ready
-self.postMessage({ type: 'ready' });
+self.postMessage({ type: "ready" });

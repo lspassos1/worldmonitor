@@ -1,4 +1,4 @@
-const isSidecar = (process.env.LOCAL_API_MODE || '').includes('sidecar');
+const isSidecar = (process.env.LOCAL_API_MODE || "").includes("sidecar");
 
 // ── In-memory cache (desktop/sidecar) ──
 const mem = new Map();
@@ -7,17 +7,20 @@ let persistTimer = null;
 let persistInFlight = false;
 let persistQueued = false;
 let loaded = false;
-const MAX_PERSIST_ENTRIES = Math.max(100, Number(process.env.LOCAL_API_CACHE_PERSIST_MAX || 5000));
+const MAX_PERSIST_ENTRIES = Math.max(
+  100,
+  Number(process.env.LOCAL_API_CACHE_PERSIST_MAX || 5000),
+);
 
 async function ensureDesktopCache() {
   if (loaded) return;
   loaded = true;
   try {
-    const { join } = await import('node:path');
-    const { readFileSync } = await import('node:fs');
-    const dir = process.env.LOCAL_API_RESOURCE_DIR || '.';
-    persistPath = join(dir, 'api-cache.json');
-    const data = JSON.parse(readFileSync(persistPath, 'utf8'));
+    const { join } = await import("node:path");
+    const { readFileSync } = await import("node:fs");
+    const dir = process.env.LOCAL_API_RESOURCE_DIR || ".";
+    persistPath = join(dir, "api-cache.json");
+    const data = JSON.parse(readFileSync(persistPath, "utf8"));
     const now = Date.now();
     for (const [k, entry] of Object.entries(data)) {
       if (entry.expiresAt > now) mem.set(k, entry);
@@ -60,12 +63,12 @@ async function persistToDisk() {
   try {
     const snapshot = buildPersistSnapshot();
     const json = JSON.stringify(snapshot);
-    const { writeFile, rename } = await import('node:fs/promises');
-    const tmp = persistPath + '.tmp';
-    await writeFile(tmp, json, 'utf8');
+    const { writeFile, rename } = await import("node:fs/promises");
+    const tmp = persistPath + ".tmp";
+    await writeFile(tmp, json, "utf8");
     await rename(tmp, persistPath);
   } catch (err) {
-    console.warn('[Cache] Persist error:', err.message);
+    console.warn("[Cache] Persist error:", err.message);
   } finally {
     persistInFlight = false;
     if (persistQueued) {
@@ -100,14 +103,14 @@ export async function getRedis() {
 
   try {
     if (!RedisClass) {
-      const mod = await import('@upstash/redis');
+      const mod = await import("@upstash/redis");
       RedisClass = mod.Redis;
     }
     redis = new RedisClass({ url, token });
     return redis;
   } catch (err) {
     redisInitFailed = true;
-    console.warn('[Cache] Redis init failed:', err.message);
+    console.warn("[Cache] Redis init failed:", err.message);
     return null;
   }
 }
@@ -131,7 +134,7 @@ export async function getCachedJson(key) {
   try {
     return await r.get(key);
   } catch (err) {
-    console.warn('[Cache] Read failed:', err.message);
+    console.warn("[Cache] Read failed:", err.message);
     return null;
   }
 }
@@ -150,7 +153,7 @@ export async function setCachedJson(key, value, ttlSeconds) {
     await r.set(key, value, { ex: ttlSeconds });
     return true;
   } catch (err) {
-    console.warn('[Cache] Write failed:', err.message);
+    console.warn("[Cache] Write failed:", err.message);
     return false;
   }
 }
@@ -159,7 +162,7 @@ export async function mget(...keys) {
   if (isSidecar) {
     await ensureDesktopCache();
     const now = Date.now();
-    return keys.map(k => {
+    return keys.map((k) => {
       const entry = mem.get(k);
       if (!entry || entry.expiresAt <= now) return null;
       return entry.value;
@@ -171,7 +174,7 @@ export async function mget(...keys) {
   try {
     return await r.mget(...keys);
   } catch (err) {
-    console.warn('[Cache] mget failed:', err.message);
+    console.warn("[Cache] mget failed:", err.message);
     return keys.map(() => null);
   }
 }
@@ -179,7 +182,7 @@ export async function mget(...keys) {
 export function hashString(input) {
   let hash = 5381;
   for (let i = 0; i < input.length; i++) {
-    hash = ((hash << 5) + hash) + input.charCodeAt(i);
+    hash = (hash << 5) + hash + input.charCodeAt(i);
   }
   return (hash >>> 0).toString(36);
 }

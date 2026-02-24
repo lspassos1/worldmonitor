@@ -1,4 +1,4 @@
-import { createCircuitBreaker } from '@/utils';
+import { createCircuitBreaker } from "@/utils";
 
 export interface HapiConflictSummary {
   iso3: string;
@@ -14,18 +14,38 @@ export interface HapiConflictSummary {
 
 // ISO3 → ISO2 mapping for tier-1 countries
 const ISO3_TO_ISO2: Record<string, string> = {
-  USA: 'US', RUS: 'RU', CHN: 'CN', UKR: 'UA', IRN: 'IR',
-  ISR: 'IL', TWN: 'TW', PRK: 'KP', SAU: 'SA', TUR: 'TR',
-  POL: 'PL', DEU: 'DE', FRA: 'FR', GBR: 'GB', IND: 'IN',
-  PAK: 'PK', SYR: 'SY', YEM: 'YE', MMR: 'MM', VEN: 'VE',
+  USA: "US",
+  RUS: "RU",
+  CHN: "CN",
+  UKR: "UA",
+  IRN: "IR",
+  ISR: "IL",
+  TWN: "TW",
+  PRK: "KP",
+  SAU: "SA",
+  TUR: "TR",
+  POL: "PL",
+  DEU: "DE",
+  FRA: "FR",
+  GBR: "GB",
+  IND: "IN",
+  PAK: "PK",
+  SYR: "SY",
+  YEM: "YE",
+  MMR: "MM",
+  VEN: "VE",
 };
 
-const hapiBreaker = createCircuitBreaker<Map<string, HapiConflictSummary>>({ name: 'HDX HAPI' });
+const hapiBreaker = createCircuitBreaker<Map<string, HapiConflictSummary>>({
+  name: "HDX HAPI",
+});
 
-export async function fetchHapiSummary(): Promise<Map<string, HapiConflictSummary>> {
+export async function fetchHapiSummary(): Promise<
+  Map<string, HapiConflictSummary>
+> {
   return hapiBreaker.execute(async () => {
-    const response = await fetch('/api/hapi', {
-      headers: { Accept: 'application/json' },
+    const response = await fetch("/api/hapi", {
+      headers: { Accept: "application/json" },
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

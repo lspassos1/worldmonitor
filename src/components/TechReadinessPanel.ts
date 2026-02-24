@@ -1,20 +1,71 @@
-import { Panel } from './Panel';
-import { getTechReadinessRankings, type TechReadinessScore } from '@/services/worldbank';
-import { escapeHtml } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import {
+  getTechReadinessRankings,
+  type TechReadinessScore,
+} from "@/services/worldbank";
+import { escapeHtml } from "@/utils/sanitize";
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  'USA': '🇺🇸', 'CHN': '🇨🇳', 'JPN': '🇯🇵', 'DEU': '🇩🇪', 'KOR': '🇰🇷',
-  'GBR': '🇬🇧', 'IND': '🇮🇳', 'ISR': '🇮🇱', 'SGP': '🇸🇬', 'TWN': '🇹🇼',
-  'FRA': '🇫🇷', 'CAN': '🇨🇦', 'SWE': '🇸🇪', 'NLD': '🇳🇱', 'CHE': '🇨🇭',
-  'FIN': '🇫🇮', 'IRL': '🇮🇪', 'AUS': '🇦🇺', 'BRA': '🇧🇷', 'IDN': '🇮🇩',
-  'ESP': '🇪🇸', 'ITA': '🇮🇹', 'MEX': '🇲🇽', 'RUS': '🇷🇺', 'TUR': '🇹🇷',
-  'SAU': '🇸🇦', 'ARE': '🇦🇪', 'POL': '🇵🇱', 'THA': '🇹🇭', 'MYS': '🇲🇾',
-  'VNM': '🇻🇳', 'PHL': '🇵🇭', 'NZL': '🇳🇿', 'AUT': '🇦🇹', 'BEL': '🇧🇪',
-  'DNK': '🇩🇰', 'NOR': '🇳🇴', 'PRT': '🇵🇹', 'CZE': '🇨🇿', 'ZAF': '🇿🇦',
-  'NGA': '🇳🇬', 'KEN': '🇰🇪', 'EGY': '🇪🇬', 'ARG': '🇦🇷', 'CHL': '🇨🇱',
-  'COL': '🇨🇴', 'PAK': '🇵🇰', 'BGD': '🇧🇩', 'UKR': '🇺🇦', 'ROU': '🇷🇴',
-  'EST': '🇪🇪', 'LVA': '🇱🇻', 'LTU': '🇱🇹', 'HUN': '🇭🇺', 'GRC': '🇬🇷',
-  'QAT': '🇶🇦', 'BHR': '🇧🇭', 'KWT': '🇰🇼', 'OMN': '🇴🇲', 'JOR': '🇯🇴',
+  USA: "🇺🇸",
+  CHN: "🇨🇳",
+  JPN: "🇯🇵",
+  DEU: "🇩🇪",
+  KOR: "🇰🇷",
+  GBR: "🇬🇧",
+  IND: "🇮🇳",
+  ISR: "🇮🇱",
+  SGP: "🇸🇬",
+  TWN: "🇹🇼",
+  FRA: "🇫🇷",
+  CAN: "🇨🇦",
+  SWE: "🇸🇪",
+  NLD: "🇳🇱",
+  CHE: "🇨🇭",
+  FIN: "🇫🇮",
+  IRL: "🇮🇪",
+  AUS: "🇦🇺",
+  BRA: "🇧🇷",
+  IDN: "🇮🇩",
+  ESP: "🇪🇸",
+  ITA: "🇮🇹",
+  MEX: "🇲🇽",
+  RUS: "🇷🇺",
+  TUR: "🇹🇷",
+  SAU: "🇸🇦",
+  ARE: "🇦🇪",
+  POL: "🇵🇱",
+  THA: "🇹🇭",
+  MYS: "🇲🇾",
+  VNM: "🇻🇳",
+  PHL: "🇵🇭",
+  NZL: "🇳🇿",
+  AUT: "🇦🇹",
+  BEL: "🇧🇪",
+  DNK: "🇩🇰",
+  NOR: "🇳🇴",
+  PRT: "🇵🇹",
+  CZE: "🇨🇿",
+  ZAF: "🇿🇦",
+  NGA: "🇳🇬",
+  KEN: "🇰🇪",
+  EGY: "🇪🇬",
+  ARG: "🇦🇷",
+  CHL: "🇨🇱",
+  COL: "🇨🇴",
+  PAK: "🇵🇰",
+  BGD: "🇧🇩",
+  UKR: "🇺🇦",
+  ROU: "🇷🇴",
+  EST: "🇪🇪",
+  LVA: "🇱🇻",
+  LTU: "🇱🇹",
+  HUN: "🇭🇺",
+  GRC: "🇬🇷",
+  QAT: "🇶🇦",
+  BHR: "🇧🇭",
+  KWT: "🇰🇼",
+  OMN: "🇴🇲",
+  JOR: "🇯🇴",
 };
 
 export class TechReadinessPanel extends Panel {
@@ -25,8 +76,8 @@ export class TechReadinessPanel extends Panel {
 
   constructor() {
     super({
-      id: 'tech-readiness',
-      title: 'Tech Readiness Index',
+      id: "tech-readiness",
+      title: "Tech Readiness Index",
       showCount: true,
       infoTooltip: `
         <strong>Global Tech Readiness</strong><br>
@@ -44,7 +95,10 @@ export class TechReadinessPanel extends Panel {
 
   public async refresh(): Promise<void> {
     if (this.loading) return;
-    if (Date.now() - this.lastFetch < this.REFRESH_INTERVAL && this.rankings.length > 0) {
+    if (
+      Date.now() - this.lastFetch < this.REFRESH_INTERVAL &&
+      this.rankings.length > 0
+    ) {
       return;
     }
 
@@ -57,8 +111,8 @@ export class TechReadinessPanel extends Panel {
       this.setCount(this.rankings.length);
       this.render();
     } catch (error) {
-      console.error('[TechReadinessPanel] Error fetching data:', error);
-      this.showError('Failed to load tech readiness data');
+      console.error("[TechReadinessPanel] Error fetching data:", error);
+      this.showError("Failed to load tech readiness data");
     } finally {
       this.loading = false;
     }
@@ -100,23 +154,23 @@ export class TechReadinessPanel extends Panel {
   }
 
   private getFlag(countryCode: string): string {
-    return COUNTRY_FLAGS[countryCode] || '🌐';
+    return COUNTRY_FLAGS[countryCode] || "🌐";
   }
 
   private getScoreClass(score: number): string {
-    if (score >= 70) return 'high';
-    if (score >= 40) return 'medium';
-    return 'low';
+    if (score >= 70) return "high";
+    if (score >= 40) return "medium";
+    return "low";
   }
 
   private formatComponent(value: number | null): string {
-    if (value === null) return '—';
+    if (value === null) return "—";
     return Math.round(value).toString();
   }
 
   private render(): void {
     if (this.rankings.length === 0) {
-      this.showError('No data available');
+      this.showError("No data available");
       return;
     }
 
@@ -125,9 +179,10 @@ export class TechReadinessPanel extends Panel {
 
     const html = `
       <div class="tech-readiness-list">
-        ${top.map(country => {
-          const scoreClass = this.getScoreClass(country.score);
-          return `
+        ${top
+          .map((country) => {
+            const scoreClass = this.getScoreClass(country.score);
+            return `
             <div class="readiness-item ${scoreClass}" data-country="${escapeHtml(country.country)}">
               <div class="readiness-rank">#${country.rank}</div>
               <div class="readiness-flag">${this.getFlag(country.country)}</div>
@@ -142,7 +197,8 @@ export class TechReadinessPanel extends Panel {
               <div class="readiness-score ${scoreClass}">${country.score}</div>
             </div>
           `;
-        }).join('')}
+          })
+          .join("")}
       </div>
       <div class="readiness-footer">
         <span class="readiness-source">Source: World Bank</span>

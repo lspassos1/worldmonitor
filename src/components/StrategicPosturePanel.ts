@@ -1,8 +1,17 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
-import { fetchCachedTheaterPosture, type CachedTheaterPosture } from '@/services/cached-theater-posture';
-import { fetchMilitaryVessels, isMilitaryVesselTrackingConfigured } from '@/services/military-vessels';
-import { recalcPostureWithVessels, type TheaterPostureSummary } from '@/services/military-surge';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
+import {
+  fetchCachedTheaterPosture,
+  type CachedTheaterPosture,
+} from "@/services/cached-theater-posture";
+import {
+  fetchMilitaryVessels,
+  isMilitaryVesselTrackingConfigured,
+} from "@/services/military-vessels";
+import {
+  recalcPostureWithVessels,
+  type TheaterPostureSummary,
+} from "@/services/military-surge";
 
 export class StrategicPosturePanel extends Panel {
   private postures: TheaterPostureSummary[] = [];
@@ -11,13 +20,13 @@ export class StrategicPosturePanel extends Panel {
   private loadingElapsedInterval: ReturnType<typeof setInterval> | null = null;
   private loadingStartTime: number = 0;
   private onLocationClick?: (lat: number, lon: number) => void;
-  private lastTimestamp: string = '';
+  private lastTimestamp: string = "";
   private isStale: boolean = false;
 
   constructor() {
     super({
-      id: 'strategic-posture',
-      title: 'AI Strategic Posture',
+      id: "strategic-posture",
+      title: "AI Strategic Posture",
       showCount: false,
       trackActivity: true,
       infoTooltip: `<strong>Methodology</strong>
@@ -38,19 +47,30 @@ export class StrategicPosturePanel extends Panel {
     this.startAutoRefresh();
     // Re-augment with vessels after stream has had time to populate
     // AIS data accumulates gradually - check at 30s, 60s, 90s, 120s
-    this.vesselTimeouts.push(setTimeout(() => this.reaugmentVessels(), 30 * 1000));
-    this.vesselTimeouts.push(setTimeout(() => this.reaugmentVessels(), 60 * 1000));
-    this.vesselTimeouts.push(setTimeout(() => this.reaugmentVessels(), 90 * 1000));
-    this.vesselTimeouts.push(setTimeout(() => this.reaugmentVessels(), 120 * 1000));
+    this.vesselTimeouts.push(
+      setTimeout(() => this.reaugmentVessels(), 30 * 1000),
+    );
+    this.vesselTimeouts.push(
+      setTimeout(() => this.reaugmentVessels(), 60 * 1000),
+    );
+    this.vesselTimeouts.push(
+      setTimeout(() => this.reaugmentVessels(), 90 * 1000),
+    );
+    this.vesselTimeouts.push(
+      setTimeout(() => this.reaugmentVessels(), 120 * 1000),
+    );
   }
 
   private startAutoRefresh(): void {
-    this.refreshInterval = setInterval(() => this.fetchAndRender(), 5 * 60 * 1000);
+    this.refreshInterval = setInterval(
+      () => this.fetchAndRender(),
+      5 * 60 * 1000,
+    );
   }
 
   private async reaugmentVessels(): Promise<void> {
     if (this.postures.length === 0) return;
-    console.log('[StrategicPosturePanel] Re-augmenting with vessels...');
+    console.log("[StrategicPosturePanel] Re-augmenting with vessels...");
     await this.augmentWithVessels();
     this.render();
   }
@@ -96,7 +116,7 @@ export class StrategicPosturePanel extends Panel {
     if (this.loadingElapsedInterval) clearInterval(this.loadingElapsedInterval);
     this.loadingElapsedInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.loadingStartTime) / 1000);
-      const elapsedEl = this.content.querySelector('.posture-loading-elapsed');
+      const elapsedEl = this.content.querySelector(".posture-loading-elapsed");
       if (elapsedEl) {
         elapsedEl.textContent = `Elapsed: ${elapsed}s`;
       }
@@ -110,19 +130,19 @@ export class StrategicPosturePanel extends Panel {
     }
   }
 
-  private showLoadingStage(stage: 'aircraft' | 'vessels' | 'analysis'): void {
-    const stages = this.content.querySelectorAll('.posture-stage');
+  private showLoadingStage(stage: "aircraft" | "vessels" | "analysis"): void {
+    const stages = this.content.querySelectorAll(".posture-stage");
     if (stages.length === 0) return;
 
     stages.forEach((el, i) => {
-      el.classList.remove('active', 'complete');
-      if (stage === 'aircraft' && i === 0) el.classList.add('active');
-      else if (stage === 'vessels') {
-        if (i === 0) el.classList.add('complete');
-        else if (i === 1) el.classList.add('active');
-      } else if (stage === 'analysis') {
-        if (i <= 1) el.classList.add('complete');
-        else if (i === 2) el.classList.add('active');
+      el.classList.remove("active", "complete");
+      if (stage === "aircraft" && i === 0) el.classList.add("active");
+      else if (stage === "vessels") {
+        if (i === 0) el.classList.add("complete");
+        else if (i === 1) el.classList.add("active");
+      } else if (stage === "analysis") {
+        if (i <= 1) el.classList.add("complete");
+        else if (i === 2) el.classList.add("active");
       }
     });
   }
@@ -130,7 +150,7 @@ export class StrategicPosturePanel extends Panel {
   private async fetchAndRender(): Promise<void> {
     try {
       // Fetch aircraft data from server
-      this.showLoadingStage('aircraft');
+      this.showLoadingStage("aircraft");
       const data = await fetchCachedTheaterPosture();
       if (!data || data.postures.length === 0) {
         this.showNoData();
@@ -146,10 +166,10 @@ export class StrategicPosturePanel extends Panel {
       this.isStale = data.stale || false;
 
       // Try to augment with vessel data (client-side)
-      this.showLoadingStage('vessels');
+      this.showLoadingStage("vessels");
       await this.augmentWithVessels();
 
-      this.showLoadingStage('analysis');
+      this.showLoadingStage("analysis");
       this.updateBadges();
       this.render();
 
@@ -158,7 +178,7 @@ export class StrategicPosturePanel extends Panel {
         setTimeout(() => this.fetchAndRender(), 3000);
       }
     } catch (error) {
-      console.error('[StrategicPosturePanel] Fetch error:', error);
+      console.error("[StrategicPosturePanel] Fetch error:", error);
       this.showFetchError();
     }
   }
@@ -170,7 +190,9 @@ export class StrategicPosturePanel extends Panel {
 
     try {
       const { vessels } = await fetchMilitaryVessels();
-      console.log(`[StrategicPosturePanel] Got ${vessels.length} total military vessels`);
+      console.log(
+        `[StrategicPosturePanel] Got ${vessels.length} total military vessels`,
+      );
       if (vessels.length === 0) {
         // AIS stream hasn't accumulated data yet — restore from cache
         this.restoreVesselCounts();
@@ -188,27 +210,46 @@ export class StrategicPosturePanel extends Panel {
             v.lat >= posture.bounds!.south &&
             v.lat <= posture.bounds!.north &&
             v.lon >= posture.bounds!.west &&
-            v.lon <= posture.bounds!.east
+            v.lon <= posture.bounds!.east,
         );
 
         // Count by type
-        posture.destroyers = theaterVessels.filter((v) => v.vesselType === 'destroyer').length;
-        posture.frigates = theaterVessels.filter((v) => v.vesselType === 'frigate').length;
-        posture.carriers = theaterVessels.filter((v) => v.vesselType === 'carrier').length;
-        posture.submarines = theaterVessels.filter((v) => v.vesselType === 'submarine').length;
-        posture.patrol = theaterVessels.filter((v) => v.vesselType === 'patrol').length;
+        posture.destroyers = theaterVessels.filter(
+          (v) => v.vesselType === "destroyer",
+        ).length;
+        posture.frigates = theaterVessels.filter(
+          (v) => v.vesselType === "frigate",
+        ).length;
+        posture.carriers = theaterVessels.filter(
+          (v) => v.vesselType === "carrier",
+        ).length;
+        posture.submarines = theaterVessels.filter(
+          (v) => v.vesselType === "submarine",
+        ).length;
+        posture.patrol = theaterVessels.filter(
+          (v) => v.vesselType === "patrol",
+        ).length;
         posture.auxiliaryVessels = theaterVessels.filter(
-          (v) => v.vesselType === 'auxiliary' || v.vesselType === 'special' || v.vesselType === 'amphibious' || v.vesselType === 'icebreaker' || v.vesselType === 'research' || v.vesselType === 'unknown'
+          (v) =>
+            v.vesselType === "auxiliary" ||
+            v.vesselType === "special" ||
+            v.vesselType === "amphibious" ||
+            v.vesselType === "icebreaker" ||
+            v.vesselType === "research" ||
+            v.vesselType === "unknown",
         ).length;
         posture.totalVessels = theaterVessels.length;
 
         if (theaterVessels.length > 0) {
-          console.log(`[StrategicPosturePanel] ${posture.shortName}: ${theaterVessels.length} vessels`, theaterVessels.map(v => v.vesselType));
+          console.log(
+            `[StrategicPosturePanel] ${posture.shortName}: ${theaterVessels.length} vessels`,
+            theaterVessels.map((v) => v.vesselType),
+          );
         }
 
         // Add vessel operators to byOperator
         for (const v of theaterVessels) {
-          const op = v.operator || 'unknown';
+          const op = v.operator || "unknown";
           posture.byOperator[op] = (posture.byOperator[op] || 0) + 1;
         }
       }
@@ -218,9 +259,13 @@ export class StrategicPosturePanel extends Panel {
 
       // Recalculate posture levels now that vessels are included
       recalcPostureWithVessels(this.postures);
-      console.log('[StrategicPosturePanel] Augmented with', vessels.length, 'vessels, posture levels recalculated');
+      console.log(
+        "[StrategicPosturePanel] Augmented with",
+        vessels.length,
+        "vessels, posture levels recalculated",
+      );
     } catch (error) {
-      console.warn('[StrategicPosturePanel] Failed to fetch vessels:', error);
+      console.warn("[StrategicPosturePanel] Failed to fetch vessels:", error);
       // Restore cached vessel counts if live fetch failed
       this.restoreVesselCounts();
       recalcPostureWithVessels(this.postures);
@@ -229,7 +274,18 @@ export class StrategicPosturePanel extends Panel {
 
   private cacheVesselCounts(): void {
     try {
-      const counts: Record<string, { destroyers: number; frigates: number; carriers: number; submarines: number; patrol: number; auxiliaryVessels: number; totalVessels: number }> = {};
+      const counts: Record<
+        string,
+        {
+          destroyers: number;
+          frigates: number;
+          carriers: number;
+          submarines: number;
+          patrol: number;
+          auxiliaryVessels: number;
+          totalVessels: number;
+        }
+      > = {};
       for (const p of this.postures) {
         if (p.totalVessels > 0) {
           counts[p.theaterId] = {
@@ -243,13 +299,18 @@ export class StrategicPosturePanel extends Panel {
           };
         }
       }
-      localStorage.setItem('wm:vesselPosture', JSON.stringify({ counts, ts: Date.now() }));
-    } catch { /* quota exceeded or private mode */ }
+      localStorage.setItem(
+        "wm:vesselPosture",
+        JSON.stringify({ counts, ts: Date.now() }),
+      );
+    } catch {
+      /* quota exceeded or private mode */
+    }
   }
 
   private restoreVesselCounts(): void {
     try {
-      const raw = localStorage.getItem('wm:vesselPosture');
+      const raw = localStorage.getItem("wm:vesselPosture");
       if (!raw) return;
       const { counts, ts } = JSON.parse(raw);
       // Only use cache if < 30 minutes old
@@ -266,8 +327,10 @@ export class StrategicPosturePanel extends Panel {
           p.totalVessels = cached.totalVessels;
         }
       }
-      console.log('[StrategicPosturePanel] Restored cached vessel counts');
-    } catch { /* parse error */ }
+      console.log("[StrategicPosturePanel] Restored cached vessel counts");
+    } catch {
+      /* parse error */
+    }
   }
 
   public updatePostures(data: CachedTheaterPosture): void {
@@ -289,8 +352,12 @@ export class StrategicPosturePanel extends Panel {
   }
 
   private updateBadges(): void {
-    const hasCritical = this.postures.some((p) => p.postureLevel === 'critical');
-    const hasElevated = this.postures.some((p) => p.postureLevel === 'elevated');
+    const hasCritical = this.postures.some(
+      (p) => p.postureLevel === "critical",
+    );
+    const hasElevated = this.postures.some(
+      (p) => p.postureLevel === "elevated",
+    );
     if (hasCritical) {
       this.setNewBadge(1, true);
     } else if (hasElevated) {
@@ -329,7 +396,9 @@ export class StrategicPosturePanel extends Panel {
         </div>
       </div>
     `);
-    this.content.querySelector('.posture-retry-btn')?.addEventListener('click', () => this.refresh());
+    this.content
+      .querySelector(".posture-retry-btn")
+      ?.addEventListener("click", () => this.refresh());
   }
 
   private showFetchError(): void {
@@ -350,14 +419,16 @@ export class StrategicPosturePanel extends Panel {
         </div>
       </div>
     `);
-    this.content.querySelector('.posture-retry-btn')?.addEventListener('click', () => this.refresh());
+    this.content
+      .querySelector(".posture-retry-btn")
+      ?.addEventListener("click", () => this.refresh());
   }
 
   private getPostureBadge(level: string): string {
     switch (level) {
-      case 'critical':
+      case "critical":
         return '<span class="posture-badge posture-critical">CRIT</span>';
-      case 'elevated':
+      case "elevated":
         return '<span class="posture-badge posture-elevated">ELEV</span>';
       default:
         return '<span class="posture-badge posture-normal">NORM</span>';
@@ -366,9 +437,9 @@ export class StrategicPosturePanel extends Panel {
 
   private getTrendIcon(trend: string, change: number): string {
     switch (trend) {
-      case 'increasing':
+      case "increasing":
         return `<span class="posture-trend trend-up">↗ +${change}%</span>`;
-      case 'decreasing':
+      case "decreasing":
         return `<span class="posture-trend trend-down">↘ ${change}%</span>`;
       default:
         return '<span class="posture-trend trend-stable">→ stable</span>';
@@ -376,18 +447,24 @@ export class StrategicPosturePanel extends Panel {
   }
 
   private renderTheater(p: TheaterPostureSummary): string {
-    const isExpanded = p.postureLevel !== 'normal';
+    const isExpanded = p.postureLevel !== "normal";
 
     if (!isExpanded) {
       // Compact single-line view for normal theaters
       const chips: string[] = [];
-      if (p.totalAircraft > 0) chips.push(`<span class="posture-chip air">✈️ ${p.totalAircraft}</span>`);
-      if (p.totalVessels > 0) chips.push(`<span class="posture-chip naval">⚓ ${p.totalVessels}</span>`);
+      if (p.totalAircraft > 0)
+        chips.push(
+          `<span class="posture-chip air">✈️ ${p.totalAircraft}</span>`,
+        );
+      if (p.totalVessels > 0)
+        chips.push(
+          `<span class="posture-chip naval">⚓ ${p.totalVessels}</span>`,
+        );
 
       return `
         <div class="posture-theater posture-compact" data-lat="${p.centerLat}" data-lon="${p.centerLon}" title="Click to view ${escapeHtml(p.theaterName)} on map">
           <span class="posture-name">${escapeHtml(p.shortName)}</span>
-          <div class="posture-chips">${chips.join('')}</div>
+          <div class="posture-chips">${chips.join("")}</div>
           ${this.getPostureBadge(p.postureLevel)}
         </div>
       `;
@@ -395,28 +472,71 @@ export class StrategicPosturePanel extends Panel {
 
     // Build compact stat chips for expanded view
     const airChips: string[] = [];
-    if (p.fighters > 0) airChips.push(`<span class="posture-stat" title="Fighters">✈️ ${p.fighters}</span>`);
-    if (p.tankers > 0) airChips.push(`<span class="posture-stat" title="Tankers">⛽ ${p.tankers}</span>`);
-    if (p.awacs > 0) airChips.push(`<span class="posture-stat" title="AWACS">📡 ${p.awacs}</span>`);
-    if (p.reconnaissance > 0) airChips.push(`<span class="posture-stat" title="Recon">🔍 ${p.reconnaissance}</span>`);
-    if (p.transport > 0) airChips.push(`<span class="posture-stat" title="Transport">📦 ${p.transport}</span>`);
-    if (p.bombers > 0) airChips.push(`<span class="posture-stat" title="Bombers">💣 ${p.bombers}</span>`);
-    if (p.drones > 0) airChips.push(`<span class="posture-stat" title="Drones">🛸 ${p.drones}</span>`);
+    if (p.fighters > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Fighters">✈️ ${p.fighters}</span>`,
+      );
+    if (p.tankers > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Tankers">⛽ ${p.tankers}</span>`,
+      );
+    if (p.awacs > 0)
+      airChips.push(
+        `<span class="posture-stat" title="AWACS">📡 ${p.awacs}</span>`,
+      );
+    if (p.reconnaissance > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Recon">🔍 ${p.reconnaissance}</span>`,
+      );
+    if (p.transport > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Transport">📦 ${p.transport}</span>`,
+      );
+    if (p.bombers > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Bombers">💣 ${p.bombers}</span>`,
+      );
+    if (p.drones > 0)
+      airChips.push(
+        `<span class="posture-stat" title="Drones">🛸 ${p.drones}</span>`,
+      );
     // Fallback: show total aircraft if no typed breakdown available
     if (airChips.length === 0 && p.totalAircraft > 0) {
-      airChips.push(`<span class="posture-stat" title="Aircraft">✈️ ${p.totalAircraft}</span>`);
+      airChips.push(
+        `<span class="posture-stat" title="Aircraft">✈️ ${p.totalAircraft}</span>`,
+      );
     }
 
     const navalChips: string[] = [];
-    if (p.carriers > 0) navalChips.push(`<span class="posture-stat carrier" title="Carriers">🚢 ${p.carriers}</span>`);
-    if (p.destroyers > 0) navalChips.push(`<span class="posture-stat" title="Destroyers">⚓ ${p.destroyers}</span>`);
-    if (p.frigates > 0) navalChips.push(`<span class="posture-stat" title="Frigates">🛥️ ${p.frigates}</span>`);
-    if (p.submarines > 0) navalChips.push(`<span class="posture-stat" title="Submarines">🦈 ${p.submarines}</span>`);
-    if (p.patrol > 0) navalChips.push(`<span class="posture-stat" title="Patrol">🚤 ${p.patrol}</span>`);
-    if (p.auxiliaryVessels > 0) navalChips.push(`<span class="posture-stat" title="Auxiliary">⚓ ${p.auxiliaryVessels}</span>`);
+    if (p.carriers > 0)
+      navalChips.push(
+        `<span class="posture-stat carrier" title="Carriers">🚢 ${p.carriers}</span>`,
+      );
+    if (p.destroyers > 0)
+      navalChips.push(
+        `<span class="posture-stat" title="Destroyers">⚓ ${p.destroyers}</span>`,
+      );
+    if (p.frigates > 0)
+      navalChips.push(
+        `<span class="posture-stat" title="Frigates">🛥️ ${p.frigates}</span>`,
+      );
+    if (p.submarines > 0)
+      navalChips.push(
+        `<span class="posture-stat" title="Submarines">🦈 ${p.submarines}</span>`,
+      );
+    if (p.patrol > 0)
+      navalChips.push(
+        `<span class="posture-stat" title="Patrol">🚤 ${p.patrol}</span>`,
+      );
+    if (p.auxiliaryVessels > 0)
+      navalChips.push(
+        `<span class="posture-stat" title="Auxiliary">⚓ ${p.auxiliaryVessels}</span>`,
+      );
     // Fallback: show total vessels if no typed breakdown available
     if (navalChips.length === 0 && p.totalVessels > 0) {
-      navalChips.push(`<span class="posture-stat" title="Naval Vessels">⚓ ${p.totalVessels}</span>`);
+      navalChips.push(
+        `<span class="posture-stat" title="Naval Vessels">⚓ ${p.totalVessels}</span>`,
+      );
     }
 
     const hasAir = airChips.length > 0;
@@ -430,14 +550,14 @@ export class StrategicPosturePanel extends Panel {
         </div>
 
         <div class="posture-forces">
-          ${hasAir ? `<div class="posture-force-row"><span class="posture-domain">AIR</span><div class="posture-stats">${airChips.join('')}</div></div>` : ''}
-          ${hasNaval ? `<div class="posture-force-row"><span class="posture-domain">SEA</span><div class="posture-stats">${navalChips.join('')}</div></div>` : ''}
+          ${hasAir ? `<div class="posture-force-row"><span class="posture-domain">AIR</span><div class="posture-stats">${airChips.join("")}</div></div>` : ""}
+          ${hasNaval ? `<div class="posture-force-row"><span class="posture-domain">SEA</span><div class="posture-stats">${navalChips.join("")}</div></div>` : ""}
         </div>
 
         <div class="posture-footer">
-          ${p.strikeCapable ? '<span class="posture-strike">⚡ STRIKE</span>' : ''}
+          ${p.strikeCapable ? '<span class="posture-strike">⚡ STRIKE</span>' : ""}
           ${this.getTrendIcon(p.trend, p.changePercent)}
-          ${p.targetNation ? `<span class="posture-focus">→ ${escapeHtml(p.targetNation)}</span>` : ''}
+          ${p.targetNation ? `<span class="posture-focus">→ ${escapeHtml(p.targetNation)}</span>` : ""}
         </div>
       </div>
     `;
@@ -446,7 +566,11 @@ export class StrategicPosturePanel extends Panel {
   private render(): void {
     this.stopLoadingTimer();
     const sorted = [...this.postures].sort((a, b) => {
-      const order: Record<string, number> = { critical: 0, elevated: 1, normal: 2 };
+      const order: Record<string, number> = {
+        critical: 0,
+        elevated: 1,
+        normal: 2,
+      };
       return (order[a.postureLevel] ?? 2) - (order[b.postureLevel] ?? 2);
     });
 
@@ -456,15 +580,15 @@ export class StrategicPosturePanel extends Panel {
 
     const staleWarning = this.isStale
       ? '<div class="posture-stale-warning">⚠️ Using cached data - live feed temporarily unavailable</div>'
-      : '';
+      : "";
 
     const html = `
       <div class="posture-panel">
         ${staleWarning}
-        ${sorted.map((p) => this.renderTheater(p)).join('')}
+        ${sorted.map((p) => this.renderTheater(p)).join("")}
 
         <div class="posture-footer">
-          <span class="posture-updated">${this.isStale ? '⚠️ ' : ''}Updated: ${updatedTime}</span>
+          <span class="posture-updated">${this.isStale ? "⚠️ " : ""}Updated: ${updatedTime}</span>
           <button class="posture-refresh-btn" title="Refresh">↻</button>
         </div>
       </div>
@@ -475,16 +599,18 @@ export class StrategicPosturePanel extends Panel {
   }
 
   private attachEventListeners(): void {
-    this.content.querySelector('.posture-refresh-btn')?.addEventListener('click', () => {
-      this.refresh();
-    });
+    this.content
+      .querySelector(".posture-refresh-btn")
+      ?.addEventListener("click", () => {
+        this.refresh();
+      });
 
-    const theaters = this.content.querySelectorAll('.posture-theater');
+    const theaters = this.content.querySelectorAll(".posture-theater");
     theaters.forEach((el) => {
-      el.addEventListener('click', () => {
-        const lat = parseFloat((el as HTMLElement).dataset.lat || '0');
-        const lon = parseFloat((el as HTMLElement).dataset.lon || '0');
-        console.log('[StrategicPosturePanel] Theater clicked:', {
+      el.addEventListener("click", () => {
+        const lat = parseFloat((el as HTMLElement).dataset.lat || "0");
+        const lon = parseFloat((el as HTMLElement).dataset.lon || "0");
+        console.log("[StrategicPosturePanel] Theater clicked:", {
           lat,
           lon,
           dataLat: (el as HTMLElement).dataset.lat,
@@ -493,24 +619,39 @@ export class StrategicPosturePanel extends Panel {
           hasHandler: !!this.onLocationClick,
         });
         if (this.onLocationClick && !isNaN(lat) && !isNaN(lon)) {
-          console.log('[StrategicPosturePanel] Calling onLocationClick with:', lat, lon);
-          this.onLocationClick(lat, lon);
-        } else {
-          console.warn('[StrategicPosturePanel] No handler or invalid coords!', {
-            hasHandler: !!this.onLocationClick,
+          console.log(
+            "[StrategicPosturePanel] Calling onLocationClick with:",
             lat,
             lon,
-          });
+          );
+          this.onLocationClick(lat, lon);
+        } else {
+          console.warn(
+            "[StrategicPosturePanel] No handler or invalid coords!",
+            {
+              hasHandler: !!this.onLocationClick,
+              lat,
+              lon,
+            },
+          );
         }
       });
     });
   }
 
-  public setLocationClickHandler(handler: (lat: number, lon: number) => void): void {
-    console.log('[StrategicPosturePanel] setLocationClickHandler called, handler:', typeof handler);
+  public setLocationClickHandler(
+    handler: (lat: number, lon: number) => void,
+  ): void {
+    console.log(
+      "[StrategicPosturePanel] setLocationClickHandler called, handler:",
+      typeof handler,
+    );
     this.onLocationClick = handler;
     // Verify it's stored
-    console.log('[StrategicPosturePanel] Handler stored, onLocationClick now:', typeof this.onLocationClick);
+    console.log(
+      "[StrategicPosturePanel] Handler stored, onLocationClick now:",
+      typeof this.onLocationClick,
+    );
   }
 
   public getPostures(): TheaterPostureSummary[] {
@@ -520,7 +661,7 @@ export class StrategicPosturePanel extends Panel {
   public destroy(): void {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     this.stopLoadingTimer();
-    this.vesselTimeouts.forEach(t => clearTimeout(t));
+    this.vesselTimeouts.forEach((t) => clearTimeout(t));
     this.vesselTimeouts = [];
     super.destroy();
   }

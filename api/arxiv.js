@@ -1,18 +1,21 @@
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-export const config = { runtime: 'edge' };
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
+export const config = { runtime: "edge" };
 
 // Fetch AI/ML papers from ArXiv
 // Categories: cs.AI, cs.LG (Machine Learning), cs.CL (Computation and Language)
 export default async function handler(request) {
   const cors = getCorsHeaders(request);
   if (isDisallowedOrigin(request)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: cors });
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403,
+      headers: cors,
+    });
   }
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') || 'cs.AI'; // cs.AI, cs.LG, cs.CL
-    const maxResults = searchParams.get('max_results') || '50';
-    const sortBy = searchParams.get('sortBy') || 'submittedDate'; // submittedDate, lastUpdatedDate, relevance
+    const category = searchParams.get("category") || "cs.AI"; // cs.AI, cs.LG, cs.CL
+    const maxResults = searchParams.get("max_results") || "50";
+    const sortBy = searchParams.get("sortBy") || "submittedDate"; // submittedDate, lastUpdatedDate, relevance
 
     // ArXiv API search query
     // Search for papers in specified category, sorted by date
@@ -21,7 +24,7 @@ export default async function handler(request) {
 
     const response = await fetch(apiUrl, {
       headers: {
-        'User-Agent': 'WorldMonitor/1.0 (AI Research Tracker)',
+        "User-Agent": "WorldMonitor/1.0 (AI Research Tracker)",
       },
     });
 
@@ -36,24 +39,25 @@ export default async function handler(request) {
     return new Response(xmlData, {
       status: 200,
       headers: {
-        'Content-Type': 'application/xml',
+        "Content-Type": "application/xml",
         ...cors,
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600', // 1 hour cache
+        "Cache-Control":
+          "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600", // 1 hour cache
       },
     });
   } catch (error) {
     return new Response(
       JSON.stringify({
-        error: 'Failed to fetch ArXiv data',
-        message: error.message
+        error: "Failed to fetch ArXiv data",
+        message: error.message,
       }),
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
-          ...cors
+          "Content-Type": "application/json",
+          ...cors,
         },
-      }
+      },
     );
   }
 }

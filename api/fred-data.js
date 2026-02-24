@@ -1,65 +1,71 @@
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-export const config = { runtime: 'edge' };
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
+export const config = { runtime: "edge" };
 
 export default async function handler(req) {
-  const corsHeaders = getCorsHeaders(req, 'GET, OPTIONS');
+  const corsHeaders = getCorsHeaders(req, "GET, OPTIONS");
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     if (isDisallowedOrigin(req)) {
       return new Response(null, { status: 403, headers: corsHeaders });
     }
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (req.method !== "GET") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
   if (isDisallowedOrigin(req)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
   const url = new URL(req.url);
-  const seriesId = url.searchParams.get('series_id');
-  const observationStart = url.searchParams.get('observation_start');
-  const observationEnd = url.searchParams.get('observation_end');
+  const seriesId = url.searchParams.get("series_id");
+  const observationStart = url.searchParams.get("observation_start");
+  const observationEnd = url.searchParams.get("observation_end");
 
   if (!seriesId) {
-    return new Response(JSON.stringify({ error: 'Missing series_id parameter' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    });
+    return new Response(
+      JSON.stringify({ error: "Missing series_id parameter" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   }
 
   const apiKey = process.env.FRED_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'FRED_API_KEY not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    });
+    return new Response(
+      JSON.stringify({ error: "FRED_API_KEY not configured" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   }
 
   try {
     const params = new URLSearchParams({
       series_id: seriesId,
       api_key: apiKey,
-      file_type: 'json',
-      sort_order: 'desc',
-      limit: '10',
+      file_type: "json",
+      sort_order: "desc",
+      limit: "10",
     });
 
-    if (observationStart) params.set('observation_start', observationStart);
-    if (observationEnd) params.set('observation_end', observationEnd);
+    if (observationStart) params.set("observation_start", observationStart);
+    if (observationEnd) params.set("observation_end", observationEnd);
 
     const fredUrl = `https://api.stlouisfed.org/fred/series/observations?${params}`;
     const response = await fetch(fredUrl, {
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: "application/json" },
     });
 
     const data = await response.json();
@@ -67,15 +73,16 @@ export default async function handler(req) {
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+        "Content-Type": "application/json",
+        "Cache-Control":
+          "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600",
         ...corsHeaders,
       },
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 }

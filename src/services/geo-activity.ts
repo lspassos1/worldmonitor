@@ -1,5 +1,5 @@
-import type { ClusteredEvent } from '@/types';
-import { inferGeoHubsFromTitle, type GeoHubLocation } from './geo-hub-index';
+import type { ClusteredEvent } from "@/types";
+import { inferGeoHubsFromTitle, type GeoHubLocation } from "./geo-hub-index";
 
 export interface GeoHubActivity {
   hubId: string;
@@ -8,14 +8,14 @@ export interface GeoHubActivity {
   country: string;
   lat: number;
   lon: number;
-  type: 'capital' | 'conflict' | 'strategic' | 'organization';
-  tier: 'critical' | 'major' | 'notable';
-  activityLevel: 'high' | 'elevated' | 'low';
+  type: "capital" | "conflict" | "strategic" | "organization";
+  tier: "critical" | "major" | "notable";
+  activityLevel: "high" | "elevated" | "low";
   score: number;
   newsCount: number;
   hasBreaking: boolean;
   topStories: Array<{ title: string; link: string }>;
-  trend: 'rising' | 'stable' | 'falling';
+  trend: "rising" | "stable" | "falling";
   matchedKeywords: string[];
 }
 
@@ -40,7 +40,9 @@ const TYPE_BONUS: Record<string, number> = {
   organization: 5,
 };
 
-export function aggregateGeoActivity(clusters: ClusteredEvent[]): GeoHubActivity[] {
+export function aggregateGeoActivity(
+  clusters: ClusteredEvent[],
+): GeoHubActivity[] {
   const hubAccumulators = new Map<string, HubAccumulator>();
 
   for (const cluster of clusters) {
@@ -74,7 +76,11 @@ export function aggregateGeoActivity(clusters: ClusteredEvent[]): GeoHubActivity
     }
   }
 
-  const rawScores: Array<{ hubId: string; acc: HubAccumulator; rawScore: number }> = [];
+  const rawScores: Array<{
+    hubId: string;
+    acc: HubAccumulator;
+    rawScore: number;
+  }> = [];
   let maxRawScore = 0;
 
   for (const [hubId, acc] of hubAccumulators) {
@@ -98,28 +104,27 @@ export function aggregateGeoActivity(clusters: ClusteredEvent[]): GeoHubActivity
   for (const { hubId, acc, rawScore } of rawScores) {
     const newsCount = acc.clusters.length;
 
-    const score = maxRawScore > 0
-      ? Math.round((rawScore / maxRawScore) * 100)
-      : 0;
+    const score =
+      maxRawScore > 0 ? Math.round((rawScore / maxRawScore) * 100) : 0;
 
-    let activityLevel: 'high' | 'elevated' | 'low';
+    let activityLevel: "high" | "elevated" | "low";
     if (score >= 70 || acc.hasBreaking) {
-      activityLevel = 'high';
+      activityLevel = "high";
     } else if (score >= 40) {
-      activityLevel = 'elevated';
+      activityLevel = "elevated";
     } else {
-      activityLevel = 'low';
+      activityLevel = "low";
     }
 
     const topStories = acc.clusters
       .slice(0, 3)
-      .map(c => ({ title: c.primaryTitle, link: c.primaryLink }));
+      .map((c) => ({ title: c.primaryTitle, link: c.primaryLink }));
 
-    let trend: 'rising' | 'stable' | 'falling' = 'stable';
+    let trend: "rising" | "stable" | "falling" = "stable";
     if (acc.totalVelocity > 2) {
-      trend = 'rising';
+      trend = "rising";
     } else if (acc.totalVelocity < 0.5 && newsCount > 1) {
-      trend = 'falling';
+      trend = "falling";
     }
 
     activities.push({
@@ -146,11 +151,17 @@ export function aggregateGeoActivity(clusters: ClusteredEvent[]): GeoHubActivity
   return activities;
 }
 
-export function getTopActiveGeoHubs(clusters: ClusteredEvent[], limit = 10): GeoHubActivity[] {
+export function getTopActiveGeoHubs(
+  clusters: ClusteredEvent[],
+  limit = 10,
+): GeoHubActivity[] {
   return aggregateGeoActivity(clusters).slice(0, limit);
 }
 
-export function getGeoHubActivity(hubId: string, clusters: ClusteredEvent[]): GeoHubActivity | undefined {
+export function getGeoHubActivity(
+  hubId: string,
+  clusters: ClusteredEvent[],
+): GeoHubActivity | undefined {
   const activities = aggregateGeoActivity(clusters);
-  return activities.find(a => a.hubId === hubId);
+  return activities.find((a) => a.hubId === hubId);
 }

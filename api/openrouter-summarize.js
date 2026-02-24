@@ -6,22 +6,22 @@
  * Server-side Redis cache for cross-user deduplication
  */
 
-import { getCachedJson, setCachedJson, hashString } from './_upstash-cache.js';
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson, hashString } from "./_upstash-cache.js";
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
 
 export const config = {
-  runtime: 'edge',
+  runtime: "edge",
 };
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 const CACHE_TTL_SECONDS = 86400; // 24 hours
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = "v3";
 
-function getCacheKey(headlines, mode, geoContext = '', variant = 'full') {
-  const sorted = headlines.slice(0, 8).sort().join('|');
-  const geoHash = geoContext ? ':g' + hashString(geoContext).slice(0, 6) : '';
+function getCacheKey(headlines, mode, geoContext = "", variant = "full") {
+  const sorted = headlines.slice(0, 8).sort().join("|");
+  const geoHash = geoContext ? ":g" + hashString(geoContext).slice(0, 6) : "";
   const hash = hashString(`${mode}:${sorted}`);
   return `summary:${CACHE_VERSION}:${variant}:${hash}${geoHash}`;
 }
@@ -33,19 +33,21 @@ function deduplicateHeadlines(headlines) {
 
   for (const headline of headlines) {
     // Normalize: lowercase, remove punctuation, collapse whitespace
-    const normalized = headline.toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ')
+    const normalized = headline
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, " ")
       .trim();
 
     // Extract key words (4+ chars) for similarity check
-    const words = new Set(normalized.split(' ').filter(w => w.length >= 4));
+    const words = new Set(normalized.split(" ").filter((w) => w.length >= 4));
 
     // Check if this headline is too similar to any we've seen
     let isDuplicate = false;
     for (const seenWords of seen) {
-      const intersection = [...words].filter(w => seenWords.has(w));
-      const similarity = intersection.length / Math.min(words.size, seenWords.size);
+      const intersection = [...words].filter((w) => seenWords.has(w));
+      const similarity =
+        intersection.length / Math.min(words.size, seenWords.size);
       if (similarity > 0.6) {
         isDuplicate = true;
         break;
@@ -62,82 +64,106 @@ function deduplicateHeadlines(headlines) {
 }
 
 export default async function handler(request) {
-  const corsHeaders = getCorsHeaders(request, 'POST, OPTIONS');
+  const corsHeaders = getCorsHeaders(request, "POST, OPTIONS");
 
-  if (request.method === 'OPTIONS') {
+  if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   if (isDisallowedOrigin(request)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ summary: null, fallback: true, skipped: true, reason: 'OPENROUTER_API_KEY not configured' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        summary: null,
+        fallback: true,
+        skipped: true,
+        reason: "OPENROUTER_API_KEY not configured",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
-  const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
+  const contentLength = parseInt(
+    request.headers.get("content-length") || "0",
+    10,
+  );
   if (contentLength > 51200) {
-    return new Response(JSON.stringify({ error: 'Payload too large' }), {
+    return new Response(JSON.stringify({ error: "Payload too large" }), {
       status: 413,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   try {
-    const { headlines, mode = 'brief', geoContext = '', variant = 'full' } = await request.json();
+    const {
+      headlines,
+      mode = "brief",
+      geoContext = "",
+      variant = "full",
+    } = await request.json();
 
     if (!headlines || !Array.isArray(headlines) || headlines.length === 0) {
-      return new Response(JSON.stringify({ error: 'Headlines array required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: "Headlines array required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Check cache first (shared with Groq endpoint)
     const cacheKey = getCacheKey(headlines, mode, geoContext, variant);
     const cached = await getCachedJson(cacheKey);
-    if (cached && typeof cached === 'object' && cached.summary) {
-      console.log('[OpenRouter] Cache hit:', cacheKey);
-      return new Response(JSON.stringify({
-        summary: cached.summary,
-        model: cached.model || MODEL,
-        provider: 'cache',
-        cached: true,
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (cached && typeof cached === "object" && cached.summary) {
+      console.log("[OpenRouter] Cache hit:", cacheKey);
+      return new Response(
+        JSON.stringify({
+          summary: cached.summary,
+          model: cached.model || MODEL,
+          provider: "cache",
+          cached: true,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Deduplicate similar headlines (same story from different sources)
     const uniqueHeadlines = deduplicateHeadlines(headlines.slice(0, 8));
-    const headlineText = uniqueHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n');
+    const headlineText = uniqueHeadlines
+      .map((h, i) => `${i + 1}. ${h}`)
+      .join("\n");
 
     let systemPrompt, userPrompt;
 
     // Include intelligence synthesis context in prompt if available
-    const intelSection = geoContext ? `\n\n${geoContext}` : '';
+    const intelSection = geoContext ? `\n\n${geoContext}` : "";
 
     // Current date context for LLM (models may have outdated knowledge)
-    const isTechVariant = variant === 'tech';
-    const dateContext = `Current date: ${new Date().toISOString().split('T')[0]}.${isTechVariant ? '' : ' Donald Trump is the current US President (second term, inaugurated Jan 2025).'}`;
+    const isTechVariant = variant === "tech";
+    const dateContext = `Current date: ${new Date().toISOString().split("T")[0]}.${isTechVariant ? "" : " Donald Trump is the current US President (second term, inaugurated Jan 2025)."}`;
 
-    if (mode === 'brief') {
+    if (mode === "brief") {
       if (isTechVariant) {
         // Tech variant: focus on startups, AI, funding, product launches
         systemPrompt = `${dateContext}
@@ -163,7 +189,7 @@ Rules:
 - No bullet points, no meta-commentary`;
       }
       userPrompt = `Summarize the top story:\n${headlineText}${intelSection}`;
-    } else if (mode === 'analysis') {
+    } else if (mode === "analysis") {
       if (isTechVariant) {
         systemPrompt = `${dateContext}
 
@@ -196,18 +222,18 @@ Rules:
     }
 
     const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://worldmonitor.app',
-        'X-Title': 'WorldMonitor',
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://worldmonitor.app",
+        "X-Title": "WorldMonitor",
       },
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
         max_tokens: 150,
@@ -217,59 +243,78 @@ Rules:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[OpenRouter] API error:', response.status, errorText);
+      console.error("[OpenRouter] API error:", response.status, errorText);
 
       // Return fallback signal for rate limiting
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limited', fallback: true }), {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({ error: "Rate limited", fallback: true }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
       }
 
-      return new Response(JSON.stringify({ error: 'OpenRouter API error', fallback: true }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: "OpenRouter API error", fallback: true }),
+        {
+          status: response.status,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     const data = await response.json();
     const summary = data.choices?.[0]?.message?.content?.trim();
 
     if (!summary) {
-      return new Response(JSON.stringify({ error: 'Empty response', fallback: true }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: "Empty response", fallback: true }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Store in cache (shared with Groq endpoint)
-    await setCachedJson(cacheKey, {
-      summary,
-      model: MODEL,
-      timestamp: Date.now(),
-    }, CACHE_TTL_SECONDS);
-
-    return new Response(JSON.stringify({
-      summary,
-      model: MODEL,
-      provider: 'openrouter',
-      cached: false,
-      tokens: data.usage?.total_tokens || 0,
-    }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=300',
+    await setCachedJson(
+      cacheKey,
+      {
+        summary,
+        model: MODEL,
+        timestamp: Date.now(),
       },
-    });
+      CACHE_TTL_SECONDS,
+    );
 
+    return new Response(
+      JSON.stringify({
+        summary,
+        model: MODEL,
+        provider: "openrouter",
+        cached: false,
+        tokens: data.usage?.total_tokens || 0,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "public, max-age=1800, s-maxage=1800, stale-while-revalidate=300",
+        },
+      },
+    );
   } catch (error) {
-    console.error('[OpenRouter] Error:', error);
-    return new Response(JSON.stringify({ error: error.message, fallback: true }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error("[OpenRouter] Error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message, fallback: true }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }

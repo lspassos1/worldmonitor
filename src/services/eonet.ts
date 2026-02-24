@@ -1,5 +1,5 @@
-import type { NaturalEvent, NaturalEventCategory } from '@/types';
-import { fetchGDACSEvents, type GDACSEvent } from './gdacs';
+import type { NaturalEvent, NaturalEventCategory } from "@/types";
+import { fetchGDACSEvents, type GDACSEvent } from "./gdacs";
 
 interface EonetGeometry {
   magnitudeValue?: number;
@@ -34,53 +34,53 @@ interface EonetResponse {
   events: EonetEvent[];
 }
 
-const EONET_API_URL = 'https://eonet.gsfc.nasa.gov/api/v3/events';
+const EONET_API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events";
 
 const CATEGORY_ICONS: Record<NaturalEventCategory, string> = {
-  severeStorms: '🌀',
-  wildfires: '🔥',
-  volcanoes: '🌋',
-  earthquakes: '🔴',
-  floods: '🌊',
-  landslides: '⛰️',
-  drought: '☀️',
-  dustHaze: '🌫️',
-  snow: '❄️',
-  tempExtremes: '🌡️',
-  seaLakeIce: '🧊',
-  waterColor: '🦠',
-  manmade: '⚠️',
+  severeStorms: "🌀",
+  wildfires: "🔥",
+  volcanoes: "🌋",
+  earthquakes: "🔴",
+  floods: "🌊",
+  landslides: "⛰️",
+  drought: "☀️",
+  dustHaze: "🌫️",
+  snow: "❄️",
+  tempExtremes: "🌡️",
+  seaLakeIce: "🧊",
+  waterColor: "🦠",
+  manmade: "⚠️",
 };
 
 export function getNaturalEventIcon(category: NaturalEventCategory): string {
-  return CATEGORY_ICONS[category] || '⚠️';
+  return CATEGORY_ICONS[category] || "⚠️";
 }
 
 // Wildfires older than 48 hours are filtered out (stale data)
 const WILDFIRE_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 
 const GDACS_TO_CATEGORY: Record<string, NaturalEventCategory> = {
-  EQ: 'earthquakes',
-  FL: 'floods',
-  TC: 'severeStorms',
-  VO: 'volcanoes',
-  WF: 'wildfires',
-  DR: 'drought',
+  EQ: "earthquakes",
+  FL: "floods",
+  TC: "severeStorms",
+  VO: "volcanoes",
+  WF: "wildfires",
+  DR: "drought",
 };
 
 function convertGDACSToNaturalEvent(gdacs: GDACSEvent): NaturalEvent {
-  const category = GDACS_TO_CATEGORY[gdacs.eventType] || 'manmade';
+  const category = GDACS_TO_CATEGORY[gdacs.eventType] || "manmade";
   return {
     id: gdacs.id,
-    title: `${gdacs.alertLevel === 'Red' ? '🔴 ' : gdacs.alertLevel === 'Orange' ? '🟠 ' : ''}${gdacs.name}`,
-    description: `${gdacs.description}${gdacs.severity ? ` - ${gdacs.severity}` : ''}`,
+    title: `${gdacs.alertLevel === "Red" ? "🔴 " : gdacs.alertLevel === "Orange" ? "🟠 " : ""}${gdacs.name}`,
+    description: `${gdacs.description}${gdacs.severity ? ` - ${gdacs.severity}` : ""}`,
     category,
     categoryTitle: gdacs.description,
     lat: gdacs.coordinates[1],
     lon: gdacs.coordinates[0],
     date: gdacs.fromDate,
     sourceUrl: gdacs.url,
-    sourceName: 'GDACS',
+    sourceName: "GDACS",
     closed: false,
   };
 }
@@ -91,7 +91,9 @@ export async function fetchNaturalEvents(days = 30): Promise<NaturalEvent[]> {
     fetchGDACSEvents(),
   ]);
 
-  console.log(`[NaturalEvents] EONET: ${eonetEvents.length}, GDACS: ${gdacsEvents.length}`);
+  console.log(
+    `[NaturalEvents] EONET: ${eonetEvents.length}, GDACS: ${gdacsEvents.length}`,
+  );
   const gdacsConverted = gdacsEvents.map(convertGDACSToNaturalEvent);
   const seenLocations = new Set<string>();
   const merged: NaturalEvent[] = [];
@@ -133,18 +135,21 @@ async function fetchEonetEvents(days: number): Promise<NaturalEvent[]> {
       if (!category) continue;
 
       // Skip earthquakes - USGS provides better data for seismic events
-      if (category.id === 'earthquakes') continue;
+      if (category.id === "earthquakes") continue;
 
       // Get most recent geometry point
       const latestGeo = event.geometry[event.geometry.length - 1];
-      if (!latestGeo || latestGeo.type !== 'Point') continue;
+      if (!latestGeo || latestGeo.type !== "Point") continue;
 
       const eventDate = new Date(latestGeo.date);
       const [lon, lat] = latestGeo.coordinates;
       const source = event.sources[0];
 
       // Filter out wildfires older than 48 hours
-      if (category.id === 'wildfires' && now - eventDate.getTime() > WILDFIRE_MAX_AGE_MS) {
+      if (
+        category.id === "wildfires" &&
+        now - eventDate.getTime() > WILDFIRE_MAX_AGE_MS
+      ) {
         continue;
       }
 
@@ -167,7 +172,7 @@ async function fetchEonetEvents(days: number): Promise<NaturalEvent[]> {
 
     return events;
   } catch (error) {
-    console.error('[EONET] Failed to fetch natural events:', error);
+    console.error("[EONET] Failed to fetch natural events:", error);
     return [];
   }
 }

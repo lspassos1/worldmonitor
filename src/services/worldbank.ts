@@ -44,16 +44,22 @@ export interface IndicatorsResponse {
   defaultCountries: string[];
 }
 
-const API_BASE = '/api/worldbank';
+const API_BASE = "/api/worldbank";
 
 // Railway relay URL for World Bank proxy (World Bank blocks Vercel IPs)
-const wsRelayUrl = import.meta.env.VITE_WS_RELAY_URL || '';
+const wsRelayUrl = import.meta.env.VITE_WS_RELAY_URL || "";
 const RAILWAY_WB_URL = wsRelayUrl
-  ? wsRelayUrl.replace('wss://', 'https://').replace('ws://', 'http://').replace(/\/$/, '') + '/worldbank'
-  : '';
+  ? wsRelayUrl
+      .replace("wss://", "https://")
+      .replace("ws://", "http://")
+      .replace(/\/$/, "") + "/worldbank"
+  : "";
 
 let indicatorsCache: IndicatorsResponse | null = null;
-const dataCache = new Map<string, { data: WorldBankResponse; timestamp: number }>();
+const dataCache = new Map<
+  string,
+  { data: WorldBankResponse; timestamp: number }
+>();
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 async function wbFetch(qs: string): Promise<Response> {
@@ -62,7 +68,9 @@ async function wbFetch(qs: string): Promise<Response> {
     try {
       const resp = await fetch(`${RAILWAY_WB_URL}?${qs}`);
       if (resp.ok) return resp;
-    } catch { /* Railway unavailable, fall through */ }
+    } catch {
+      /* Railway unavailable, fall through */
+    }
   }
   // Fallback to Vercel edge function
   return fetch(`${API_BASE}?${qs}`);
@@ -71,8 +79,8 @@ async function wbFetch(qs: string): Promise<Response> {
 export async function getAvailableIndicators(): Promise<IndicatorsResponse> {
   if (indicatorsCache) return indicatorsCache;
 
-  const response = await wbFetch('action=indicators');
-  if (!response.ok) throw new Error('Failed to fetch indicators');
+  const response = await wbFetch("action=indicators");
+  if (!response.ok) throw new Error("Failed to fetch indicators");
 
   indicatorsCache = await response.json();
   return indicatorsCache!;
@@ -83,11 +91,11 @@ export async function getIndicatorData(
   options: {
     countries?: string[];
     years?: number;
-  } = {}
+  } = {},
 ): Promise<WorldBankResponse> {
   const { countries, years = 5 } = options;
 
-  const cacheKey = `${indicator}-${countries?.join(',') || 'default'}-${years}`;
+  const cacheKey = `${indicator}-${countries?.join(",") || "default"}-${years}`;
   const cached = dataCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
@@ -95,7 +103,7 @@ export async function getIndicatorData(
 
   const params = new URLSearchParams({ indicator, years: years.toString() });
   if (countries?.length) {
-    params.set('countries', countries.join(','));
+    params.set("countries", countries.join(","));
   }
 
   const response = await wbFetch(params.toString());
@@ -109,24 +117,14 @@ export async function getIndicatorData(
 // Preset indicator groups for common use cases
 export const INDICATOR_PRESETS = {
   digitalInfrastructure: [
-    'IT.NET.USER.ZS',
-    'IT.CEL.SETS.P2',
-    'IT.NET.BBND.P2',
-    'IT.NET.SECR.P6',
+    "IT.NET.USER.ZS",
+    "IT.CEL.SETS.P2",
+    "IT.NET.BBND.P2",
+    "IT.NET.SECR.P6",
   ],
-  innovation: [
-    'GB.XPD.RSDV.GD.ZS',
-    'IP.PAT.RESD',
-    'IP.PAT.NRES',
-  ],
-  techTrade: [
-    'TX.VAL.TECH.MF.ZS',
-    'BX.GSR.CCIS.ZS',
-  ],
-  education: [
-    'SE.TER.ENRR',
-    'SE.XPD.TOTL.GD.ZS',
-  ],
+  innovation: ["GB.XPD.RSDV.GD.ZS", "IP.PAT.RESD", "IP.PAT.NRES"],
+  techTrade: ["TX.VAL.TECH.MF.ZS", "BX.GSR.CCIS.ZS"],
+  education: ["SE.TER.ENRR", "SE.XPD.TOTL.GD.ZS"],
 } as const;
 
 export interface TechReadinessScore {
@@ -143,21 +141,21 @@ export interface TechReadinessScore {
 }
 
 export async function getTechReadinessRankings(
-  countries?: string[]
+  countries?: string[],
 ): Promise<TechReadinessScore[]> {
   // Fetch multiple indicators in parallel
   // Use 7 years to account for delayed data (R&D often 3-4 years behind)
   const [internet, mobile, broadband, rdSpend] = await Promise.all([
-    getIndicatorData('IT.NET.USER.ZS', { countries, years: 5 }),
-    getIndicatorData('IT.CEL.SETS.P2', { countries, years: 5 }),
-    getIndicatorData('IT.NET.BBND.P2', { countries, years: 5 }),
-    getIndicatorData('GB.XPD.RSDV.GD.ZS', { countries, years: 7 }),
+    getIndicatorData("IT.NET.USER.ZS", { countries, years: 5 }),
+    getIndicatorData("IT.CEL.SETS.P2", { countries, years: 5 }),
+    getIndicatorData("IT.NET.BBND.P2", { countries, years: 5 }),
+    getIndicatorData("GB.XPD.RSDV.GD.ZS", { countries, years: 7 }),
   ]);
 
   // Get all unique countries
   const allCountries = new Set<string>();
-  [internet, mobile, broadband, rdSpend].forEach(data => {
-    Object.keys(data.latestByCountry).forEach(c => allCountries.add(c));
+  [internet, mobile, broadband, rdSpend].forEach((data) => {
+    Object.keys(data.latestByCountry).forEach((c) => allCountries.add(c));
   });
 
   // Calculate composite score for each country
@@ -214,14 +212,16 @@ export async function getTechReadinessRankings(
 
   // Sort by score and assign ranks
   scores.sort((a, b) => b.score - a.score);
-  scores.forEach((s, i) => { s.rank = i + 1; });
+  scores.forEach((s, i) => {
+    s.rank = i + 1;
+  });
 
   return scores;
 }
 
 export async function getCountryComparison(
   indicator: string,
-  countryCodes: string[]
+  countryCodes: string[],
 ): Promise<WorldBankResponse> {
   return getIndicatorData(indicator, { countries: countryCodes, years: 10 });
 }

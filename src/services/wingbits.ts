@@ -3,9 +3,9 @@
  * Provides detailed aircraft information (owner, operator, type) for military classification
  */
 
-import { createCircuitBreaker } from '@/utils';
-import { dataFreshness } from './data-freshness';
-import { isFeatureAvailable } from './runtime-config';
+import { createCircuitBreaker } from "@/utils";
+import { dataFreshness } from "./data-freshness";
+import { isFeatureAvailable } from "./runtime-config";
 
 export interface WingbitsAircraftDetails {
   icao24: string;
@@ -36,20 +36,26 @@ export interface EnrichedAircraftInfo {
   builtYear: string | null;
   isMilitary: boolean;
   militaryBranch: string | null;
-  confidence: 'confirmed' | 'likely' | 'possible' | 'civilian';
+  confidence: "confirmed" | "likely" | "possible" | "civilian";
 }
 
-const WINGBITS_PROXY_URL = '/api/wingbits';
+const WINGBITS_PROXY_URL = "/api/wingbits";
 
 // Client-side cache for aircraft details
-const localCache = new Map<string, { data: WingbitsAircraftDetails; timestamp: number }>();
+const localCache = new Map<
+  string,
+  { data: WingbitsAircraftDetails; timestamp: number }
+>();
 const LOCAL_CACHE_TTL = 60 * 60 * 1000; // 1 hour client-side
 const MAX_LOCAL_CACHE_ENTRIES = 2000;
 const CACHE_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 let lastCacheSweep = 0;
 
 function sweepLocalCache(now = Date.now()): void {
-  if (now - lastCacheSweep < CACHE_SWEEP_INTERVAL_MS && localCache.size <= MAX_LOCAL_CACHE_ENTRIES) {
+  if (
+    now - lastCacheSweep < CACHE_SWEEP_INTERVAL_MS &&
+    localCache.size <= MAX_LOCAL_CACHE_ENTRIES
+  ) {
     return;
   }
 
@@ -63,9 +69,13 @@ function sweepLocalCache(now = Date.now()): void {
 
   if (localCache.size <= MAX_LOCAL_CACHE_ENTRIES) return;
 
-  const oldestFirst = Array.from(localCache.entries())
-    .sort((a, b) => a[1].timestamp - b[1].timestamp);
-  const toDelete = oldestFirst.slice(0, localCache.size - MAX_LOCAL_CACHE_ENTRIES);
+  const oldestFirst = Array.from(localCache.entries()).sort(
+    (a, b) => a[1].timestamp - b[1].timestamp,
+  );
+  const toDelete = oldestFirst.slice(
+    0,
+    localCache.size - MAX_LOCAL_CACHE_ENTRIES,
+  );
   for (const [key] of toDelete) {
     localCache.delete(key);
   }
@@ -96,57 +106,122 @@ let wingbitsConfigured: boolean | null = null;
 
 // Circuit breaker for API calls
 const breaker = createCircuitBreaker<WingbitsAircraftDetails | null>({
-  name: 'Wingbits Enrichment',
+  name: "Wingbits Enrichment",
   maxFailures: 5,
   cooldownMs: 5 * 60 * 1000,
 });
 
 // Military keywords for classification
 const MILITARY_OPERATORS = [
-  'air force', 'navy', 'army', 'marine', 'military', 'defense', 'defence',
-  'usaf', 'raf', 'luftwaffe', 'aeronautica', 'fuerza aerea',
-  'coast guard', 'national guard', 'air national guard',
-  'nato', 'norad',
+  "air force",
+  "navy",
+  "army",
+  "marine",
+  "military",
+  "defense",
+  "defence",
+  "usaf",
+  "raf",
+  "luftwaffe",
+  "aeronautica",
+  "fuerza aerea",
+  "coast guard",
+  "national guard",
+  "air national guard",
+  "nato",
+  "norad",
 ];
 
 const MILITARY_OWNERS = [
-  'united states air force', 'united states navy', 'united states army',
-  'us air force', 'us navy', 'us army', 'us marine corps',
-  'department of defense', 'department of the air force', 'department of the navy',
-  'ministry of defence', 'ministry of defense',
-  'royal air force', 'royal navy',
-  'bundeswehr', 'german air force', 'german navy',
-  'french air force', 'armee de lair',
-  'israel defense forces', 'israeli air force',
-  'nato', 'northrop grumman', 'lockheed martin', 'general atomics', 'raytheon',
-  'boeing defense', 'bae systems',
+  "united states air force",
+  "united states navy",
+  "united states army",
+  "us air force",
+  "us navy",
+  "us army",
+  "us marine corps",
+  "department of defense",
+  "department of the air force",
+  "department of the navy",
+  "ministry of defence",
+  "ministry of defense",
+  "royal air force",
+  "royal navy",
+  "bundeswehr",
+  "german air force",
+  "german navy",
+  "french air force",
+  "armee de lair",
+  "israel defense forces",
+  "israeli air force",
+  "nato",
+  "northrop grumman",
+  "lockheed martin",
+  "general atomics",
+  "raytheon",
+  "boeing defense",
+  "bae systems",
 ];
 
 const MILITARY_AIRCRAFT_TYPES = [
-  'C17', 'C5', 'C130', 'C135', 'KC135', 'KC10', 'KC46', 'E3', 'E8', 'E6',
-  'B52', 'B1', 'B2', 'F15', 'F16', 'F18', 'F22', 'F35', 'A10',
-  'P8', 'P3', 'EP3', 'RC135', 'U2', 'RQ4', 'MQ9', 'MQ1',
-  'V22', 'CH47', 'UH60', 'AH64', 'HH60',
-  'EUFI', 'TYPHOON', 'RAFALE', 'TORNADO', 'GRIPEN',
+  "C17",
+  "C5",
+  "C130",
+  "C135",
+  "KC135",
+  "KC10",
+  "KC46",
+  "E3",
+  "E8",
+  "E6",
+  "B52",
+  "B1",
+  "B2",
+  "F15",
+  "F16",
+  "F18",
+  "F22",
+  "F35",
+  "A10",
+  "P8",
+  "P3",
+  "EP3",
+  "RC135",
+  "U2",
+  "RQ4",
+  "MQ9",
+  "MQ1",
+  "V22",
+  "CH47",
+  "UH60",
+  "AH64",
+  "HH60",
+  "EUFI",
+  "TYPHOON",
+  "RAFALE",
+  "TORNADO",
+  "GRIPEN",
 ];
 
 /**
  * Check if Wingbits API is configured
  */
 export async function checkWingbitsStatus(): Promise<boolean> {
-  if (!isFeatureAvailable('wingbitsEnrichment')) return false;
+  if (!isFeatureAvailable("wingbitsEnrichment")) return false;
   if (wingbitsConfigured !== null) return wingbitsConfigured;
 
   try {
     const response = await fetch(`${WINGBITS_PROXY_URL}/health`);
     const data = await response.json();
     wingbitsConfigured = data.configured === true;
-    dataFreshness.setEnabled('wingbits', wingbitsConfigured);
-    console.log(`[Wingbits] Status: ${wingbitsConfigured ? 'configured' : 'not configured'}`);
+    dataFreshness.setEnabled("wingbits", wingbitsConfigured);
+    console.log(
+      `[Wingbits] Status: ${wingbitsConfigured ? "configured" : "not configured"}`,
+    );
     return wingbitsConfigured;
   } catch {
     wingbitsConfigured = false;
-    dataFreshness.setEnabled('wingbits', false);
+    dataFreshness.setEnabled("wingbits", false);
     return false;
   }
 }
@@ -154,8 +229,10 @@ export async function checkWingbitsStatus(): Promise<boolean> {
 /**
  * Fetch aircraft details from Wingbits
  */
-export async function getAircraftDetails(icao24: string): Promise<WingbitsAircraftDetails | null> {
-  if (!isFeatureAvailable('wingbitsEnrichment')) return null;
+export async function getAircraftDetails(
+  icao24: string,
+): Promise<WingbitsAircraftDetails | null> {
+  if (!isFeatureAvailable("wingbitsEnrichment")) return null;
   const key = icao24.toLowerCase();
 
   // Check local cache first
@@ -181,7 +258,7 @@ export async function getAircraftDetails(icao24: string): Promise<WingbitsAircra
 
     if (data.configured === false) {
       wingbitsConfigured = false;
-      throw new Error('Wingbits not configured');
+      throw new Error("Wingbits not configured");
     }
 
     // Cache the result
@@ -193,8 +270,10 @@ export async function getAircraftDetails(icao24: string): Promise<WingbitsAircra
 /**
  * Batch fetch aircraft details
  */
-export async function getAircraftDetailsBatch(icao24List: string[]): Promise<Map<string, WingbitsAircraftDetails>> {
-  if (!isFeatureAvailable('wingbitsEnrichment')) return new Map();
+export async function getAircraftDetailsBatch(
+  icao24List: string[],
+): Promise<Map<string, WingbitsAircraftDetails>> {
+  if (!isFeatureAvailable("wingbitsEnrichment")) return new Map();
   const results = new Map<string, WingbitsAircraftDetails>();
   const toFetch: string[] = [];
 
@@ -203,7 +282,8 @@ export async function getAircraftDetailsBatch(icao24List: string[]): Promise<Map
     const key = icao24.toLowerCase();
     const cached = getFromLocalCache(key);
     if (cached) {
-      if (cached.registration) { // Only include valid results
+      if (cached.registration) {
+        // Only include valid results
         results.set(key, cached);
       }
     } else {
@@ -217,8 +297,8 @@ export async function getAircraftDetailsBatch(icao24List: string[]): Promise<Map
 
   try {
     const response = await fetch(`${WINGBITS_PROXY_URL}/details/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ icao24s: toFetch }),
     });
 
@@ -242,13 +322,18 @@ export async function getAircraftDetailsBatch(icao24List: string[]): Promise<Map
       }
     }
 
-    console.log(`[Wingbits] Batch: ${results.size} enriched, ${data.cached || 0} cached, ${data.fetched || 0} fetched`);
+    console.log(
+      `[Wingbits] Batch: ${results.size} enriched, ${data.cached || 0} cached, ${data.fetched || 0} fetched`,
+    );
     if (results.size > 0) {
-      dataFreshness.recordUpdate('wingbits', results.size);
+      dataFreshness.recordUpdate("wingbits", results.size);
     }
   } catch (error) {
-    console.warn('[Wingbits] Batch fetch failed:', error);
-    dataFreshness.recordError('wingbits', error instanceof Error ? error.message : 'Unknown error');
+    console.warn("[Wingbits] Batch fetch failed:", error);
+    dataFreshness.recordError(
+      "wingbits",
+      error instanceof Error ? error.message : "Unknown error",
+    );
   }
 
   return results;
@@ -257,7 +342,9 @@ export async function getAircraftDetailsBatch(icao24List: string[]): Promise<Map
 /**
  * Analyze aircraft details to determine if military
  */
-export function analyzeAircraftDetails(details: WingbitsAircraftDetails): EnrichedAircraftInfo {
+export function analyzeAircraftDetails(
+  details: WingbitsAircraftDetails,
+): EnrichedAircraftInfo {
   const result: EnrichedAircraftInfo = {
     registration: details.registration,
     manufacturer: details.manufacturerName,
@@ -269,20 +356,20 @@ export function analyzeAircraftDetails(details: WingbitsAircraftDetails): Enrich
     builtYear: details.built?.substring(0, 4) || null,
     isMilitary: false,
     militaryBranch: null,
-    confidence: 'civilian',
+    confidence: "civilian",
   };
 
-  const ownerLower = (details.owner || '').toLowerCase();
-  const operatorLower = (details.operator || '').toLowerCase();
-  const typecode = (details.typecode || '').toUpperCase();
-  const operatorIcao = (details.operatorIcao || '').toUpperCase();
+  const ownerLower = (details.owner || "").toLowerCase();
+  const operatorLower = (details.operator || "").toLowerCase();
+  const typecode = (details.typecode || "").toUpperCase();
+  const operatorIcao = (details.operatorIcao || "").toUpperCase();
 
   // Check for military operators
   for (const keyword of MILITARY_OPERATORS) {
     if (operatorLower.includes(keyword)) {
       result.isMilitary = true;
       result.militaryBranch = extractMilitaryBranch(operatorLower);
-      result.confidence = 'confirmed';
+      result.confidence = "confirmed";
       return result;
     }
   }
@@ -292,16 +379,24 @@ export function analyzeAircraftDetails(details: WingbitsAircraftDetails): Enrich
     if (ownerLower.includes(keyword)) {
       result.isMilitary = true;
       result.militaryBranch = extractMilitaryBranch(ownerLower);
-      result.confidence = 'confirmed';
+      result.confidence = "confirmed";
       return result;
     }
   }
 
   // Check operator ICAO codes
-  const militaryOperatorIcaos = ['AIO', 'RRR', 'RFR', 'GAF', 'RCH', 'CNV', 'DOD'];
+  const militaryOperatorIcaos = [
+    "AIO",
+    "RRR",
+    "RFR",
+    "GAF",
+    "RCH",
+    "CNV",
+    "DOD",
+  ];
   if (militaryOperatorIcaos.includes(operatorIcao)) {
     result.isMilitary = true;
-    result.confidence = 'likely';
+    result.confidence = "likely";
     return result;
   }
 
@@ -309,17 +404,24 @@ export function analyzeAircraftDetails(details: WingbitsAircraftDetails): Enrich
   for (const milType of MILITARY_AIRCRAFT_TYPES) {
     if (typecode.includes(milType)) {
       result.isMilitary = true;
-      result.confidence = 'likely';
+      result.confidence = "likely";
       return result;
     }
   }
 
   // Defense contractors often operate military aircraft
-  const defenseContractors = ['northrop', 'lockheed', 'general atomics', 'raytheon', 'boeing defense', 'l3harris'];
+  const defenseContractors = [
+    "northrop",
+    "lockheed",
+    "general atomics",
+    "raytheon",
+    "boeing defense",
+    "l3harris",
+  ];
   for (const contractor of defenseContractors) {
     if (ownerLower.includes(contractor) || operatorLower.includes(contractor)) {
       result.isMilitary = true;
-      result.confidence = 'possible';
+      result.confidence = "possible";
       return result;
     }
   }
@@ -328,20 +430,27 @@ export function analyzeAircraftDetails(details: WingbitsAircraftDetails): Enrich
 }
 
 function extractMilitaryBranch(text: string): string | null {
-  if (text.includes('air force') || text.includes('usaf') || text.includes('raf')) return 'Air Force';
-  if (text.includes('navy') || text.includes('naval')) return 'Navy';
-  if (text.includes('army')) return 'Army';
-  if (text.includes('marine')) return 'Marines';
-  if (text.includes('coast guard')) return 'Coast Guard';
-  if (text.includes('national guard')) return 'National Guard';
-  if (text.includes('nato')) return 'NATO';
+  if (
+    text.includes("air force") ||
+    text.includes("usaf") ||
+    text.includes("raf")
+  )
+    return "Air Force";
+  if (text.includes("navy") || text.includes("naval")) return "Navy";
+  if (text.includes("army")) return "Army";
+  if (text.includes("marine")) return "Marines";
+  if (text.includes("coast guard")) return "Coast Guard";
+  if (text.includes("national guard")) return "National Guard";
+  if (text.includes("nato")) return "NATO";
   return null;
 }
 
 /**
  * Enrich a single aircraft and determine military status
  */
-export async function enrichAircraft(icao24: string): Promise<EnrichedAircraftInfo | null> {
+export async function enrichAircraft(
+  icao24: string,
+): Promise<EnrichedAircraftInfo | null> {
   const details = await getAircraftDetails(icao24);
   if (!details || !details.registration) return null;
   return analyzeAircraftDetails(details);
@@ -350,7 +459,10 @@ export async function enrichAircraft(icao24: string): Promise<EnrichedAircraftIn
 /**
  * Get Wingbits service status
  */
-export function getWingbitsStatus(): { configured: boolean | null; cacheSize: number } {
+export function getWingbitsStatus(): {
+  configured: boolean | null;
+  cacheSize: number;
+} {
   return {
     configured: wingbitsConfigured,
     cacheSize: localCache.size,

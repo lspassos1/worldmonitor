@@ -4,16 +4,16 @@
  * Eliminates 15-minute learning mode for users
  */
 
-import type { CountryScore, ComponentScores } from './country-instability';
-import { setHasCachedScores } from './country-instability';
-import { getPersistentCache, setPersistentCache } from './persistent-cache';
+import type { CountryScore, ComponentScores } from "./country-instability";
+import { setHasCachedScores } from "./country-instability";
+import { getPersistentCache, setPersistentCache } from "./persistent-cache";
 
 export interface CachedCIIScore {
   code: string;
   name: string;
   score: number;
-  level: 'low' | 'normal' | 'elevated' | 'high' | 'critical';
-  trend: 'rising' | 'stable' | 'falling';
+  level: "low" | "normal" | "elevated" | "high" | "critical";
+  trend: "rising" | "stable" | "falling";
   change24h: number;
   components: ComponentScores;
   lastUpdated: string;
@@ -40,7 +40,7 @@ export interface CachedRiskScores {
   cached: boolean;
 }
 
-const RISK_CACHE_KEY = 'risk-scores:latest';
+const RISK_CACHE_KEY = "risk-scores:latest";
 let cachedScores: CachedRiskScores | null = null;
 let fetchPromise: Promise<CachedRiskScores | null> | null = null;
 let lastFetchTime = 0;
@@ -64,10 +64,10 @@ export async function fetchCachedRiskScores(): Promise<CachedRiskScores | null> 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch('/api/risk-scores');
+      const response = await fetch("/api/risk-scores");
       if (!response.ok) {
-        console.warn('[CachedRiskScores] API error:', response.status);
-        return cachedScores ?? await loadPersistentRiskScores();
+        console.warn("[CachedRiskScores] API error:", response.status);
+        return cachedScores ?? (await loadPersistentRiskScores());
       }
 
       const data = await response.json();
@@ -75,11 +75,14 @@ export async function fetchCachedRiskScores(): Promise<CachedRiskScores | null> 
       lastFetchTime = now;
       setHasCachedScores(true);
       void setPersistentCache(RISK_CACHE_KEY, data);
-      console.log('[CachedRiskScores] Loaded', data.cached ? '(from Redis)' : '(computed)');
+      console.log(
+        "[CachedRiskScores] Loaded",
+        data.cached ? "(from Redis)" : "(computed)",
+      );
       return cachedScores;
     } catch (error) {
-      console.error('[CachedRiskScores] Fetch error:', error);
-      return cachedScores ?? await loadPersistentRiskScores();
+      console.error("[CachedRiskScores] Fetch error:", error);
+      return cachedScores ?? (await loadPersistentRiskScores());
     } finally {
       fetchPromise = null;
     }

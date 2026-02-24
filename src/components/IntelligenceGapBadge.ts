@@ -1,7 +1,13 @@
-import { getRecentSignals, type CorrelationSignal } from '@/services/correlation';
-import { getRecentAlerts, type UnifiedAlert } from '@/services/cross-module-integration';
-import { getSignalContext } from '@/utils/analysis-constants';
-import { escapeHtml } from '@/utils/sanitize';
+import {
+  getRecentSignals,
+  type CorrelationSignal,
+} from "@/services/correlation";
+import {
+  getRecentAlerts,
+  type UnifiedAlert,
+} from "@/services/cross-module-integration";
+import { getSignalContext } from "@/utils/analysis-constants";
+import { escapeHtml } from "@/utils/sanitize";
 
 const LOW_COUNT_THRESHOLD = 3;
 const MAX_VISIBLE_FINDINGS = 10;
@@ -9,7 +15,7 @@ const SORT_TIME_TOLERANCE_MS = 60000;
 const REFRESH_INTERVAL_MS = 10000;
 const ALERT_HOURS = 6;
 
-type FindingSource = 'signal' | 'alert';
+type FindingSource = "signal" | "alert";
 
 interface UnifiedFinding {
   id: string;
@@ -18,7 +24,7 @@ interface UnifiedFinding {
   title: string;
   description: string;
   confidence: number;
-  priority: 'critical' | 'high' | 'medium' | 'low';
+  priority: "critical" | "high" | "medium" | "low";
   timestamp: Date;
   original: CorrelationSignal | UnifiedAlert;
 }
@@ -37,25 +43,26 @@ export class IntelligenceFindingsBadge {
   private audioEnabled = true;
 
   constructor() {
-    this.badge = document.createElement('button');
-    this.badge.className = 'intel-findings-badge';
-    this.badge.title = 'Intelligence findings';
-    this.badge.innerHTML = '<span class="findings-icon">🎯</span><span class="findings-count">0</span>';
+    this.badge = document.createElement("button");
+    this.badge.className = "intel-findings-badge";
+    this.badge.title = "Intelligence findings";
+    this.badge.innerHTML =
+      '<span class="findings-icon">🎯</span><span class="findings-count">0</span>';
 
-    this.dropdown = document.createElement('div');
-    this.dropdown.className = 'intel-findings-dropdown';
+    this.dropdown = document.createElement("div");
+    this.dropdown.className = "intel-findings-dropdown";
 
-    this.badge.addEventListener('click', (e) => {
+    this.badge.addEventListener("click", (e) => {
       e.stopPropagation();
       this.toggleDropdown();
     });
 
     // Event delegation for finding items and "more" link
-    this.dropdown.addEventListener('click', (e) => {
+    this.dropdown.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
 
       // Handle "more findings" click - show all in modal
-      if (target.closest('.findings-more')) {
+      if (target.closest(".findings-more")) {
         e.stopPropagation();
         this.showAllFindings();
         this.closeDropdown();
@@ -63,22 +70,22 @@ export class IntelligenceFindingsBadge {
       }
 
       // Handle individual finding click
-      const item = target.closest('.finding-item');
+      const item = target.closest(".finding-item");
       if (!item) return;
       e.stopPropagation();
-      const id = item.getAttribute('data-finding-id');
-      const finding = this.findings.find(f => f.id === id);
+      const id = item.getAttribute("data-finding-id");
+      const finding = this.findings.find((f) => f.id === id);
       if (!finding) return;
 
-      if (finding.source === 'signal' && this.onSignalClick) {
+      if (finding.source === "signal" && this.onSignalClick) {
         this.onSignalClick(finding.original as CorrelationSignal);
-      } else if (finding.source === 'alert' && this.onAlertClick) {
+      } else if (finding.source === "alert" && this.onAlertClick) {
         this.onAlertClick(finding.original as UnifiedAlert);
       }
       this.closeDropdown();
     });
 
-    document.addEventListener('click', this.boundCloseDropdown);
+    document.addEventListener("click", this.boundCloseDropdown);
 
     this.mount();
     this.initAudio();
@@ -87,7 +94,9 @@ export class IntelligenceFindingsBadge {
   }
 
   private initAudio(): void {
-    this.audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYjfKapmWswEjCJvuPQfSoXZZ+3qqBJESSP0unGaxMJVYiytrFeLhR6p8znrFUXRW+bs7V3Qx1hn8Xjp1cYPnegprhkMCFmoLi1k0sZTYGlqqlUIA==');
+    this.audio = new Audio(
+      "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYjfKapmWswEjCJvuPQfSoXZZ+3qqBJESSP0unGaxMJVYiytrFeLhR6p8znrFUXRW+bs7V3Qx1hn8Xjp1cYPnegprhkMCFmoLi1k0sZTYGlqqlUIA==",
+    );
     this.audio.volume = 0.3;
   }
 
@@ -107,7 +116,7 @@ export class IntelligenceFindingsBadge {
   }
 
   private mount(): void {
-    const headerRight = document.querySelector('.header-right');
+    const headerRight = document.querySelector(".header-right");
     if (headerRight) {
       this.badge.appendChild(this.dropdown);
       headerRight.insertBefore(this.badge, headerRight.firstChild);
@@ -115,42 +124,47 @@ export class IntelligenceFindingsBadge {
   }
 
   private startRefresh(): void {
-    this.refreshInterval = setInterval(() => this.update(), REFRESH_INTERVAL_MS);
+    this.refreshInterval = setInterval(
+      () => this.update(),
+      REFRESH_INTERVAL_MS,
+    );
   }
 
   public update(): void {
     this.findings = this.mergeFindings();
     const count = this.findings.length;
 
-    const countEl = this.badge.querySelector('.findings-count');
+    const countEl = this.badge.querySelector(".findings-count");
     if (countEl) {
       countEl.textContent = String(count);
     }
 
     // Pulse animation and sound when new findings arrive
     if (count > this.lastFindingCount && this.lastFindingCount > 0) {
-      this.badge.classList.add('pulse');
-      setTimeout(() => this.badge.classList.remove('pulse'), 1000);
+      this.badge.classList.add("pulse");
+      setTimeout(() => this.badge.classList.remove("pulse"), 1000);
       this.playSound();
     }
     this.lastFindingCount = count;
 
     // Update badge status based on priority
-    const hasCritical = this.findings.some(f => f.priority === 'critical');
-    const hasHigh = this.findings.some(f => f.priority === 'high' || f.confidence >= 0.7);
+    const hasCritical = this.findings.some((f) => f.priority === "critical");
+    const hasHigh = this.findings.some(
+      (f) => f.priority === "high" || f.confidence >= 0.7,
+    );
 
-    this.badge.classList.remove('status-none', 'status-low', 'status-high');
+    this.badge.classList.remove("status-none", "status-low", "status-high");
     if (count === 0) {
-      this.badge.classList.add('status-none');
-      this.badge.title = 'No recent intelligence findings';
+      this.badge.classList.add("status-none");
+      this.badge.title = "No recent intelligence findings";
     } else if (hasCritical || hasHigh) {
-      this.badge.classList.add('status-high');
+      this.badge.classList.add("status-high");
       this.badge.title = `${count} intelligence findings - review recommended`;
     } else if (count <= LOW_COUNT_THRESHOLD) {
-      this.badge.classList.add('status-low');
-      this.badge.title = `${count} intelligence finding${count > 1 ? 's' : ''}`;
+      this.badge.classList.add("status-low");
+      this.badge.title = `${count} intelligence finding${count > 1 ? "s" : ""}`;
     } else {
-      this.badge.classList.add('status-high');
+      this.badge.classList.add("status-high");
       this.badge.title = `${count} intelligence findings - review recommended`;
     }
 
@@ -161,21 +175,26 @@ export class IntelligenceFindingsBadge {
     const signals = getRecentSignals();
     const alerts = getRecentAlerts(ALERT_HOURS);
 
-    const signalFindings: UnifiedFinding[] = signals.map(s => ({
+    const signalFindings: UnifiedFinding[] = signals.map((s) => ({
       id: `signal-${s.id}`,
-      source: 'signal' as FindingSource,
+      source: "signal" as FindingSource,
       type: s.type,
       title: s.title,
       description: s.description,
       confidence: s.confidence,
-      priority: s.confidence >= 0.7 ? 'high' as const : s.confidence >= 0.5 ? 'medium' as const : 'low' as const,
+      priority:
+        s.confidence >= 0.7
+          ? ("high" as const)
+          : s.confidence >= 0.5
+            ? ("medium" as const)
+            : ("low" as const),
       timestamp: s.timestamp,
       original: s,
     }));
 
-    const alertFindings: UnifiedFinding[] = alerts.map(a => ({
+    const alertFindings: UnifiedFinding[] = alerts.map((a) => ({
       id: `alert-${a.id}`,
-      source: 'alert' as FindingSource,
+      source: "alert" as FindingSource,
       type: a.type,
       title: a.title,
       description: a.summary,
@@ -196,12 +215,22 @@ export class IntelligenceFindingsBadge {
   }
 
   private priorityToConfidence(priority: string): number {
-    const map: Record<string, number> = { critical: 95, high: 80, medium: 60, low: 40 };
+    const map: Record<string, number> = {
+      critical: 95,
+      high: 80,
+      medium: 60,
+      low: 40,
+    };
     return map[priority] ?? 50;
   }
 
   private priorityScore(priority: string): number {
-    const map: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+    const map: Record<string, number> = {
+      critical: 4,
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
     return map[priority] ?? 0;
   }
 
@@ -222,26 +251,32 @@ export class IntelligenceFindingsBadge {
       return;
     }
 
-    const criticalCount = this.findings.filter(f => f.priority === 'critical').length;
-    const highCount = this.findings.filter(f => f.priority === 'high' || f.confidence >= 70).length;
+    const criticalCount = this.findings.filter(
+      (f) => f.priority === "critical",
+    ).length;
+    const highCount = this.findings.filter(
+      (f) => f.priority === "high" || f.confidence >= 70,
+    ).length;
 
-    let statusClass = 'moderate';
+    let statusClass = "moderate";
     let statusText = `${this.findings.length} DETECTED`;
     if (criticalCount > 0) {
-      statusClass = 'critical';
+      statusClass = "critical";
       statusText = `${criticalCount} CRITICAL`;
     } else if (highCount > 0) {
-      statusClass = 'high';
+      statusClass = "high";
       statusText = `${highCount} HIGH PRIORITY`;
     }
 
-    const findingsHtml = this.findings.slice(0, MAX_VISIBLE_FINDINGS).map(finding => {
-      const timeAgo = this.formatTimeAgo(finding.timestamp);
-      const icon = this.getTypeIcon(finding.type);
-      const priorityClass = finding.priority;
-      const insight = this.getInsight(finding);
+    const findingsHtml = this.findings
+      .slice(0, MAX_VISIBLE_FINDINGS)
+      .map((finding) => {
+        const timeAgo = this.formatTimeAgo(finding.timestamp);
+        const icon = this.getTypeIcon(finding.type);
+        const priorityClass = finding.priority;
+        const insight = this.getInsight(finding);
 
-      return `
+        return `
         <div class="finding-item ${priorityClass}" data-finding-id="${escapeHtml(finding.id)}">
           <div class="finding-header">
             <span class="finding-type">${icon} ${escapeHtml(finding.title)}</span>
@@ -254,7 +289,8 @@ export class IntelligenceFindingsBadge {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     const moreCount = this.findings.length - MAX_VISIBLE_FINDINGS;
     this.dropdown.innerHTML = `
@@ -266,57 +302,61 @@ export class IntelligenceFindingsBadge {
         <div class="findings-list">
           ${findingsHtml}
         </div>
-        ${moreCount > 0 ? `<div class="findings-more">+${moreCount} more findings</div>` : ''}
+        ${moreCount > 0 ? `<div class="findings-more">+${moreCount} more findings</div>` : ""}
       </div>
     `;
   }
 
   private getInsight(finding: UnifiedFinding): string {
-    if (finding.source === 'signal') {
-      const context = getSignalContext((finding.original as CorrelationSignal).type);
-      return context.actionableInsight.split('.')[0] || '';
+    if (finding.source === "signal") {
+      const context = getSignalContext(
+        (finding.original as CorrelationSignal).type,
+      );
+      return context.actionableInsight.split(".")[0] || "";
     }
     // For alerts, provide actionable insight based on type and severity
     const alert = finding.original as UnifiedAlert;
-    if (alert.type === 'cii_spike') {
+    if (alert.type === "cii_spike") {
       const cii = alert.components.ciiChange;
-      if (cii && cii.change >= 30) return 'Critical destabilization - immediate attention';
-      if (cii && cii.change >= 20) return 'Significant shift - monitor closely';
-      return 'Developing situation - track for escalation';
+      if (cii && cii.change >= 30)
+        return "Critical destabilization - immediate attention";
+      if (cii && cii.change >= 20) return "Significant shift - monitor closely";
+      return "Developing situation - track for escalation";
     }
-    if (alert.type === 'convergence') return 'Multiple events clustering in region';
-    if (alert.type === 'cascade') return 'Infrastructure disruption spreading';
-    return 'Review for situational awareness';
+    if (alert.type === "convergence")
+      return "Multiple events clustering in region";
+    if (alert.type === "cascade") return "Infrastructure disruption spreading";
+    return "Review for situational awareness";
   }
 
   private getTypeIcon(type: string): string {
     const icons: Record<string, string> = {
       // Correlation signals
-      breaking_surge: '🔥',
-      silent_divergence: '🔇',
-      flow_price_divergence: '📊',
-      explained_market_move: '💡',
-      prediction_leads_news: '🔮',
-      geo_convergence: '🌍',
-      hotspot_escalation: '⚠️',
-      news_leads_markets: '📰',
-      velocity_spike: '📈',
-      keyword_spike: '📊',
-      convergence: '🔀',
-      triangulation: '🔺',
-      flow_drop: '⬇️',
-      sector_cascade: '🌊',
+      breaking_surge: "🔥",
+      silent_divergence: "🔇",
+      flow_price_divergence: "📊",
+      explained_market_move: "💡",
+      prediction_leads_news: "🔮",
+      geo_convergence: "🌍",
+      hotspot_escalation: "⚠️",
+      news_leads_markets: "📰",
+      velocity_spike: "📈",
+      keyword_spike: "📊",
+      convergence: "🔀",
+      triangulation: "🔺",
+      flow_drop: "⬇️",
+      sector_cascade: "🌊",
       // Unified alerts
-      cii_spike: '🔴',
-      cascade: '⚡',
-      composite: '🔗',
+      cii_spike: "🔴",
+      cascade: "⚡",
+      composite: "🔗",
     };
-    return icons[type] || '📌';
+    return icons[type] || "📌";
   }
 
   private formatTimeAgo(date: Date): string {
     const ms = Date.now() - date.getTime();
-    if (ms < 60000) return 'just now';
+    if (ms < 60000) return "just now";
     if (ms < 3600000) return `${Math.floor(ms / 60000)}m ago`;
     if (ms < 86400000) return `${Math.floor(ms / 3600000)}h ago`;
     return `${Math.floor(ms / 86400000)}d ago`;
@@ -324,8 +364,8 @@ export class IntelligenceFindingsBadge {
 
   private toggleDropdown(): void {
     this.isOpen = !this.isOpen;
-    this.dropdown.classList.toggle('open', this.isOpen);
-    this.badge.classList.toggle('active', this.isOpen);
+    this.dropdown.classList.toggle("open", this.isOpen);
+    this.badge.classList.toggle("active", this.isOpen);
     if (this.isOpen) {
       this.update();
     }
@@ -333,21 +373,22 @@ export class IntelligenceFindingsBadge {
 
   private closeDropdown(): void {
     this.isOpen = false;
-    this.dropdown.classList.remove('open');
-    this.badge.classList.remove('active');
+    this.dropdown.classList.remove("open");
+    this.badge.classList.remove("active");
   }
 
   private showAllFindings(): void {
     // Create modal overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'findings-modal-overlay';
+    const overlay = document.createElement("div");
+    overlay.className = "findings-modal-overlay";
 
-    const findingsHtml = this.findings.map(finding => {
-      const timeAgo = this.formatTimeAgo(finding.timestamp);
-      const icon = this.getTypeIcon(finding.type);
-      const insight = this.getInsight(finding);
+    const findingsHtml = this.findings
+      .map((finding) => {
+        const timeAgo = this.formatTimeAgo(finding.timestamp);
+        const icon = this.getTypeIcon(finding.type);
+        const insight = this.getInsight(finding);
 
-      return `
+        return `
         <div class="findings-modal-item ${finding.priority}" data-finding-id="${escapeHtml(finding.id)}">
           <div class="findings-modal-item-header">
             <span class="findings-modal-item-type">${icon} ${escapeHtml(finding.title)}</span>
@@ -360,7 +401,8 @@ export class IntelligenceFindingsBadge {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     overlay.innerHTML = `
       <div class="findings-modal">
@@ -375,24 +417,28 @@ export class IntelligenceFindingsBadge {
     `;
 
     // Add click handlers
-    overlay.querySelector('.findings-modal-close')?.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).classList.contains('findings-modal-overlay')) {
+    overlay
+      .querySelector(".findings-modal-close")
+      ?.addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => {
+      if (
+        (e.target as HTMLElement).classList.contains("findings-modal-overlay")
+      ) {
         overlay.remove();
       }
     });
 
     // Handle clicking individual items
-    overlay.querySelectorAll('.findings-modal-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const id = item.getAttribute('data-finding-id');
-        const finding = this.findings.find(f => f.id === id);
+    overlay.querySelectorAll(".findings-modal-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const id = item.getAttribute("data-finding-id");
+        const finding = this.findings.find((f) => f.id === id);
         if (!finding) return;
 
-        if (finding.source === 'signal' && this.onSignalClick) {
+        if (finding.source === "signal" && this.onSignalClick) {
           this.onSignalClick(finding.original as CorrelationSignal);
           overlay.remove();
-        } else if (finding.source === 'alert' && this.onAlertClick) {
+        } else if (finding.source === "alert" && this.onAlertClick) {
           this.onAlertClick(finding.original as UnifiedAlert);
           overlay.remove();
         }
@@ -406,7 +452,7 @@ export class IntelligenceFindingsBadge {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
-    document.removeEventListener('click', this.boundCloseDropdown);
+    document.removeEventListener("click", this.boundCloseDropdown);
     this.badge.remove();
   }
 }

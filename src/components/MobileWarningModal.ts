@@ -1,11 +1,11 @@
-const STORAGE_KEY = 'mobile-warning-dismissed';
+const STORAGE_KEY = "mobile-warning-dismissed";
 
 export class MobileWarningModal {
   private element: HTMLElement;
 
   constructor() {
-    this.element = document.createElement('div');
-    this.element.className = 'mobile-warning-overlay';
+    this.element = document.createElement("div");
+    this.element.className = "mobile-warning-overlay";
     this.element.innerHTML = `
       <div class="mobile-warning-modal">
         <div class="mobile-warning-header">
@@ -31,42 +31,48 @@ export class MobileWarningModal {
   }
 
   private setupEventListeners(): void {
-    this.element.querySelector('.mobile-warning-btn')?.addEventListener('click', () => {
-      this.dismiss();
-    });
+    this.element
+      .querySelector(".mobile-warning-btn")
+      ?.addEventListener("click", () => {
+        this.dismiss();
+      });
 
-    this.element.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).classList.contains('mobile-warning-overlay')) {
+    this.element.addEventListener("click", (e) => {
+      if (
+        (e.target as HTMLElement).classList.contains("mobile-warning-overlay")
+      ) {
         this.dismiss();
       }
     });
   }
 
   private dismiss(): void {
-    const checkbox = this.element.querySelector('#mobileWarningRemember') as HTMLInputElement;
+    const checkbox = this.element.querySelector(
+      "#mobileWarningRemember",
+    ) as HTMLInputElement;
     if (checkbox?.checked) {
-      localStorage.setItem(STORAGE_KEY, 'true');
+      localStorage.setItem(STORAGE_KEY, "true");
     }
     this.hide();
   }
 
   public show(): void {
-    this.element.classList.add('active');
+    this.element.classList.add("active");
   }
 
   public hide(): void {
-    this.element.classList.remove('active');
+    this.element.classList.remove("active");
   }
 
   public static shouldShow(): boolean {
     // Check if already dismissed permanently
-    if (localStorage.getItem(STORAGE_KEY) === 'true') {
+    if (localStorage.getItem(STORAGE_KEY) === "true") {
       return false;
     }
 
     // Check if mobile device (screen width < 768px or touch-primary device)
     const isMobileWidth = window.innerWidth < 768;
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
     return isMobileWidth || isTouchDevice;
   }

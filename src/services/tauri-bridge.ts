@@ -1,7 +1,10 @@
-type TauriInvoke = <T>(command: string, payload?: Record<string, unknown>) => Promise<T>;
+type TauriInvoke = <T>(
+  command: string,
+  payload?: Record<string, unknown>,
+) => Promise<T>;
 
 function resolveInvokeBridge(): TauriInvoke | null {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -14,7 +17,7 @@ function resolveInvokeBridge(): TauriInvoke | null {
     tauriWindow.__TAURI__?.core?.invoke ??
     tauriWindow.__TAURI_INTERNALS__?.invoke;
 
-  return typeof invoke === 'function' ? invoke : null;
+  return typeof invoke === "function" ? invoke : null;
 }
 
 export function hasTauriInvokeBridge(): boolean {
@@ -27,7 +30,7 @@ export async function invokeTauri<T>(
 ): Promise<T> {
   const invoke = resolveInvokeBridge();
   if (!invoke) {
-    throw new Error('Tauri invoke bridge unavailable');
+    throw new Error("Tauri invoke bridge unavailable");
   }
 
   return invoke<T>(command, payload);

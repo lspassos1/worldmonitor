@@ -1,7 +1,7 @@
-import type { Earthquake } from '@/types';
-import { API_URLS } from '@/config';
-import { createCircuitBreaker } from '@/utils';
-import { getPersistentCache, setPersistentCache } from './persistent-cache';
+import type { Earthquake } from "@/types";
+import { API_URLS } from "@/config";
+import { createCircuitBreaker } from "@/utils";
+import { getPersistentCache, setPersistentCache } from "./persistent-cache";
 
 interface USGSFeature {
   id: string;
@@ -20,13 +20,18 @@ interface USGSResponse {
   features: USGSFeature[];
 }
 
-const OVERLAY_CACHE_KEY = 'map-overlay:earthquakes';
-const breaker = createCircuitBreaker<Earthquake[]>({ name: 'USGS Earthquakes' });
+const OVERLAY_CACHE_KEY = "map-overlay:earthquakes";
+const breaker = createCircuitBreaker<Earthquake[]>({
+  name: "USGS Earthquakes",
+});
 
 async function getFallbackEarthquakes(): Promise<Earthquake[]> {
-  const entry = await getPersistentCache<Array<Omit<Earthquake, 'time'> & { time: string }>>(OVERLAY_CACHE_KEY);
+  const entry =
+    await getPersistentCache<
+      Array<Omit<Earthquake, "time"> & { time: string }>
+    >(OVERLAY_CACHE_KEY);
   if (!entry?.data) return [];
-  return entry.data.map(item => ({ ...item, time: new Date(item.time) }));
+  return entry.data.map((item) => ({ ...item, time: new Date(item.time) }));
 }
 
 export async function fetchEarthquakes(): Promise<Earthquake[]> {
@@ -37,7 +42,7 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
     const data: USGSResponse = await response.json();
     return data.features.map((feature) => ({
       id: feature.id,
-      place: feature.properties.place || 'Unknown',
+      place: feature.properties.place || "Unknown",
       magnitude: feature.properties.mag,
       lon: feature.geometry.coordinates[0],
       lat: feature.geometry.coordinates[1],
@@ -50,7 +55,7 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
   if (live.length > 0) {
     void setPersistentCache(
       OVERLAY_CACHE_KEY,
-      live.map(item => ({ ...item, time: item.time.toISOString() }))
+      live.map((item) => ({ ...item, time: item.time.toISOString() })),
     );
     return live;
   }

@@ -1,4 +1,17 @@
-import type { NewsItem, Monitor, PanelConfig, MapLayers, RelatedAsset, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, CyberThreat } from '@/types';
+import type {
+  NewsItem,
+  Monitor,
+  PanelConfig,
+  MapLayers,
+  RelatedAsset,
+  InternetOutage,
+  SocialUnrestEvent,
+  MilitaryFlight,
+  MilitaryVessel,
+  MilitaryFlightCluster,
+  MilitaryVesselCluster,
+  CyberThreat,
+} from "@/types";
 import {
   FEEDS,
   INTEL_SOURCES,
@@ -11,34 +24,118 @@ import {
   MOBILE_DEFAULT_MAP_LAYERS,
   STORAGE_KEYS,
   SITE_VARIANT,
-} from '@/config';
-import { fetchCategoryFeeds, fetchMultipleStocks, fetchCrypto, fetchPredictions, fetchEarthquakes, fetchWeatherAlerts, fetchFredData, fetchInternetOutages, isOutagesConfigured, fetchAisSignals, initAisStream, getAisStatus, disconnectAisStream, isAisConfigured, fetchCableActivity, fetchProtestEvents, getProtestStatus, fetchFlightDelays, fetchMilitaryFlights, fetchMilitaryVessels, initMilitaryVesselStream, isMilitaryVesselTrackingConfigured, initDB, updateBaseline, calculateDeviation, addToSignalHistory, saveSnapshot, cleanOldSnapshots, analysisWorker, fetchPizzIntStatus, fetchGdeltTensions, fetchNaturalEvents, fetchRecentAwards, fetchOilAnalytics, fetchCyberThreats, drainTrendingSignals } from '@/services';
-import { fetchCountryMarkets } from '@/services/polymarket';
-import { mlWorker } from '@/services/ml-worker';
-import { clusterNewsHybrid } from '@/services/clustering';
-import { ingestProtests, ingestFlights, ingestVessels, ingestEarthquakes, detectGeoConvergence, geoConvergenceToSignal } from '@/services/geo-convergence';
-import { signalAggregator } from '@/services/signal-aggregator';
-import { updateAndCheck } from '@/services/temporal-baseline';
-import { fetchAllFires, flattenFires, computeRegionStats } from '@/services/firms-satellite';
-import { SatelliteFiresPanel } from '@/components/SatelliteFiresPanel';
-import { analyzeFlightsForSurge, surgeAlertToSignal, detectForeignMilitaryPresence, foreignPresenceToSignal, type TheaterPostureSummary } from '@/services/military-surge';
-import { fetchCachedTheaterPosture } from '@/services/cached-theater-posture';
-import { ingestProtestsForCII, ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestUcdpForCII, ingestHapiForCII, ingestDisplacementForCII, ingestClimateForCII, startLearning, isInLearningMode, calculateCII, getCountryData, TIER1_COUNTRIES } from '@/services/country-instability';
-import { dataFreshness, type DataSourceId } from '@/services/data-freshness';
-import { fetchConflictEvents } from '@/services/conflicts';
-import { fetchUcdpClassifications } from '@/services/ucdp';
-import { fetchHapiSummary } from '@/services/hapi';
-import { fetchUcdpEvents, deduplicateAgainstAcled } from '@/services/ucdp-events';
-import { fetchUnhcrPopulation } from '@/services/unhcr';
-import { fetchClimateAnomalies } from '@/services/climate';
-import { enrichEventsWithExposure } from '@/services/population-exposure';
-import { buildMapUrl, debounce, loadFromStorage, parseMapUrlState, saveToStorage, ExportPanel, getCircuitBreakerCooldownInfo, isMobileDevice } from '@/utils';
-import { reverseGeocode } from '@/utils/reverse-geocode';
-import { CountryBriefPage } from '@/components/CountryBriefPage';
-import { maybeShowDownloadBanner } from '@/components/DownloadBanner';
-import { CountryTimeline, type TimelineEvent } from '@/components/CountryTimeline';
-import { escapeHtml } from '@/utils/sanitize';
-import type { ParsedMapUrlState } from '@/utils';
+} from "@/config";
+import {
+  fetchCategoryFeeds,
+  fetchMultipleStocks,
+  fetchCrypto,
+  fetchPredictions,
+  fetchEarthquakes,
+  fetchWeatherAlerts,
+  fetchFredData,
+  fetchInternetOutages,
+  isOutagesConfigured,
+  fetchAisSignals,
+  initAisStream,
+  getAisStatus,
+  disconnectAisStream,
+  isAisConfigured,
+  fetchCableActivity,
+  fetchProtestEvents,
+  getProtestStatus,
+  fetchFlightDelays,
+  fetchMilitaryFlights,
+  fetchMilitaryVessels,
+  initMilitaryVesselStream,
+  isMilitaryVesselTrackingConfigured,
+  initDB,
+  updateBaseline,
+  calculateDeviation,
+  addToSignalHistory,
+  saveSnapshot,
+  cleanOldSnapshots,
+  analysisWorker,
+  fetchPizzIntStatus,
+  fetchGdeltTensions,
+  fetchNaturalEvents,
+  fetchRecentAwards,
+  fetchOilAnalytics,
+  fetchCyberThreats,
+  drainTrendingSignals,
+} from "@/services";
+import { fetchCountryMarkets } from "@/services/polymarket";
+import { mlWorker } from "@/services/ml-worker";
+import { clusterNewsHybrid } from "@/services/clustering";
+import {
+  ingestProtests,
+  ingestFlights,
+  ingestVessels,
+  ingestEarthquakes,
+  detectGeoConvergence,
+  geoConvergenceToSignal,
+} from "@/services/geo-convergence";
+import { signalAggregator } from "@/services/signal-aggregator";
+import { updateAndCheck } from "@/services/temporal-baseline";
+import {
+  fetchAllFires,
+  flattenFires,
+  computeRegionStats,
+} from "@/services/firms-satellite";
+import { SatelliteFiresPanel } from "@/components/SatelliteFiresPanel";
+import {
+  analyzeFlightsForSurge,
+  surgeAlertToSignal,
+  detectForeignMilitaryPresence,
+  foreignPresenceToSignal,
+  type TheaterPostureSummary,
+} from "@/services/military-surge";
+import { fetchCachedTheaterPosture } from "@/services/cached-theater-posture";
+import {
+  ingestProtestsForCII,
+  ingestMilitaryForCII,
+  ingestNewsForCII,
+  ingestOutagesForCII,
+  ingestConflictsForCII,
+  ingestUcdpForCII,
+  ingestHapiForCII,
+  ingestDisplacementForCII,
+  ingestClimateForCII,
+  startLearning,
+  isInLearningMode,
+  calculateCII,
+  getCountryData,
+  TIER1_COUNTRIES,
+} from "@/services/country-instability";
+import { dataFreshness, type DataSourceId } from "@/services/data-freshness";
+import { fetchConflictEvents } from "@/services/conflicts";
+import { fetchUcdpClassifications } from "@/services/ucdp";
+import { fetchHapiSummary } from "@/services/hapi";
+import {
+  fetchUcdpEvents,
+  deduplicateAgainstAcled,
+} from "@/services/ucdp-events";
+import { fetchUnhcrPopulation } from "@/services/unhcr";
+import { fetchClimateAnomalies } from "@/services/climate";
+import { enrichEventsWithExposure } from "@/services/population-exposure";
+import {
+  buildMapUrl,
+  debounce,
+  loadFromStorage,
+  parseMapUrlState,
+  saveToStorage,
+  ExportPanel,
+  getCircuitBreakerCooldownInfo,
+  isMobileDevice,
+} from "@/utils";
+import { reverseGeocode } from "@/utils/reverse-geocode";
+import { CountryBriefPage } from "@/components/CountryBriefPage";
+import { maybeShowDownloadBanner } from "@/components/DownloadBanner";
+import {
+  CountryTimeline,
+  type TimelineEvent,
+} from "@/components/CountryTimeline";
+import { escapeHtml } from "@/utils/sanitize";
+import type { ParsedMapUrlState } from "@/utils";
 import {
   MapContainer,
   type MapView,
@@ -76,30 +173,41 @@ import {
   DisplacementPanel,
   ClimateAnomalyPanel,
   PopulationExposurePanel,
-} from '@/components';
-import type { SearchResult } from '@/components/SearchModal';
-import { collectStoryData } from '@/services/story-data';
-import { renderStoryToCanvas } from '@/services/story-renderer';
-import { openStoryModal } from '@/components/StoryModal';
-import { INTEL_HOTSPOTS, CONFLICT_ZONES, MILITARY_BASES, UNDERSEA_CABLES, NUCLEAR_FACILITIES } from '@/config/geo';
-import { PIPELINES } from '@/config/pipelines';
-import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
-import { GAMMA_IRRADIATORS } from '@/config/irradiators';
-import { TECH_COMPANIES } from '@/config/tech-companies';
-import { AI_RESEARCH_LABS } from '@/config/ai-research-labs';
-import { STARTUP_ECOSYSTEMS } from '@/config/startup-ecosystems';
-import { TECH_HQS, ACCELERATORS } from '@/config/tech-geo';
-import { isDesktopRuntime } from '@/services/runtime';
-import { getCountryAtCoordinates, hasCountryGeometry, isCoordinateInCountry, preloadCountryGeometry } from '@/services/country-geometry';
+} from "@/components";
+import type { SearchResult } from "@/components/SearchModal";
+import { collectStoryData } from "@/services/story-data";
+import { renderStoryToCanvas } from "@/services/story-renderer";
+import { openStoryModal } from "@/components/StoryModal";
+import {
+  INTEL_HOTSPOTS,
+  CONFLICT_ZONES,
+  MILITARY_BASES,
+  UNDERSEA_CABLES,
+  NUCLEAR_FACILITIES,
+} from "@/config/geo";
+import { PIPELINES } from "@/config/pipelines";
+import { AI_DATA_CENTERS } from "@/config/ai-datacenters";
+import { GAMMA_IRRADIATORS } from "@/config/irradiators";
+import { TECH_COMPANIES } from "@/config/tech-companies";
+import { AI_RESEARCH_LABS } from "@/config/ai-research-labs";
+import { STARTUP_ECOSYSTEMS } from "@/config/startup-ecosystems";
+import { TECH_HQS, ACCELERATORS } from "@/config/tech-geo";
+import { isDesktopRuntime } from "@/services/runtime";
+import {
+  getCountryAtCoordinates,
+  hasCountryGeometry,
+  isCoordinateInCountry,
+  preloadCountryGeometry,
+} from "@/services/country-geometry";
 
-import type { PredictionMarket, MarketData, ClusteredEvent } from '@/types';
+import type { PredictionMarket, MarketData, ClusteredEvent } from "@/types";
 
 type IntlDisplayNamesCtor = new (
   locales: string | string[],
-  options: { type: 'region' }
+  options: { type: "region" },
 ) => { of: (code: string) => string | undefined };
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === "true";
 
 export interface CountryBriefSignals {
   protests: number;
@@ -115,7 +223,7 @@ export interface CountryBriefSignals {
 
 export class App {
   private container: HTMLElement;
-  private readonly PANEL_ORDER_KEY = 'panel-order';
+  private readonly PANEL_ORDER_KEY = "panel-order";
   private map: MapContainer | null = null;
   private panels: Record<string, Panel> = {};
   private newsPanels: Record<string, NewsPanel> = {};
@@ -140,7 +248,8 @@ export class App {
   private seenGeoAlerts: Set<string> = new Set();
   private timeIntervalId: ReturnType<typeof setInterval> | null = null;
   private snapshotIntervalId: ReturnType<typeof setInterval> | null = null;
-  private refreshTimeoutIds: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private refreshTimeoutIds: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
   private isDestroyed = false;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundFullscreenHandler: (() => void) | null = null;
@@ -170,101 +279,146 @@ export class App {
     this.monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
 
     // Use mobile-specific defaults on first load (no saved layers)
-    const defaultLayers = this.isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
+    const defaultLayers = this.isMobile
+      ? MOBILE_DEFAULT_MAP_LAYERS
+      : DEFAULT_MAP_LAYERS;
 
     // Check if variant changed - reset all settings to variant defaults
-    const storedVariant = localStorage.getItem('worldmonitor-variant');
+    const storedVariant = localStorage.getItem("worldmonitor-variant");
     const currentVariant = SITE_VARIANT;
-    console.log(`[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`);
+    console.log(
+      `[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`,
+    );
     if (storedVariant !== currentVariant) {
       // Variant changed - use defaults for new variant, clear old settings
-      console.log('[App] Variant changed - resetting to defaults');
-      localStorage.setItem('worldmonitor-variant', currentVariant);
+      console.log("[App] Variant changed - resetting to defaults");
+      localStorage.setItem("worldmonitor-variant", currentVariant);
       localStorage.removeItem(STORAGE_KEYS.mapLayers);
       localStorage.removeItem(STORAGE_KEYS.panels);
       localStorage.removeItem(this.PANEL_ORDER_KEY);
       this.mapLayers = { ...defaultLayers };
       this.panelSettings = { ...DEFAULT_PANELS };
     } else {
-      this.mapLayers = loadFromStorage<MapLayers>(STORAGE_KEYS.mapLayers, defaultLayers);
+      this.mapLayers = loadFromStorage<MapLayers>(
+        STORAGE_KEYS.mapLayers,
+        defaultLayers,
+      );
       this.panelSettings = loadFromStorage<Record<string, PanelConfig>>(
         STORAGE_KEYS.panels,
-        DEFAULT_PANELS
+        DEFAULT_PANELS,
       );
-      console.log('[App] Loaded panel settings from storage:', Object.entries(this.panelSettings).filter(([_, v]) => !v.enabled).map(([k]) => k));
+      console.log(
+        "[App] Loaded panel settings from storage:",
+        Object.entries(this.panelSettings)
+          .filter(([_, v]) => !v.enabled)
+          .map(([k]) => k),
+      );
 
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
       // Puts live-news, insights, strategic-posture, cii, strategic-risk at the top
-      const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
+      const PANEL_ORDER_MIGRATION_KEY = "worldmonitor-panel-order-v1.9";
       if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
         const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
         if (savedOrder) {
           try {
             const order: string[] = JSON.parse(savedOrder);
             // Priority panels that should be at the top (after live-news which is handled separately)
-            const priorityPanels = ['insights', 'strategic-posture', 'cii', 'strategic-risk'];
+            const priorityPanels = [
+              "insights",
+              "strategic-posture",
+              "cii",
+              "strategic-risk",
+            ];
             // Remove priority panels from their current positions
-            const filtered = order.filter(k => !priorityPanels.includes(k) && k !== 'live-news');
+            const filtered = order.filter(
+              (k) => !priorityPanels.includes(k) && k !== "live-news",
+            );
             // Find live-news position (should be first, but just in case)
-            const liveNewsIdx = order.indexOf('live-news');
+            const liveNewsIdx = order.indexOf("live-news");
             // Build new order: live-news first, then priority panels, then rest
-            const newOrder = liveNewsIdx !== -1 ? ['live-news'] : [];
-            newOrder.push(...priorityPanels.filter(p => order.includes(p)));
+            const newOrder = liveNewsIdx !== -1 ? ["live-news"] : [];
+            newOrder.push(...priorityPanels.filter((p) => order.includes(p)));
             newOrder.push(...filtered);
-            localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
-            console.log('[App] Migrated panel order to v1.8 layout');
+            localStorage.setItem(
+              this.PANEL_ORDER_KEY,
+              JSON.stringify(newOrder),
+            );
+            console.log("[App] Migrated panel order to v1.8 layout");
           } catch {
             // Invalid saved order, will use defaults
           }
         }
-        localStorage.setItem(PANEL_ORDER_MIGRATION_KEY, 'done');
+        localStorage.setItem(PANEL_ORDER_MIGRATION_KEY, "done");
       }
 
       // Tech variant migration: move insights to top (after live-news)
-      if (currentVariant === 'tech') {
-        const TECH_INSIGHTS_MIGRATION_KEY = 'worldmonitor-tech-insights-top-v1';
+      if (currentVariant === "tech") {
+        const TECH_INSIGHTS_MIGRATION_KEY = "worldmonitor-tech-insights-top-v1";
         if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
           const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
           if (savedOrder) {
             try {
               const order: string[] = JSON.parse(savedOrder);
               // Remove insights from current position
-              const filtered = order.filter(k => k !== 'insights' && k !== 'live-news');
+              const filtered = order.filter(
+                (k) => k !== "insights" && k !== "live-news",
+              );
               // Build new order: live-news, insights, then rest
               const newOrder: string[] = [];
-              if (order.includes('live-news')) newOrder.push('live-news');
-              if (order.includes('insights')) newOrder.push('insights');
+              if (order.includes("live-news")) newOrder.push("live-news");
+              if (order.includes("insights")) newOrder.push("insights");
               newOrder.push(...filtered);
-              localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
-              console.log('[App] Tech variant: Migrated insights panel to top');
+              localStorage.setItem(
+                this.PANEL_ORDER_KEY,
+                JSON.stringify(newOrder),
+              );
+              console.log("[App] Tech variant: Migrated insights panel to top");
             } catch {
               // Invalid saved order, will use defaults
             }
           }
-          localStorage.setItem(TECH_INSIGHTS_MIGRATION_KEY, 'done');
+          localStorage.setItem(TECH_INSIGHTS_MIGRATION_KEY, "done");
         }
       }
     }
 
     // Desktop key management panel must always remain accessible in Tauri.
     if (this.isDesktopApp) {
-      const runtimePanel = this.panelSettings['runtime-config'] ?? {
-        name: 'Desktop Configuration',
+      const runtimePanel = this.panelSettings["runtime-config"] ?? {
+        name: "Desktop Configuration",
         enabled: true,
         priority: 2,
       };
       runtimePanel.enabled = true;
-      this.panelSettings['runtime-config'] = runtimePanel;
+      this.panelSettings["runtime-config"] = runtimePanel;
       saveToStorage(STORAGE_KEYS.panels, this.panelSettings);
     }
 
-    this.initialUrlState = parseMapUrlState(window.location.search, this.mapLayers);
+    this.initialUrlState = parseMapUrlState(
+      window.location.search,
+      this.mapLayers,
+    );
     if (this.initialUrlState.layers) {
       // For tech variant, filter out geopolitical layers from URL
-      if (currentVariant === 'tech') {
-        const geoLayers: (keyof MapLayers)[] = ['conflicts', 'bases', 'hotspots', 'nuclear', 'irradiators', 'sanctions', 'military', 'protests', 'pipelines', 'waterways', 'ais', 'flights', 'spaceports', 'minerals'];
+      if (currentVariant === "tech") {
+        const geoLayers: (keyof MapLayers)[] = [
+          "conflicts",
+          "bases",
+          "hotspots",
+          "nuclear",
+          "irradiators",
+          "sanctions",
+          "military",
+          "protests",
+          "pipelines",
+          "waterways",
+          "ais",
+          "flights",
+          "spaceports",
+          "minerals",
+        ];
         const urlLayers = this.initialUrlState.layers;
-        geoLayers.forEach(layer => {
+        geoLayers.forEach((layer) => {
           urlLayers[layer] = false;
         });
       }
@@ -273,7 +427,9 @@ export class App {
     if (!CYBER_LAYER_ENABLED) {
       this.mapLayers.cyberThreats = false;
     }
-    this.disabledSources = new Set(loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []));
+    this.disabledSources = new Set(
+      loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []),
+    );
   }
 
   public async init(): Promise<void> {
@@ -325,13 +481,13 @@ export class App {
 
     // Hide unconfigured layers after first data load
     if (!isAisConfigured()) {
-      this.map?.hideLayerToggle('ais');
+      this.map?.hideLayerToggle("ais");
     }
     if (isOutagesConfigured() === false) {
-      this.map?.hideLayerToggle('outages');
+      this.map?.hideLayerToggle("outages");
     }
     if (!CYBER_LAYER_ENABLED) {
-      this.map?.hideLayerToggle('cyberThreats');
+      this.map?.hideLayerToggle("cyberThreats");
     }
 
     this.setupRefreshIntervals();
@@ -346,21 +502,40 @@ export class App {
     const url = new URL(window.location.href);
 
     // Check for story deep link: /story?c=UA&t=ciianalysis
-    if (url.pathname === '/story' || url.searchParams.has('c')) {
-      const countryCode = url.searchParams.get('c');
+    if (url.pathname === "/story" || url.searchParams.has("c")) {
+      const countryCode = url.searchParams.get("c");
       if (countryCode) {
         const countryNames: Record<string, string> = {
-          UA: 'Ukraine', RU: 'Russia', CN: 'China', US: 'United States',
-          IR: 'Iran', IL: 'Israel', TW: 'Taiwan', KP: 'North Korea',
-          SA: 'Saudi Arabia', TR: 'Turkey', PL: 'Poland', DE: 'Germany',
-          FR: 'France', GB: 'United Kingdom', IN: 'India', PK: 'Pakistan',
-          SY: 'Syria', YE: 'Yemen', MM: 'Myanmar', VE: 'Venezuela',
+          UA: "Ukraine",
+          RU: "Russia",
+          CN: "China",
+          US: "United States",
+          IR: "Iran",
+          IL: "Israel",
+          TW: "Taiwan",
+          KP: "North Korea",
+          SA: "Saudi Arabia",
+          TR: "Turkey",
+          PL: "Poland",
+          DE: "Germany",
+          FR: "France",
+          GB: "United Kingdom",
+          IN: "India",
+          PK: "Pakistan",
+          SY: "Syria",
+          YE: "Yemen",
+          MM: "Myanmar",
+          VE: "Venezuela",
         };
-        const countryName = countryNames[countryCode.toUpperCase()] || countryCode;
+        const countryName =
+          countryNames[countryCode.toUpperCase()] || countryCode;
 
         // Wait for data to load, then open story
         const checkAndOpen = () => {
-          if (dataFreshness.hasSufficientData() && this.latestClusters.length > 0) {
+          if (
+            dataFreshness.hasSufficientData() &&
+            this.latestClusters.length > 0
+          ) {
             this.openCountryStory(countryCode.toUpperCase(), countryName);
           } else {
             setTimeout(checkAndOpen, 500);
@@ -369,7 +544,7 @@ export class App {
         setTimeout(checkAndOpen, 2000);
 
         // Update URL without reload
-        history.replaceState(null, '', '/');
+        history.replaceState(null, "", "/");
         return;
       }
     }
@@ -399,7 +574,7 @@ export class App {
 
   private setupStatusPanel(): void {
     this.statusPanel = new StatusPanel();
-    const headerLeft = this.container.querySelector('.header-left');
+    const headerLeft = this.container.querySelector(".header-left");
     if (headerLeft) {
       headerLeft.appendChild(this.statusPanel.getElement());
     }
@@ -407,10 +582,10 @@ export class App {
 
   private setupPizzIntIndicator(): void {
     // Skip DEFCON indicator for tech/startup variant
-    if (SITE_VARIANT === 'tech') return;
+    if (SITE_VARIANT === "tech") return;
 
     this.pizzintIndicator = new PizzIntIndicator();
-    const headerLeft = this.container.querySelector('.header-left');
+    const headerLeft = this.container.querySelector(".header-left");
     if (headerLeft) {
       headerLeft.appendChild(this.pizzintIndicator.getElement());
     }
@@ -420,24 +595,24 @@ export class App {
     try {
       const [status, tensions] = await Promise.all([
         fetchPizzIntStatus(),
-        fetchGdeltTensions()
+        fetchGdeltTensions(),
       ]);
 
       // Hide indicator if no valid data (API returned default/empty)
       if (status.locationsMonitored === 0) {
         this.pizzintIndicator?.hide();
-        this.statusPanel?.updateApi('PizzINT', { status: 'error' });
+        this.statusPanel?.updateApi("PizzINT", { status: "error" });
         return;
       }
 
       this.pizzintIndicator?.show();
       this.pizzintIndicator?.updateStatus(status);
       this.pizzintIndicator?.updateTensions(tensions);
-      this.statusPanel?.updateApi('PizzINT', { status: 'ok' });
+      this.statusPanel?.updateApi("PizzINT", { status: "ok" });
     } catch (error) {
-      console.error('[App] PizzINT load failed:', error);
+      console.error("[App] PizzINT load failed:", error);
       this.pizzintIndicator?.hide();
-      this.statusPanel?.updateApi('PizzINT', { status: 'error' });
+      this.statusPanel?.updateApi("PizzINT", { status: "error" });
     }
   }
 
@@ -449,25 +624,28 @@ export class App {
       timestamp: Date.now(),
     }));
 
-    const headerRight = this.container.querySelector('.header-right');
+    const headerRight = this.container.querySelector(".header-right");
     if (headerRight) {
-      headerRight.insertBefore(this.exportPanel.getElement(), headerRight.firstChild);
+      headerRight.insertBefore(
+        this.exportPanel.getElement(),
+        headerRight.firstChild,
+      );
     }
   }
 
   private syncDataFreshnessWithLayers(): void {
     // Map layer toggles to data source IDs
     const layerToSource: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
-      military: ['opensky', 'wingbits'],
-      ais: ['ais'],
-      natural: ['usgs'],
-      weather: ['weather'],
-      outages: ['outages'],
-      cyberThreats: ['cyber_threats'],
-      protests: ['acled'],
-      ucdpEvents: ['ucdp_events'],
-      displacement: ['unhcr'],
-      climate: ['climate'],
+      military: ["opensky", "wingbits"],
+      ais: ["ais"],
+      natural: ["usgs"],
+      weather: ["weather"],
+      outages: ["outages"],
+      cyberThreats: ["cyber_threats"],
+      protests: ["acled"],
+      ucdpEvents: ["ucdp_events"],
+      displacement: ["unhcr"],
+      climate: ["climate"],
     };
 
     for (const [layer, sourceIds] of Object.entries(layerToSource)) {
@@ -479,10 +657,10 @@ export class App {
 
     // Mark sources as disabled if not configured
     if (!isAisConfigured()) {
-      dataFreshness.setEnabled('ais', false);
+      dataFreshness.setEnabled("ais", false);
     }
     if (isOutagesConfigured() === false) {
-      dataFreshness.setEnabled('outages', false);
+      dataFreshness.setEnabled("outages", false);
     }
   }
 
@@ -495,16 +673,16 @@ export class App {
 
       // Sync data freshness tracker
       const layerToSource: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
-        military: ['opensky', 'wingbits'],
-        ais: ['ais'],
-        natural: ['usgs'],
-        weather: ['weather'],
-        outages: ['outages'],
-        cyberThreats: ['cyber_threats'],
-        protests: ['acled'],
-        ucdpEvents: ['ucdp_events'],
-        displacement: ['unhcr'],
-        climate: ['climate'],
+        military: ["opensky", "wingbits"],
+        ais: ["ais"],
+        natural: ["usgs"],
+        weather: ["weather"],
+        outages: ["outages"],
+        cyberThreats: ["cyber_threats"],
+        protests: ["acled"],
+        ucdpEvents: ["ucdp_events"],
+        displacement: ["unhcr"],
+        climate: ["climate"],
       };
       const sourceIds = layerToSource[layer];
       if (sourceIds) {
@@ -514,9 +692,9 @@ export class App {
       }
 
       // Handle AIS WebSocket connection
-      if (layer === 'ais') {
+      if (layer === "ais") {
         if (enabled) {
-          this.map?.setLayerLoading('ais', true);
+          this.map?.setLayerLoading("ais", true);
           initAisStream();
           this.waitForAisData();
         } else {
@@ -542,24 +720,40 @@ export class App {
     this.countryBriefPage.setExportImageHandler(async (code, name) => {
       try {
         const signals = this.getCountrySignals(code, name);
-        const cluster = signalAggregator.getCountryClusters().find(c => c.country === code);
-        const regional = signalAggregator.getRegionalConvergence().filter(r => r.countries.includes(code));
-        const convergence = cluster ? {
-          score: cluster.convergenceScore,
-          signalTypes: [...cluster.signalTypes],
-          regionalDescriptions: regional.map(r => r.description),
-        } : null;
-        const posturePanel = this.panels['strategic-posture'] as import('@/components/StrategicPosturePanel').StrategicPosturePanel | undefined;
+        const cluster = signalAggregator
+          .getCountryClusters()
+          .find((c) => c.country === code);
+        const regional = signalAggregator
+          .getRegionalConvergence()
+          .filter((r) => r.countries.includes(code));
+        const convergence = cluster
+          ? {
+              score: cluster.convergenceScore,
+              signalTypes: [...cluster.signalTypes],
+              regionalDescriptions: regional.map((r) => r.description),
+            }
+          : null;
+        const posturePanel = this.panels["strategic-posture"] as
+          | import("@/components/StrategicPosturePanel").StrategicPosturePanel
+          | undefined;
         const postures = posturePanel?.getPostures() || [];
-        const data = collectStoryData(code, name, this.latestClusters, postures, this.latestPredictions, signals, convergence);
+        const data = collectStoryData(
+          code,
+          name,
+          this.latestClusters,
+          postures,
+          this.latestPredictions,
+          signals,
+          convergence,
+        );
         const canvas = await renderStoryToCanvas(data);
-        const dataUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
+        const dataUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
         a.href = dataUrl;
         a.download = `country-brief-${code.toLowerCase()}-${Date.now()}.png`;
         a.click();
       } catch (err) {
-        console.error('[CountryBrief] Image export failed:', err);
+        console.error("[CountryBrief] Image export failed:", err);
       }
     });
 
@@ -579,7 +773,7 @@ export class App {
       this.countryTimeline = null;
       // Force URL rewrite to drop ?country= immediately
       const shareUrl = this.getShareUrl();
-      if (shareUrl) history.replaceState(null, '', shareUrl);
+      if (shareUrl) history.replaceState(null, "", shareUrl);
     });
   }
 
@@ -607,7 +801,10 @@ export class App {
     this.openCountryBriefByCode(geo.code, geo.country);
   }
 
-  public async openCountryBriefByCode(code: string, country: string): Promise<void> {
+  public async openCountryBriefByCode(
+    code: string,
+    country: string,
+  ): Promise<void> {
     if (!this.countryBriefPage) return;
     this.map?.setRenderPaused(true);
 
@@ -624,22 +821,27 @@ export class App {
 
     // Force URL to include ?country= immediately
     const shareUrl = this.getShareUrl();
-    if (shareUrl) history.replaceState(null, '', shareUrl);
+    if (shareUrl) history.replaceState(null, "", shareUrl);
 
-    const stockPromise = fetch(`/api/stock-index?code=${encodeURIComponent(code)}`)
+    const stockPromise = fetch(
+      `/api/stock-index?code=${encodeURIComponent(code)}`,
+    )
       .then((r) => r.json())
       .catch(() => ({ available: false }));
 
     stockPromise.then((stock) => {
-      if (this.countryBriefPage?.getCode() === code) this.countryBriefPage.updateStock(stock);
+      if (this.countryBriefPage?.getCode() === code)
+        this.countryBriefPage.updateStock(stock);
     });
 
     fetchCountryMarkets(country)
       .then((markets) => {
-        if (this.countryBriefPage?.getCode() === code) this.countryBriefPage.updateMarkets(markets);
+        if (this.countryBriefPage?.getCode() === code)
+          this.countryBriefPage.updateMarkets(markets);
       })
       .catch(() => {
-        if (this.countryBriefPage?.getCode() === code) this.countryBriefPage.updateMarkets([]);
+        if (this.countryBriefPage?.getCode() === code)
+          this.countryBriefPage.updateMarkets([]);
       });
 
     // Pass evidence headlines
@@ -653,7 +855,9 @@ export class App {
       const t = n.title.toLowerCase();
       const ourPos = App.firstMentionPosition(t, searchTerms);
       const otherPos = App.firstMentionPosition(t, otherCountryTerms);
-      return ourPos !== Infinity && (otherPos === Infinity || ourPos <= otherPos);
+      return (
+        ourPos !== Infinity && (otherPos === Infinity || ourPos <= otherPos)
+      );
     });
     if (filteredNews.length > 0) {
       this.countryBriefPage.updateNews(filteredNews.slice(0, 8));
@@ -676,13 +880,16 @@ export class App {
       }
       Object.assign(context, signals);
 
-      const countryCluster = signalAggregator.getCountryClusters().find((c) => c.country === code);
+      const countryCluster = signalAggregator
+        .getCountryClusters()
+        .find((c) => c.country === code);
       if (countryCluster) {
         context.convergenceScore = countryCluster.convergenceScore;
         context.signalTypes = [...countryCluster.signalTypes];
       }
 
-      const convergences = signalAggregator.getRegionalConvergence()
+      const convergences = signalAggregator
+        .getRegionalConvergence()
         .filter((r) => r.countries.includes(code));
       if (convergences.length) {
         context.regionalConvergence = convergences.map((r) => r.description);
@@ -694,57 +901,94 @@ export class App {
       const stockData = await stockPromise;
       if (stockData.available) {
         const pct = parseFloat(stockData.weekChangePercent);
-        context.stockIndex = `${stockData.indexName}: ${stockData.price} (${pct >= 0 ? '+' : ''}${stockData.weekChangePercent}% week)`;
+        context.stockIndex = `${stockData.indexName}: ${stockData.price} (${pct >= 0 ? "+" : ""}${stockData.weekChangePercent}% week)`;
       }
 
       let data: Record<string, unknown> | null = null;
       try {
-        const res = await fetch('/api/country-intel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/country-intel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ country, code, context }),
         });
         data = await res.json();
-      } catch { /* server unreachable */ }
+      } catch {
+        /* server unreachable */
+      }
 
       if (data && data.brief && !data.skipped) {
-        this.countryBriefPage!.updateBrief({ ...data, code } as Parameters<typeof this.countryBriefPage.updateBrief>[0]);
+        this.countryBriefPage!.updateBrief({ ...data, code } as Parameters<
+          typeof this.countryBriefPage.updateBrief
+        >[0]);
       } else {
-        const briefHeadlines = (context.headlines as string[] | undefined) || [];
-        let fallbackBrief = '';
+        const briefHeadlines =
+          (context.headlines as string[] | undefined) || [];
+        let fallbackBrief = "";
         if (briefHeadlines.length >= 2 && mlWorker.isAvailable) {
           try {
-            const prompt = `Summarize the current situation in ${country} based on these headlines: ${briefHeadlines.slice(0, 8).join('. ')}`;
+            const prompt = `Summarize the current situation in ${country} based on these headlines: ${briefHeadlines.slice(0, 8).join(". ")}`;
             const [summary] = await mlWorker.summarize([prompt]);
             if (summary && summary.length > 20) fallbackBrief = summary;
-          } catch { /* T5 failed */ }
+          } catch {
+            /* T5 failed */
+          }
         }
 
         if (fallbackBrief) {
-          this.countryBriefPage!.updateBrief({ brief: fallbackBrief, country, code, fallback: true });
+          this.countryBriefPage!.updateBrief({
+            brief: fallbackBrief,
+            country,
+            code,
+            fallback: true,
+          });
         } else {
           const lines: string[] = [];
-          if (score) lines.push(`**Instability Index: ${score.score}/100** (${score.level}, ${score.trend})`);
-          if (signals.protests > 0) lines.push(`${signals.protests} active protests detected`);
-          if (signals.militaryFlights > 0) lines.push(`${signals.militaryFlights} military aircraft tracked`);
-          if (signals.militaryVessels > 0) lines.push(`${signals.militaryVessels} military vessels tracked`);
-          if (signals.outages > 0) lines.push(`${signals.outages} internet outages`);
-          if (signals.earthquakes > 0) lines.push(`${signals.earthquakes} recent earthquakes`);
-          if (context.stockIndex) lines.push(`Stock index: ${context.stockIndex}`);
+          if (score)
+            lines.push(
+              `**Instability Index: ${score.score}/100** (${score.level}, ${score.trend})`,
+            );
+          if (signals.protests > 0)
+            lines.push(`${signals.protests} active protests detected`);
+          if (signals.militaryFlights > 0)
+            lines.push(`${signals.militaryFlights} military aircraft tracked`);
+          if (signals.militaryVessels > 0)
+            lines.push(`${signals.militaryVessels} military vessels tracked`);
+          if (signals.outages > 0)
+            lines.push(`${signals.outages} internet outages`);
+          if (signals.earthquakes > 0)
+            lines.push(`${signals.earthquakes} recent earthquakes`);
+          if (context.stockIndex)
+            lines.push(`Stock index: ${context.stockIndex}`);
           if (briefHeadlines.length > 0) {
-            lines.push('', '**Recent headlines:**');
-            briefHeadlines.slice(0, 5).forEach(h => lines.push(`• ${h}`));
+            lines.push("", "**Recent headlines:**");
+            briefHeadlines.slice(0, 5).forEach((h) => lines.push(`• ${h}`));
           }
           if (lines.length > 0) {
-            this.countryBriefPage!.updateBrief({ brief: lines.join('\n'), country, code, fallback: true });
+            this.countryBriefPage!.updateBrief({
+              brief: lines.join("\n"),
+              country,
+              code,
+              fallback: true,
+            });
           } else {
-            this.countryBriefPage!.updateBrief({ brief: '', country, code, error: 'No AI service available. Configure GROQ_API_KEY in Settings for full briefs.' });
+            this.countryBriefPage!.updateBrief({
+              brief: "",
+              country,
+              code,
+              error:
+                "No AI service available. Configure GROQ_API_KEY in Settings for full briefs.",
+            });
           }
         }
       }
     } catch (err) {
-      console.error('[CountryBrief] fetch error:', err);
-      this.countryBriefPage!.updateBrief({ brief: '', country, code, error: 'Failed to generate brief' });
+      console.error("[CountryBrief] fetch error:", err);
+      this.countryBriefPage!.updateBrief({
+        brief: "",
+        country,
+        code,
+        error: "Failed to generate brief",
+      });
     }
   }
 
@@ -758,17 +1002,26 @@ export class App {
     const events: TimelineEvent[] = [];
     const countryLower = country.toLowerCase();
     const hasGeoShape = hasCountryGeometry(code) || !!App.COUNTRY_BOUNDS[code];
-    const inCountry = (lat: number, lon: number) => hasGeoShape && this.isInCountry(lat, lon, code);
+    const inCountry = (lat: number, lon: number) =>
+      hasGeoShape && this.isInCountry(lat, lon, code);
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     if (this.intelligenceCache.protests?.events) {
       for (const e of this.intelligenceCache.protests.events) {
-        if (e.country?.toLowerCase() === countryLower || inCountry(e.lat, e.lon)) {
+        if (
+          e.country?.toLowerCase() === countryLower ||
+          inCountry(e.lat, e.lon)
+        ) {
           events.push({
             timestamp: new Date(e.time).getTime(),
-            lane: 'protest',
+            lane: "protest",
             label: e.title || `${e.eventType} in ${e.city || e.country}`,
-            severity: e.severity === 'high' ? 'high' : e.severity === 'medium' ? 'medium' : 'low',
+            severity:
+              e.severity === "high"
+                ? "high"
+                : e.severity === "medium"
+                  ? "medium"
+                  : "low",
           });
         }
       }
@@ -776,12 +1029,22 @@ export class App {
 
     if (this.intelligenceCache.earthquakes) {
       for (const eq of this.intelligenceCache.earthquakes) {
-        if (inCountry(eq.lat, eq.lon) || eq.place?.toLowerCase().includes(countryLower)) {
+        if (
+          inCountry(eq.lat, eq.lon) ||
+          eq.place?.toLowerCase().includes(countryLower)
+        ) {
           events.push({
             timestamp: new Date(eq.time).getTime(),
-            lane: 'natural',
+            lane: "natural",
             label: `M${eq.magnitude.toFixed(1)} ${eq.place}`,
-            severity: eq.magnitude >= 6 ? 'critical' : eq.magnitude >= 5 ? 'high' : eq.magnitude >= 4 ? 'medium' : 'low',
+            severity:
+              eq.magnitude >= 6
+                ? "critical"
+                : eq.magnitude >= 5
+                  ? "high"
+                  : eq.magnitude >= 4
+                    ? "medium"
+                    : "low",
           });
         }
       }
@@ -789,22 +1052,30 @@ export class App {
 
     if (this.intelligenceCache.military) {
       for (const f of this.intelligenceCache.military.flights) {
-        if (hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code) {
+        if (
+          hasGeoShape
+            ? this.isInCountry(f.lat, f.lon, code)
+            : f.operatorCountry?.toUpperCase() === code
+        ) {
           events.push({
             timestamp: new Date(f.lastSeen).getTime(),
-            lane: 'military',
+            lane: "military",
             label: `${f.callsign} (${f.aircraftModel || f.aircraftType})`,
-            severity: f.isInteresting ? 'high' : 'low',
+            severity: f.isInteresting ? "high" : "low",
           });
         }
       }
       for (const v of this.intelligenceCache.military.vessels) {
-        if (hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code) {
+        if (
+          hasGeoShape
+            ? this.isInCountry(v.lat, v.lon, code)
+            : v.operatorCountry?.toUpperCase() === code
+        ) {
           events.push({
             timestamp: new Date(v.lastAisUpdate).getTime(),
-            lane: 'military',
+            lane: "military",
             label: `${v.name} (${v.vesselType})`,
-            severity: v.isDark ? 'high' : 'low',
+            severity: v.isDark ? "high" : "low",
           });
         }
       }
@@ -815,58 +1086,95 @@ export class App {
       for (const c of ciiData.conflicts) {
         events.push({
           timestamp: new Date(c.time).getTime(),
-          lane: 'conflict',
+          lane: "conflict",
           label: `${c.eventType}: ${c.location || c.country}`,
-          severity: c.fatalities > 0 ? 'critical' : 'high',
+          severity: c.fatalities > 0 ? "critical" : "high",
         });
       }
     }
 
     this.countryTimeline = new CountryTimeline(mount);
-    this.countryTimeline.render(events.filter(e => e.timestamp >= sevenDaysAgo));
+    this.countryTimeline.render(
+      events.filter((e) => e.timestamp >= sevenDaysAgo),
+    );
   }
 
-  private static COUNTRY_BOUNDS: Record<string, { n: number; s: number; e: number; w: number }> = {
-    IR: { n: 40, s: 25, e: 63, w: 44 }, IL: { n: 33.3, s: 29.5, e: 35.9, w: 34.3 },
-    SA: { n: 32, s: 16, e: 55, w: 35 }, AE: { n: 26.1, s: 22.6, e: 56.4, w: 51.6 },
-    IQ: { n: 37.4, s: 29.1, e: 48.6, w: 38.8 }, SY: { n: 37.3, s: 32.3, e: 42.4, w: 35.7 },
-    YE: { n: 19, s: 12, e: 54.5, w: 42 }, LB: { n: 34.7, s: 33.1, e: 36.6, w: 35.1 },
-    CN: { n: 53.6, s: 18.2, e: 134.8, w: 73.5 }, TW: { n: 25.3, s: 21.9, e: 122, w: 120 },
-    JP: { n: 45.5, s: 24.2, e: 153.9, w: 122.9 }, KR: { n: 38.6, s: 33.1, e: 131.9, w: 124.6 },
-    KP: { n: 43.0, s: 37.7, e: 130.7, w: 124.2 }, IN: { n: 35.5, s: 6.7, e: 97.4, w: 68.2 },
-    PK: { n: 37, s: 24, e: 77, w: 61 }, AF: { n: 38.5, s: 29.4, e: 74.9, w: 60.5 },
-    UA: { n: 52.4, s: 44.4, e: 40.2, w: 22.1 }, RU: { n: 82, s: 41.2, e: 180, w: 19.6 },
-    BY: { n: 56.2, s: 51.3, e: 32.8, w: 23.2 }, PL: { n: 54.8, s: 49, e: 24.1, w: 14.1 },
-    EG: { n: 31.7, s: 22, e: 36.9, w: 25 }, LY: { n: 33, s: 19.5, e: 25, w: 9.4 },
-    SD: { n: 22, s: 8.7, e: 38.6, w: 21.8 }, US: { n: 49, s: 24.5, e: -66.9, w: -125 },
-    GB: { n: 58.7, s: 49.9, e: 1.8, w: -8.2 }, DE: { n: 55.1, s: 47.3, e: 15.0, w: 5.9 },
-    FR: { n: 51.1, s: 41.3, e: 9.6, w: -5.1 }, TR: { n: 42.1, s: 36, e: 44.8, w: 26 },
+  private static COUNTRY_BOUNDS: Record<
+    string,
+    { n: number; s: number; e: number; w: number }
+  > = {
+    IR: { n: 40, s: 25, e: 63, w: 44 },
+    IL: { n: 33.3, s: 29.5, e: 35.9, w: 34.3 },
+    SA: { n: 32, s: 16, e: 55, w: 35 },
+    AE: { n: 26.1, s: 22.6, e: 56.4, w: 51.6 },
+    IQ: { n: 37.4, s: 29.1, e: 48.6, w: 38.8 },
+    SY: { n: 37.3, s: 32.3, e: 42.4, w: 35.7 },
+    YE: { n: 19, s: 12, e: 54.5, w: 42 },
+    LB: { n: 34.7, s: 33.1, e: 36.6, w: 35.1 },
+    CN: { n: 53.6, s: 18.2, e: 134.8, w: 73.5 },
+    TW: { n: 25.3, s: 21.9, e: 122, w: 120 },
+    JP: { n: 45.5, s: 24.2, e: 153.9, w: 122.9 },
+    KR: { n: 38.6, s: 33.1, e: 131.9, w: 124.6 },
+    KP: { n: 43.0, s: 37.7, e: 130.7, w: 124.2 },
+    IN: { n: 35.5, s: 6.7, e: 97.4, w: 68.2 },
+    PK: { n: 37, s: 24, e: 77, w: 61 },
+    AF: { n: 38.5, s: 29.4, e: 74.9, w: 60.5 },
+    UA: { n: 52.4, s: 44.4, e: 40.2, w: 22.1 },
+    RU: { n: 82, s: 41.2, e: 180, w: 19.6 },
+    BY: { n: 56.2, s: 51.3, e: 32.8, w: 23.2 },
+    PL: { n: 54.8, s: 49, e: 24.1, w: 14.1 },
+    EG: { n: 31.7, s: 22, e: 36.9, w: 25 },
+    LY: { n: 33, s: 19.5, e: 25, w: 9.4 },
+    SD: { n: 22, s: 8.7, e: 38.6, w: 21.8 },
+    US: { n: 49, s: 24.5, e: -66.9, w: -125 },
+    GB: { n: 58.7, s: 49.9, e: 1.8, w: -8.2 },
+    DE: { n: 55.1, s: 47.3, e: 15.0, w: 5.9 },
+    FR: { n: 51.1, s: 41.3, e: 9.6, w: -5.1 },
+    TR: { n: 42.1, s: 36, e: 44.8, w: 26 },
     BR: { n: 5.3, s: -33.8, e: -34.8, w: -73.9 },
   };
 
   private static COUNTRY_ALIASES: Record<string, string[]> = {
-    IL: ['israel', 'israeli', 'gaza', 'hamas', 'hezbollah', 'netanyahu', 'idf', 'west bank', 'tel aviv', 'jerusalem'],
-    IR: ['iran', 'iranian', 'tehran', 'persian', 'irgc', 'khamenei'],
-    RU: ['russia', 'russian', 'moscow', 'kremlin', 'putin', 'ukraine war'],
-    UA: ['ukraine', 'ukrainian', 'kyiv', 'zelensky', 'zelenskyy'],
-    CN: ['china', 'chinese', 'beijing', 'taiwan strait', 'south china sea', 'xi jinping'],
-    TW: ['taiwan', 'taiwanese', 'taipei'],
-    KP: ['north korea', 'pyongyang', 'kim jong'],
-    KR: ['south korea', 'seoul'],
-    SA: ['saudi', 'riyadh', 'mbs'],
-    SY: ['syria', 'syrian', 'damascus', 'assad'],
-    YE: ['yemen', 'houthi', 'sanaa'],
-    IQ: ['iraq', 'iraqi', 'baghdad'],
-    AF: ['afghanistan', 'afghan', 'kabul', 'taliban'],
-    PK: ['pakistan', 'pakistani', 'islamabad'],
-    IN: ['india', 'indian', 'new delhi', 'modi'],
-    EG: ['egypt', 'egyptian', 'cairo', 'suez'],
-    LB: ['lebanon', 'lebanese', 'beirut'],
-    TR: ['turkey', 'turkish', 'ankara', 'erdogan', 'türkiye'],
-    US: ['united states', 'american', 'washington', 'pentagon', 'white house'],
-    GB: ['united kingdom', 'british', 'london', 'uk '],
-    BR: ['brazil', 'brazilian', 'brasilia', 'lula', 'bolsonaro'],
-    AE: ['united arab emirates', 'uae', 'emirati', 'dubai', 'abu dhabi'],
+    IL: [
+      "israel",
+      "israeli",
+      "gaza",
+      "hamas",
+      "hezbollah",
+      "netanyahu",
+      "idf",
+      "west bank",
+      "tel aviv",
+      "jerusalem",
+    ],
+    IR: ["iran", "iranian", "tehran", "persian", "irgc", "khamenei"],
+    RU: ["russia", "russian", "moscow", "kremlin", "putin", "ukraine war"],
+    UA: ["ukraine", "ukrainian", "kyiv", "zelensky", "zelenskyy"],
+    CN: [
+      "china",
+      "chinese",
+      "beijing",
+      "taiwan strait",
+      "south china sea",
+      "xi jinping",
+    ],
+    TW: ["taiwan", "taiwanese", "taipei"],
+    KP: ["north korea", "pyongyang", "kim jong"],
+    KR: ["south korea", "seoul"],
+    SA: ["saudi", "riyadh", "mbs"],
+    SY: ["syria", "syrian", "damascus", "assad"],
+    YE: ["yemen", "houthi", "sanaa"],
+    IQ: ["iraq", "iraqi", "baghdad"],
+    AF: ["afghanistan", "afghan", "kabul", "taliban"],
+    PK: ["pakistan", "pakistani", "islamabad"],
+    IN: ["india", "indian", "new delhi", "modi"],
+    EG: ["egypt", "egyptian", "cairo", "suez"],
+    LB: ["lebanon", "lebanese", "beirut"],
+    TR: ["turkey", "turkish", "ankara", "erdogan", "türkiye"],
+    US: ["united states", "american", "washington", "pentagon", "white house"],
+    GB: ["united kingdom", "british", "london", "uk "],
+    BR: ["brazil", "brazilian", "brasilia", "lula", "bolsonaro"],
+    AE: ["united arab emirates", "uae", "emirati", "dubai", "abu dhabi"],
   };
 
   private static otherCountryTermsCache: Map<string, string[]> = new Map();
@@ -902,9 +1210,11 @@ export class App {
     if (TIER1_COUNTRIES[code]) return TIER1_COUNTRIES[code];
 
     try {
-      const displayNamesCtor = (Intl as unknown as { DisplayNames?: IntlDisplayNamesCtor }).DisplayNames;
+      const displayNamesCtor = (
+        Intl as unknown as { DisplayNames?: IntlDisplayNamesCtor }
+      ).DisplayNames;
       if (!displayNamesCtor) return code;
-      const displayNames = new displayNamesCtor(['en'], { type: 'region' });
+      const displayNames = new displayNamesCtor(["en"], { type: "region" });
       const resolved = displayNames.of(code);
       if (resolved && resolved.toUpperCase() !== code) return resolved;
     } catch {
@@ -914,7 +1224,10 @@ export class App {
     return code;
   }
 
-  private static getCountrySearchTerms(country: string, code: string): string[] {
+  private static getCountrySearchTerms(
+    country: string,
+    code: string,
+  ): string[] {
     const aliases = App.COUNTRY_ALIASES[code];
     if (aliases) return aliases;
     if (/^[A-Z]{2}$/i.test(country.trim())) return [];
@@ -929,14 +1242,19 @@ export class App {
     return lat >= b.s && lat <= b.n && lon >= b.w && lon <= b.e;
   }
 
-  private getCountrySignals(code: string, country: string): CountryBriefSignals {
+  private getCountrySignals(
+    code: string,
+    country: string,
+  ): CountryBriefSignals {
     const countryLower = country.toLowerCase();
     const hasGeoShape = hasCountryGeometry(code) || !!App.COUNTRY_BOUNDS[code];
 
     let protests = 0;
     if (this.intelligenceCache.protests?.events) {
-      protests = this.intelligenceCache.protests.events.filter((e) =>
-        e.country?.toLowerCase() === countryLower || (hasGeoShape && this.isInCountry(e.lat, e.lon, code))
+      protests = this.intelligenceCache.protests.events.filter(
+        (e) =>
+          e.country?.toLowerCase() === countryLower ||
+          (hasGeoShape && this.isInCountry(e.lat, e.lon, code)),
       ).length;
     }
 
@@ -944,17 +1262,23 @@ export class App {
     let militaryVessels = 0;
     if (this.intelligenceCache.military) {
       militaryFlights = this.intelligenceCache.military.flights.filter((f) =>
-        hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code
+        hasGeoShape
+          ? this.isInCountry(f.lat, f.lon, code)
+          : f.operatorCountry?.toUpperCase() === code,
       ).length;
       militaryVessels = this.intelligenceCache.military.vessels.filter((v) =>
-        hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code
+        hasGeoShape
+          ? this.isInCountry(v.lat, v.lon, code)
+          : v.operatorCountry?.toUpperCase() === code,
       ).length;
     }
 
     let outages = 0;
     if (this.intelligenceCache.outages) {
-      outages = this.intelligenceCache.outages.filter((o) =>
-        o.country?.toLowerCase() === countryLower || (hasGeoShape && this.isInCountry(o.lat, o.lon, code))
+      outages = this.intelligenceCache.outages.filter(
+        (o) =>
+          o.country?.toLowerCase() === countryLower ||
+          (hasGeoShape && this.isInCountry(o.lat, o.lon, code)),
       ).length;
     }
 
@@ -983,166 +1307,240 @@ export class App {
   }
 
   private openCountryStory(code: string, name: string): void {
-    if (!dataFreshness.hasSufficientData() || this.latestClusters.length === 0) {
-      this.showToast('Data still loading — try again in a moment');
+    if (
+      !dataFreshness.hasSufficientData() ||
+      this.latestClusters.length === 0
+    ) {
+      this.showToast("Data still loading — try again in a moment");
       return;
     }
-    const posturePanel = this.panels['strategic-posture'] as StrategicPosturePanel | undefined;
+    const posturePanel = this.panels["strategic-posture"] as
+      | StrategicPosturePanel
+      | undefined;
     const postures = posturePanel?.getPostures() || [];
     const signals = this.getCountrySignals(code, name);
-    const cluster = signalAggregator.getCountryClusters().find(c => c.country === code);
-    const regional = signalAggregator.getRegionalConvergence().filter(r => r.countries.includes(code));
-    const convergence = cluster ? {
-      score: cluster.convergenceScore,
-      signalTypes: [...cluster.signalTypes],
-      regionalDescriptions: regional.map(r => r.description),
-    } : null;
-    const data = collectStoryData(code, name, this.latestClusters, postures, this.latestPredictions, signals, convergence);
+    const cluster = signalAggregator
+      .getCountryClusters()
+      .find((c) => c.country === code);
+    const regional = signalAggregator
+      .getRegionalConvergence()
+      .filter((r) => r.countries.includes(code));
+    const convergence = cluster
+      ? {
+          score: cluster.convergenceScore,
+          signalTypes: [...cluster.signalTypes],
+          regionalDescriptions: regional.map((r) => r.description),
+        }
+      : null;
+    const data = collectStoryData(
+      code,
+      name,
+      this.latestClusters,
+      postures,
+      this.latestPredictions,
+      signals,
+      convergence,
+    );
     openStoryModal(data);
   }
 
   private showToast(msg: string): void {
-    document.querySelector('.toast-notification')?.remove();
-    const el = document.createElement('div');
-    el.className = 'toast-notification';
+    document.querySelector(".toast-notification")?.remove();
+    const el = document.createElement("div");
+    el.className = "toast-notification";
     el.textContent = msg;
     document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('visible'));
-    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 300); }, 3000);
+    requestAnimationFrame(() => el.classList.add("visible"));
+    setTimeout(() => {
+      el.classList.remove("visible");
+      setTimeout(() => el.remove(), 300);
+    }, 3000);
   }
 
   private setupSearchModal(): void {
-    const searchOptions = SITE_VARIANT === 'tech'
-      ? {
-          placeholder: 'Search companies, AI labs, startups, events...',
-          hint: 'HQs • Companies • AI Labs • Startups • Accelerators • Events',
-        }
-      : {
-          placeholder: 'Search news, pipelines, bases, markets...',
-          hint: 'News • Countries • Hotspots • Conflicts • Bases • Pipelines • Cables • Datacenters',
-        };
+    const searchOptions =
+      SITE_VARIANT === "tech"
+        ? {
+            placeholder: "Search companies, AI labs, startups, events...",
+            hint: "HQs • Companies • AI Labs • Startups • Accelerators • Events",
+          }
+        : {
+            placeholder: "Search news, pipelines, bases, markets...",
+            hint: "News • Countries • Hotspots • Conflicts • Bases • Pipelines • Cables • Datacenters",
+          };
     this.searchModal = new SearchModal(this.container, searchOptions);
 
-    if (SITE_VARIANT === 'tech') {
+    if (SITE_VARIANT === "tech") {
       // Tech variant: tech-specific sources
-      this.searchModal.registerSource('techcompany', TECH_COMPANIES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: `${c.sector} ${c.city} ${c.keyProducts?.join(' ') || ''}`.trim(),
-        data: c,
-      })));
+      this.searchModal.registerSource(
+        "techcompany",
+        TECH_COMPANIES.map((c) => ({
+          id: c.id,
+          title: c.name,
+          subtitle:
+            `${c.sector} ${c.city} ${c.keyProducts?.join(" ") || ""}`.trim(),
+          data: c,
+        })),
+      );
 
-      this.searchModal.registerSource('ailab', AI_RESEARCH_LABS.map(l => ({
-        id: l.id,
-        title: l.name,
-        subtitle: `${l.type} ${l.city} ${l.focusAreas?.join(' ') || ''}`.trim(),
-        data: l,
-      })));
+      this.searchModal.registerSource(
+        "ailab",
+        AI_RESEARCH_LABS.map((l) => ({
+          id: l.id,
+          title: l.name,
+          subtitle:
+            `${l.type} ${l.city} ${l.focusAreas?.join(" ") || ""}`.trim(),
+          data: l,
+        })),
+      );
 
-      this.searchModal.registerSource('startup', STARTUP_ECOSYSTEMS.map(s => ({
-        id: s.id,
-        title: s.name,
-        subtitle: `${s.ecosystemTier} ${s.topSectors?.join(' ') || ''} ${s.notableStartups?.join(' ') || ''}`.trim(),
-        data: s,
-      })));
+      this.searchModal.registerSource(
+        "startup",
+        STARTUP_ECOSYSTEMS.map((s) => ({
+          id: s.id,
+          title: s.name,
+          subtitle:
+            `${s.ecosystemTier} ${s.topSectors?.join(" ") || ""} ${s.notableStartups?.join(" ") || ""}`.trim(),
+          data: s,
+        })),
+      );
 
-      this.searchModal.registerSource('datacenter', AI_DATA_CENTERS.map(d => ({
-        id: d.id,
-        title: d.name,
-        subtitle: `${d.owner} ${d.chipType || ''}`.trim(),
-        data: d,
-      })));
+      this.searchModal.registerSource(
+        "datacenter",
+        AI_DATA_CENTERS.map((d) => ({
+          id: d.id,
+          title: d.name,
+          subtitle: `${d.owner} ${d.chipType || ""}`.trim(),
+          data: d,
+        })),
+      );
 
-      this.searchModal.registerSource('cable', UNDERSEA_CABLES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: c.major ? 'Major internet backbone' : 'Undersea cable',
-        data: c,
-      })));
+      this.searchModal.registerSource(
+        "cable",
+        UNDERSEA_CABLES.map((c) => ({
+          id: c.id,
+          title: c.name,
+          subtitle: c.major ? "Major internet backbone" : "Undersea cable",
+          data: c,
+        })),
+      );
 
       // Register Tech HQs (unicorns, FAANG, public companies from map)
-      this.searchModal.registerSource('techhq', TECH_HQS.map(h => ({
-        id: h.id,
-        title: h.company,
-        subtitle: `${h.type === 'faang' ? 'Big Tech' : h.type === 'unicorn' ? 'Unicorn' : 'Public'} • ${h.city}, ${h.country}`,
-        data: h,
-      })));
+      this.searchModal.registerSource(
+        "techhq",
+        TECH_HQS.map((h) => ({
+          id: h.id,
+          title: h.company,
+          subtitle: `${h.type === "faang" ? "Big Tech" : h.type === "unicorn" ? "Unicorn" : "Public"} • ${h.city}, ${h.country}`,
+          data: h,
+        })),
+      );
 
       // Register Accelerators
-      this.searchModal.registerSource('accelerator', ACCELERATORS.map(a => ({
-        id: a.id,
-        title: a.name,
-        subtitle: `${a.type} • ${a.city}, ${a.country}${a.notable ? ` • ${a.notable.slice(0, 2).join(', ')}` : ''}`,
-        data: a,
-      })));
+      this.searchModal.registerSource(
+        "accelerator",
+        ACCELERATORS.map((a) => ({
+          id: a.id,
+          title: a.name,
+          subtitle: `${a.type} • ${a.city}, ${a.country}${a.notable ? ` • ${a.notable.slice(0, 2).join(", ")}` : ""}`,
+          data: a,
+        })),
+      );
     } else {
       // Full variant: geopolitical sources
-      this.searchModal.registerSource('hotspot', INTEL_HOTSPOTS.map(h => ({
-        id: h.id,
-        title: h.name,
-        subtitle: `${h.subtext || ''} ${h.keywords?.join(' ') || ''} ${h.description || ''}`.trim(),
-        data: h,
-      })));
+      this.searchModal.registerSource(
+        "hotspot",
+        INTEL_HOTSPOTS.map((h) => ({
+          id: h.id,
+          title: h.name,
+          subtitle:
+            `${h.subtext || ""} ${h.keywords?.join(" ") || ""} ${h.description || ""}`.trim(),
+          data: h,
+        })),
+      );
 
-      this.searchModal.registerSource('conflict', CONFLICT_ZONES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: `${c.parties?.join(' ') || ''} ${c.keywords?.join(' ') || ''} ${c.description || ''}`.trim(),
-        data: c,
-      })));
+      this.searchModal.registerSource(
+        "conflict",
+        CONFLICT_ZONES.map((c) => ({
+          id: c.id,
+          title: c.name,
+          subtitle:
+            `${c.parties?.join(" ") || ""} ${c.keywords?.join(" ") || ""} ${c.description || ""}`.trim(),
+          data: c,
+        })),
+      );
 
-      this.searchModal.registerSource('base', MILITARY_BASES.map(b => ({
-        id: b.id,
-        title: b.name,
-        subtitle: `${b.type} ${b.description || ''}`.trim(),
-        data: b,
-      })));
+      this.searchModal.registerSource(
+        "base",
+        MILITARY_BASES.map((b) => ({
+          id: b.id,
+          title: b.name,
+          subtitle: `${b.type} ${b.description || ""}`.trim(),
+          data: b,
+        })),
+      );
 
-      this.searchModal.registerSource('pipeline', PIPELINES.map(p => ({
-        id: p.id,
-        title: p.name,
-        subtitle: `${p.type} ${p.operator || ''} ${p.countries?.join(' ') || ''}`.trim(),
-        data: p,
-      })));
+      this.searchModal.registerSource(
+        "pipeline",
+        PIPELINES.map((p) => ({
+          id: p.id,
+          title: p.name,
+          subtitle:
+            `${p.type} ${p.operator || ""} ${p.countries?.join(" ") || ""}`.trim(),
+          data: p,
+        })),
+      );
 
-      this.searchModal.registerSource('cable', UNDERSEA_CABLES.map(c => ({
-        id: c.id,
-        title: c.name,
-        subtitle: c.major ? 'Major cable' : '',
-        data: c,
-      })));
+      this.searchModal.registerSource(
+        "cable",
+        UNDERSEA_CABLES.map((c) => ({
+          id: c.id,
+          title: c.name,
+          subtitle: c.major ? "Major cable" : "",
+          data: c,
+        })),
+      );
 
-      this.searchModal.registerSource('datacenter', AI_DATA_CENTERS.map(d => ({
-        id: d.id,
-        title: d.name,
-        subtitle: `${d.owner} ${d.chipType || ''}`.trim(),
-        data: d,
-      })));
+      this.searchModal.registerSource(
+        "datacenter",
+        AI_DATA_CENTERS.map((d) => ({
+          id: d.id,
+          title: d.name,
+          subtitle: `${d.owner} ${d.chipType || ""}`.trim(),
+          data: d,
+        })),
+      );
 
-      this.searchModal.registerSource('nuclear', NUCLEAR_FACILITIES.map(n => ({
-        id: n.id,
-        title: n.name,
-        subtitle: `${n.type} ${n.operator || ''}`.trim(),
-        data: n,
-      })));
+      this.searchModal.registerSource(
+        "nuclear",
+        NUCLEAR_FACILITIES.map((n) => ({
+          id: n.id,
+          title: n.name,
+          subtitle: `${n.type} ${n.operator || ""}`.trim(),
+          data: n,
+        })),
+      );
 
-      this.searchModal.registerSource('irradiator', GAMMA_IRRADIATORS.map(g => ({
-        id: g.id,
-        title: `${g.city}, ${g.country}`,
-        subtitle: g.organization || '',
-        data: g,
-      })));
+      this.searchModal.registerSource(
+        "irradiator",
+        GAMMA_IRRADIATORS.map((g) => ({
+          id: g.id,
+          title: `${g.city}, ${g.country}`,
+          subtitle: g.organization || "",
+          data: g,
+        })),
+      );
     }
 
     // Register countries for both variants
-    this.searchModal.registerSource('country', this.buildCountrySearchItems());
+    this.searchModal.registerSource("country", this.buildCountrySearchItems());
 
     // Handle result selection
     this.searchModal.setOnSelect((result) => this.handleSearchResult(result));
 
     // Global keyboard shortcut
     this.boundKeydownHandler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         if (this.searchModal?.isOpen()) {
           this.searchModal.close();
@@ -1153,160 +1551,160 @@ export class App {
         }
       }
     };
-    document.addEventListener('keydown', this.boundKeydownHandler);
+    document.addEventListener("keydown", this.boundKeydownHandler);
   }
 
   private handleSearchResult(result: SearchResult): void {
     switch (result.type) {
-      case 'news': {
+      case "news": {
         // Find and scroll to the news panel containing this item
         const item = result.data as NewsItem;
-        this.scrollToPanel('politics');
+        this.scrollToPanel("politics");
         this.highlightNewsItem(item.link);
         break;
       }
-      case 'hotspot': {
+      case "hotspot": {
         // Trigger map popup for hotspot
-        const hotspot = result.data as typeof INTEL_HOTSPOTS[0];
-        this.map?.setView('global');
+        const hotspot = result.data as (typeof INTEL_HOTSPOTS)[0];
+        this.map?.setView("global");
         setTimeout(() => {
           this.map?.triggerHotspotClick(hotspot.id);
         }, 300);
         break;
       }
-      case 'conflict': {
-        const conflict = result.data as typeof CONFLICT_ZONES[0];
-        this.map?.setView('global');
+      case "conflict": {
+        const conflict = result.data as (typeof CONFLICT_ZONES)[0];
+        this.map?.setView("global");
         setTimeout(() => {
           this.map?.triggerConflictClick(conflict.id);
         }, 300);
         break;
       }
-      case 'market': {
-        this.scrollToPanel('markets');
+      case "market": {
+        this.scrollToPanel("markets");
         break;
       }
-      case 'prediction': {
-        this.scrollToPanel('polymarket');
+      case "prediction": {
+        this.scrollToPanel("polymarket");
         break;
       }
-      case 'base': {
-        const base = result.data as typeof MILITARY_BASES[0];
-        this.map?.setView('global');
+      case "base": {
+        const base = result.data as (typeof MILITARY_BASES)[0];
+        this.map?.setView("global");
         setTimeout(() => {
           this.map?.triggerBaseClick(base.id);
         }, 300);
         break;
       }
-      case 'pipeline': {
-        const pipeline = result.data as typeof PIPELINES[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('pipelines');
+      case "pipeline": {
+        const pipeline = result.data as (typeof PIPELINES)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("pipelines");
         this.mapLayers.pipelines = true;
         setTimeout(() => {
           this.map?.triggerPipelineClick(pipeline.id);
         }, 300);
         break;
       }
-      case 'cable': {
-        const cable = result.data as typeof UNDERSEA_CABLES[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('cables');
+      case "cable": {
+        const cable = result.data as (typeof UNDERSEA_CABLES)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("cables");
         this.mapLayers.cables = true;
         setTimeout(() => {
           this.map?.triggerCableClick(cable.id);
         }, 300);
         break;
       }
-      case 'datacenter': {
-        const dc = result.data as typeof AI_DATA_CENTERS[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('datacenters');
+      case "datacenter": {
+        const dc = result.data as (typeof AI_DATA_CENTERS)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("datacenters");
         this.mapLayers.datacenters = true;
         setTimeout(() => {
           this.map?.triggerDatacenterClick(dc.id);
         }, 300);
         break;
       }
-      case 'nuclear': {
-        const nuc = result.data as typeof NUCLEAR_FACILITIES[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('nuclear');
+      case "nuclear": {
+        const nuc = result.data as (typeof NUCLEAR_FACILITIES)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("nuclear");
         this.mapLayers.nuclear = true;
         setTimeout(() => {
           this.map?.triggerNuclearClick(nuc.id);
         }, 300);
         break;
       }
-      case 'irradiator': {
-        const irr = result.data as typeof GAMMA_IRRADIATORS[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('irradiators');
+      case "irradiator": {
+        const irr = result.data as (typeof GAMMA_IRRADIATORS)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("irradiators");
         this.mapLayers.irradiators = true;
         setTimeout(() => {
           this.map?.triggerIrradiatorClick(irr.id);
         }, 300);
         break;
       }
-      case 'earthquake':
-      case 'outage':
+      case "earthquake":
+      case "outage":
         // These are dynamic, just switch to map view
-        this.map?.setView('global');
+        this.map?.setView("global");
         break;
-      case 'techcompany': {
-        const company = result.data as typeof TECH_COMPANIES[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('techHQs');
+      case "techcompany": {
+        const company = result.data as (typeof TECH_COMPANIES)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("techHQs");
         this.mapLayers.techHQs = true;
         setTimeout(() => {
           this.map?.setCenter(company.lat, company.lon, 4);
         }, 300);
         break;
       }
-      case 'ailab': {
-        const lab = result.data as typeof AI_RESEARCH_LABS[0];
-        this.map?.setView('global');
+      case "ailab": {
+        const lab = result.data as (typeof AI_RESEARCH_LABS)[0];
+        this.map?.setView("global");
         setTimeout(() => {
           this.map?.setCenter(lab.lat, lab.lon, 4);
         }, 300);
         break;
       }
-      case 'startup': {
-        const ecosystem = result.data as typeof STARTUP_ECOSYSTEMS[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('startupHubs');
+      case "startup": {
+        const ecosystem = result.data as (typeof STARTUP_ECOSYSTEMS)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("startupHubs");
         this.mapLayers.startupHubs = true;
         setTimeout(() => {
           this.map?.setCenter(ecosystem.lat, ecosystem.lon, 4);
         }, 300);
         break;
       }
-      case 'techevent':
-        this.map?.setView('global');
-        this.map?.enableLayer('techEvents');
+      case "techevent":
+        this.map?.setView("global");
+        this.map?.enableLayer("techEvents");
         this.mapLayers.techEvents = true;
         break;
-      case 'techhq': {
-        const hq = result.data as typeof TECH_HQS[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('techHQs');
+      case "techhq": {
+        const hq = result.data as (typeof TECH_HQS)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("techHQs");
         this.mapLayers.techHQs = true;
         setTimeout(() => {
           this.map?.setCenter(hq.lat, hq.lon, 4);
         }, 300);
         break;
       }
-      case 'accelerator': {
-        const acc = result.data as typeof ACCELERATORS[0];
-        this.map?.setView('global');
-        this.map?.enableLayer('accelerators');
+      case "accelerator": {
+        const acc = result.data as (typeof ACCELERATORS)[0];
+        this.map?.setView("global");
+        this.map?.enableLayer("accelerators");
         this.mapLayers.accelerators = true;
         setTimeout(() => {
           this.map?.setCenter(acc.lat, acc.lon, 4);
         }, 300);
         break;
       }
-      case 'country': {
+      case "country": {
         const { code, name } = result.data as { code: string; name: string };
         this.openCountryBriefByCode(code, name);
         break;
@@ -1317,9 +1715,9 @@ export class App {
   private scrollToPanel(panelId: string): void {
     const panel = document.querySelector(`[data-panel="${panelId}"]`);
     if (panel) {
-      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      panel.classList.add('flash-highlight');
-      setTimeout(() => panel.classList.remove('flash-highlight'), 1500);
+      panel.scrollIntoView({ behavior: "smooth", block: "center" });
+      panel.classList.add("flash-highlight");
+      setTimeout(() => panel.classList.remove("flash-highlight"), 1500);
     }
   }
 
@@ -1327,9 +1725,9 @@ export class App {
     setTimeout(() => {
       const item = document.querySelector(`[data-news-id="${itemId}"]`);
       if (item) {
-        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        item.classList.add('flash-highlight');
-        setTimeout(() => item.classList.remove('flash-highlight'), 1500);
+        item.scrollIntoView({ behavior: "smooth", block: "center" });
+        item.classList.add("flash-highlight");
+        setTimeout(() => item.classList.remove("flash-highlight"), 1500);
       }
     }, 100);
   }
@@ -1338,41 +1736,55 @@ export class App {
     if (!this.searchModal) return;
 
     // Keep country CII labels fresh with latest ingested signals.
-    this.searchModal.registerSource('country', this.buildCountrySearchItems());
+    this.searchModal.registerSource("country", this.buildCountrySearchItems());
 
     // Update news sources (use link as unique id) - index up to 500 items for better search coverage
-    const newsItems = this.allNews.slice(0, 500).map(n => ({
+    const newsItems = this.allNews.slice(0, 500).map((n) => ({
       id: n.link,
       title: n.title,
       subtitle: n.source,
       data: n,
     }));
-    console.log(`[Search] Indexing ${newsItems.length} news items (allNews total: ${this.allNews.length})`);
-    this.searchModal.registerSource('news', newsItems);
+    console.log(
+      `[Search] Indexing ${newsItems.length} news items (allNews total: ${this.allNews.length})`,
+    );
+    this.searchModal.registerSource("news", newsItems);
 
     // Update predictions if available
     if (this.latestPredictions.length > 0) {
-      this.searchModal.registerSource('prediction', this.latestPredictions.map(p => ({
-        id: p.title,
-        title: p.title,
-        subtitle: `${(p.yesPrice * 100).toFixed(0)}% probability`,
-        data: p,
-      })));
+      this.searchModal.registerSource(
+        "prediction",
+        this.latestPredictions.map((p) => ({
+          id: p.title,
+          title: p.title,
+          subtitle: `${(p.yesPrice * 100).toFixed(0)}% probability`,
+          data: p,
+        })),
+      );
     }
 
     // Update markets if available
     if (this.latestMarkets.length > 0) {
-      this.searchModal.registerSource('market', this.latestMarkets.map(m => ({
-        id: m.symbol,
-        title: `${m.symbol} - ${m.name}`,
-        subtitle: `$${m.price?.toFixed(2) || 'N/A'}`,
-        data: m,
-      })));
+      this.searchModal.registerSource(
+        "market",
+        this.latestMarkets.map((m) => ({
+          id: m.symbol,
+          title: `${m.symbol} - ${m.name}`,
+          subtitle: `$${m.price?.toFixed(2) || "N/A"}`,
+          data: m,
+        })),
+      );
     }
   }
 
-  private buildCountrySearchItems(): { id: string; title: string; subtitle: string; data: { code: string; name: string } }[] {
-    const panelScores = (this.panels['cii'] as CIIPanel | undefined)?.getScores() ?? [];
+  private buildCountrySearchItems(): {
+    id: string;
+    title: string;
+    subtitle: string;
+    data: { code: string; name: string };
+  }[] {
+    const panelScores =
+      (this.panels["cii"] as CIIPanel | undefined)?.getScores() ?? [];
     const scores = panelScores.length > 0 ? panelScores : calculateCII();
     const ciiByCode = new Map(scores.map((score) => [score.code, score]));
     return Object.entries(TIER1_COUNTRIES).map(([code, name]) => {
@@ -1380,7 +1792,9 @@ export class App {
       return {
         id: code,
         title: `${App.toFlagEmoji(code)} ${name}`,
-        subtitle: score ? `CII: ${score.score}/100 • ${score.level}` : 'Country Brief',
+        subtitle: score
+          ? `CII: ${score.score}/100 • ${score.level}`
+          : "Country Brief",
         data: { code, name },
       };
     });
@@ -1388,11 +1802,11 @@ export class App {
 
   private static toFlagEmoji(code: string): string {
     const upperCode = code.toUpperCase();
-    if (!/^[A-Z]{2}$/.test(upperCode)) return '🏳️';
+    if (!/^[A-Z]{2}$/.test(upperCode)) return "🏳️";
     return upperCode
-      .split('')
+      .split("")
       .map((char) => String.fromCodePoint(0x1f1e6 + char.charCodeAt(0) - 65))
-      .join('');
+      .join("");
   }
 
   private setupPlaybackControl(): void {
@@ -1407,9 +1821,12 @@ export class App {
       }
     });
 
-    const headerRight = this.container.querySelector('.header-right');
+    const headerRight = this.container.querySelector(".header-right");
     if (headerRight) {
-      headerRight.insertBefore(this.playbackControl.getElement(), headerRight.firstChild);
+      headerRight.insertBefore(
+        this.playbackControl.getElement(),
+        headerRight.firstChild,
+      );
     }
   }
 
@@ -1418,7 +1835,7 @@ export class App {
       if (this.isPlaybackMode || this.isDestroyed) return;
 
       const marketPrices: Record<string, number> = {};
-      this.latestMarkets.forEach(m => {
+      this.latestMarkets.forEach((m) => {
         if (m.price !== null) marketPrices[m.symbol] = m.price;
       });
 
@@ -1426,11 +1843,11 @@ export class App {
         timestamp: Date.now(),
         events: this.latestClusters,
         marketPrices,
-        predictions: this.latestPredictions.map(p => ({
+        predictions: this.latestPredictions.map((p) => ({
           title: p.title,
-          yesPrice: p.yesPrice
+          yesPrice: p.yesPrice,
         })),
-        hotspotLevels: this.map?.getHotspotLevels() ?? {}
+        hotspotLevels: this.map?.getHotspotLevels() ?? {},
       });
     };
 
@@ -1438,7 +1855,9 @@ export class App {
     this.snapshotIntervalId = setInterval(saveCurrentSnapshot, 15 * 60 * 1000);
   }
 
-  private restoreSnapshot(snapshot: import('@/services/storage').DashboardSnapshot): void {
+  private restoreSnapshot(
+    snapshot: import("@/services/storage").DashboardSnapshot,
+  ): void {
     for (const panel of Object.values(this.newsPanels)) {
       panel.showLoading();
     }
@@ -1455,7 +1874,9 @@ export class App {
       liquidity: 0,
     }));
     this.latestPredictions = predictions;
-    (this.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
+    (this.panels["polymarket"] as PredictionPanel).renderPredictions(
+      predictions,
+    );
 
     this.map?.setHotspotLevels(snapshot.hotspotLevels);
   }
@@ -1465,20 +1886,20 @@ export class App {
       <div class="header">
         <div class="header-left">
           <div class="variant-switcher">
-            <a href="${this.isDesktopApp ? '#' : (SITE_VARIANT === 'tech' ? 'https://worldmonitor.app' : '#')}"
-               class="variant-option ${SITE_VARIANT !== 'tech' ? 'active' : ''}"
+            <a href="${this.isDesktopApp ? "#" : SITE_VARIANT === "tech" ? "https://worldmonitor.app" : "#"}"
+               class="variant-option ${SITE_VARIANT !== "tech" ? "active" : ""}"
                data-variant="full"
-               ${!this.isDesktopApp && SITE_VARIANT === 'tech' ? 'target="_blank" rel="noopener"' : ''}
-               title="Geopolitical Intelligence${SITE_VARIANT !== 'tech' ? ' (current)' : ''}">
+               ${!this.isDesktopApp && SITE_VARIANT === "tech" ? 'target="_blank" rel="noopener"' : ""}
+               title="Geopolitical Intelligence${SITE_VARIANT !== "tech" ? " (current)" : ""}">
               <span class="variant-icon">🌍</span>
               <span class="variant-label">WORLD</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${this.isDesktopApp ? '#' : (SITE_VARIANT === 'tech' ? '#' : 'https://tech.worldmonitor.app')}"
-               class="variant-option ${SITE_VARIANT === 'tech' ? 'active' : ''}"
+            <a href="${this.isDesktopApp ? "#" : SITE_VARIANT === "tech" ? "#" : "https://tech.worldmonitor.app"}"
+               class="variant-option ${SITE_VARIANT === "tech" ? "active" : ""}"
                data-variant="tech"
-               ${!this.isDesktopApp && SITE_VARIANT !== 'tech' ? 'target="_blank" rel="noopener"' : ''}
-               title="Tech & AI Intelligence${SITE_VARIANT === 'tech' ? ' (current)' : ''}">
+               ${!this.isDesktopApp && SITE_VARIANT !== "tech" ? 'target="_blank" rel="noopener"' : ""}
+               title="Tech & AI Intelligence${SITE_VARIANT === "tech" ? " (current)" : ""}">
               <span class="variant-icon">💻</span>
               <span class="variant-label">TECH</span>
             </a>
@@ -1510,9 +1931,9 @@ export class App {
         </div>
         <div class="header-right">
           <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> Search</button>
-          ${this.isDesktopApp ? '' : '<button class="copy-link-btn" id="copyLinkBtn">Copy Link</button>'}
+          ${this.isDesktopApp ? "" : '<button class="copy-link-btn" id="copyLinkBtn">Copy Link</button>'}
           <span class="time-display" id="timeDisplay">--:--:-- UTC</span>
-          ${this.isDesktopApp ? '' : '<button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>'}
+          ${this.isDesktopApp ? "" : '<button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>'}
           <button class="settings-btn" id="settingsBtn">⚙ PANELS</button>
           <button class="sources-btn" id="sourcesBtn">📡 SOURCES</button>
         </div>
@@ -1521,7 +1942,7 @@ export class App {
         <div class="map-section" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
-              <span class="panel-title">${SITE_VARIANT === 'tech' ? 'Global Tech' : 'Global Situation'}</span>
+              <span class="panel-title">${SITE_VARIANT === "tech" ? "Global Tech" : "Global Situation"}</span>
             </div>
             <button class="map-pin-btn" id="mapPinBtn" title="Pin map to top">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1573,64 +1994,84 @@ export class App {
    */
   private renderCriticalBanner(postures: TheaterPostureSummary[]): void {
     // Check if banner was dismissed this session
-    const dismissedAt = sessionStorage.getItem('banner-dismissed');
-    if (dismissedAt && Date.now() - parseInt(dismissedAt, 10) < 30 * 60 * 1000) {
+    const dismissedAt = sessionStorage.getItem("banner-dismissed");
+    if (
+      dismissedAt &&
+      Date.now() - parseInt(dismissedAt, 10) < 30 * 60 * 1000
+    ) {
       return; // Stay dismissed for 30 minutes
     }
 
     const critical = postures.filter(
-      (p) => p.postureLevel === 'critical' || (p.postureLevel === 'elevated' && p.strikeCapable)
+      (p) =>
+        p.postureLevel === "critical" ||
+        (p.postureLevel === "elevated" && p.strikeCapable),
     );
 
     if (critical.length === 0) {
       if (this.criticalBannerEl) {
         this.criticalBannerEl.remove();
         this.criticalBannerEl = null;
-        document.body.classList.remove('has-critical-banner');
+        document.body.classList.remove("has-critical-banner");
       }
       return;
     }
 
     const top = critical[0]!;
-    const isCritical = top.postureLevel === 'critical';
+    const isCritical = top.postureLevel === "critical";
 
     if (!this.criticalBannerEl) {
-      this.criticalBannerEl = document.createElement('div');
-      this.criticalBannerEl.className = 'critical-posture-banner';
-      const header = document.querySelector('.header');
-      if (header) header.insertAdjacentElement('afterend', this.criticalBannerEl);
+      this.criticalBannerEl = document.createElement("div");
+      this.criticalBannerEl.className = "critical-posture-banner";
+      const header = document.querySelector(".header");
+      if (header)
+        header.insertAdjacentElement("afterend", this.criticalBannerEl);
     }
 
     // Always ensure body class is set when showing banner
-    document.body.classList.add('has-critical-banner');
-    this.criticalBannerEl.className = `critical-posture-banner ${isCritical ? 'severity-critical' : 'severity-elevated'}`;
+    document.body.classList.add("has-critical-banner");
+    this.criticalBannerEl.className = `critical-posture-banner ${isCritical ? "severity-critical" : "severity-elevated"}`;
     this.criticalBannerEl.innerHTML = `
       <div class="banner-content">
-        <span class="banner-icon">${isCritical ? '🚨' : '⚠️'}</span>
+        <span class="banner-icon">${isCritical ? "🚨" : "⚠️"}</span>
         <span class="banner-headline">${top.headline}</span>
         <span class="banner-stats">${top.totalAircraft} aircraft • ${top.summary}</span>
-        ${top.strikeCapable ? '<span class="banner-strike">STRIKE CAPABLE</span>' : ''}
+        ${top.strikeCapable ? '<span class="banner-strike">STRIKE CAPABLE</span>' : ""}
       </div>
       <button class="banner-view" data-lat="${top.centerLat}" data-lon="${top.centerLon}">View Region</button>
       <button class="banner-dismiss">×</button>
     `;
 
     // Event handlers
-    this.criticalBannerEl.querySelector('.banner-view')?.addEventListener('click', () => {
-      console.log('[Banner] View Region clicked:', top.theaterId, 'lat:', top.centerLat, 'lon:', top.centerLon);
-      // Use typeof check - truthy check would fail for coordinate 0
-      if (typeof top.centerLat === 'number' && typeof top.centerLon === 'number') {
-        this.map?.setCenter(top.centerLat, top.centerLon, 4);
-      } else {
-        console.error('[Banner] Missing coordinates for', top.theaterId);
-      }
-    });
+    this.criticalBannerEl
+      .querySelector(".banner-view")
+      ?.addEventListener("click", () => {
+        console.log(
+          "[Banner] View Region clicked:",
+          top.theaterId,
+          "lat:",
+          top.centerLat,
+          "lon:",
+          top.centerLon,
+        );
+        // Use typeof check - truthy check would fail for coordinate 0
+        if (
+          typeof top.centerLat === "number" &&
+          typeof top.centerLon === "number"
+        ) {
+          this.map?.setCenter(top.centerLat, top.centerLon, 4);
+        } else {
+          console.error("[Banner] Missing coordinates for", top.theaterId);
+        }
+      });
 
-    this.criticalBannerEl.querySelector('.banner-dismiss')?.addEventListener('click', () => {
-      this.criticalBannerEl?.classList.add('dismissed');
-      document.body.classList.remove('has-critical-banner');
-      sessionStorage.setItem('banner-dismissed', Date.now().toString());
-    });
+    this.criticalBannerEl
+      .querySelector(".banner-dismiss")
+      ?.addEventListener("click", () => {
+        this.criticalBannerEl?.classList.add("dismissed");
+        document.body.classList.remove("has-critical-banner");
+        sessionStorage.setItem("banner-dismissed", Date.now().toString());
+      });
   }
 
   /**
@@ -1659,19 +2100,25 @@ export class App {
 
     // Remove global event listeners
     if (this.boundKeydownHandler) {
-      document.removeEventListener('keydown', this.boundKeydownHandler);
+      document.removeEventListener("keydown", this.boundKeydownHandler);
       this.boundKeydownHandler = null;
     }
     if (this.boundFullscreenHandler) {
-      document.removeEventListener('fullscreenchange', this.boundFullscreenHandler);
+      document.removeEventListener(
+        "fullscreenchange",
+        this.boundFullscreenHandler,
+      );
       this.boundFullscreenHandler = null;
     }
     if (this.boundResizeHandler) {
-      window.removeEventListener('resize', this.boundResizeHandler);
+      window.removeEventListener("resize", this.boundResizeHandler);
       this.boundResizeHandler = null;
     }
     if (this.boundVisibilityHandler) {
-      document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
+      document.removeEventListener(
+        "visibilitychange",
+        this.boundVisibilityHandler,
+      );
       this.boundVisibilityHandler = null;
     }
 
@@ -1681,9 +2128,11 @@ export class App {
       this.idleTimeoutId = null;
     }
     if (this.boundIdleResetHandler) {
-      ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
-        document.removeEventListener(event, this.boundIdleResetHandler!);
-      });
+      ["mousedown", "keydown", "scroll", "touchstart", "mousemove"].forEach(
+        (event) => {
+          document.removeEventListener(event, this.boundIdleResetHandler!);
+        },
+      );
       this.boundIdleResetHandler = null;
     }
 
@@ -1693,47 +2142,47 @@ export class App {
   }
 
   private createPanels(): void {
-    const panelsGrid = document.getElementById('panelsGrid')!;
+    const panelsGrid = document.getElementById("panelsGrid")!;
 
     // Initialize map in the map section
     // Default to MENA view on mobile for better focus
     // Uses deck.gl (WebGL) on desktop, falls back to D3/SVG on mobile
-    const mapContainer = document.getElementById('mapContainer') as HTMLElement;
+    const mapContainer = document.getElementById("mapContainer") as HTMLElement;
     this.map = new MapContainer(mapContainer, {
       zoom: this.isMobile ? 2.5 : 1.0,
-      pan: { x: 0, y: 0 },  // Centered view to show full world
-      view: this.isMobile ? 'mena' : 'global',
+      pan: { x: 0, y: 0 }, // Centered view to show full world
+      view: this.isMobile ? "mena" : "global",
       layers: this.mapLayers,
-      timeRange: '7d',
+      timeRange: "7d",
     });
 
     // Initialize escalation service with data getters
     this.map.initEscalationGetters();
 
     // Create all panels
-    const politicsPanel = new NewsPanel('politics', 'World / Geopolitical');
+    const politicsPanel = new NewsPanel("politics", "World / Geopolitical");
     this.attachRelatedAssetHandlers(politicsPanel);
-    this.newsPanels['politics'] = politicsPanel;
-    this.panels['politics'] = politicsPanel;
+    this.newsPanels["politics"] = politicsPanel;
+    this.panels["politics"] = politicsPanel;
 
-    const techPanel = new NewsPanel('tech', 'Technology / AI');
+    const techPanel = new NewsPanel("tech", "Technology / AI");
     this.attachRelatedAssetHandlers(techPanel);
-    this.newsPanels['tech'] = techPanel;
-    this.panels['tech'] = techPanel;
+    this.newsPanels["tech"] = techPanel;
+    this.panels["tech"] = techPanel;
 
-    const financePanel = new NewsPanel('finance', 'Financial News');
+    const financePanel = new NewsPanel("finance", "Financial News");
     this.attachRelatedAssetHandlers(financePanel);
-    this.newsPanels['finance'] = financePanel;
-    this.panels['finance'] = financePanel;
+    this.newsPanels["finance"] = financePanel;
+    this.panels["finance"] = financePanel;
 
     const heatmapPanel = new HeatmapPanel();
-    this.panels['heatmap'] = heatmapPanel;
+    this.panels["heatmap"] = heatmapPanel;
 
     const marketsPanel = new MarketPanel();
-    this.panels['markets'] = marketsPanel;
+    this.panels["markets"] = marketsPanel;
 
     const monitorPanel = new MonitorPanel(this.monitors);
-    this.panels['monitors'] = monitorPanel;
+    this.panels["monitors"] = monitorPanel;
     monitorPanel.onChanged((monitors) => {
       this.monitors = monitors;
       saveToStorage(STORAGE_KEYS.monitors, monitors);
@@ -1741,256 +2190,269 @@ export class App {
     });
 
     const commoditiesPanel = new CommoditiesPanel();
-    this.panels['commodities'] = commoditiesPanel;
+    this.panels["commodities"] = commoditiesPanel;
 
     const predictionPanel = new PredictionPanel();
-    this.panels['polymarket'] = predictionPanel;
+    this.panels["polymarket"] = predictionPanel;
 
-    const govPanel = new NewsPanel('gov', 'Government / Policy');
+    const govPanel = new NewsPanel("gov", "Government / Policy");
     this.attachRelatedAssetHandlers(govPanel);
-    this.newsPanels['gov'] = govPanel;
-    this.panels['gov'] = govPanel;
+    this.newsPanels["gov"] = govPanel;
+    this.panels["gov"] = govPanel;
 
-    const intelPanel = new NewsPanel('intel', 'Intel Feed');
+    const intelPanel = new NewsPanel("intel", "Intel Feed");
     this.attachRelatedAssetHandlers(intelPanel);
-    this.newsPanels['intel'] = intelPanel;
-    this.panels['intel'] = intelPanel;
+    this.newsPanels["intel"] = intelPanel;
+    this.panels["intel"] = intelPanel;
 
     const cryptoPanel = new CryptoPanel();
-    this.panels['crypto'] = cryptoPanel;
+    this.panels["crypto"] = cryptoPanel;
 
-    const middleeastPanel = new NewsPanel('middleeast', 'Middle East / MENA');
+    const middleeastPanel = new NewsPanel("middleeast", "Middle East / MENA");
     this.attachRelatedAssetHandlers(middleeastPanel);
-    this.newsPanels['middleeast'] = middleeastPanel;
-    this.panels['middleeast'] = middleeastPanel;
+    this.newsPanels["middleeast"] = middleeastPanel;
+    this.panels["middleeast"] = middleeastPanel;
 
-    const layoffsPanel = new NewsPanel('layoffs', 'Layoffs Tracker');
+    const layoffsPanel = new NewsPanel("layoffs", "Layoffs Tracker");
     this.attachRelatedAssetHandlers(layoffsPanel);
-    this.newsPanels['layoffs'] = layoffsPanel;
-    this.panels['layoffs'] = layoffsPanel;
+    this.newsPanels["layoffs"] = layoffsPanel;
+    this.panels["layoffs"] = layoffsPanel;
 
-    const aiPanel = new NewsPanel('ai', 'AI / ML');
+    const aiPanel = new NewsPanel("ai", "AI / ML");
     this.attachRelatedAssetHandlers(aiPanel);
-    this.newsPanels['ai'] = aiPanel;
-    this.panels['ai'] = aiPanel;
+    this.newsPanels["ai"] = aiPanel;
+    this.panels["ai"] = aiPanel;
 
     // Tech variant panels
-    const startupsPanel = new NewsPanel('startups', 'Startups & VC');
+    const startupsPanel = new NewsPanel("startups", "Startups & VC");
     this.attachRelatedAssetHandlers(startupsPanel);
-    this.newsPanels['startups'] = startupsPanel;
-    this.panels['startups'] = startupsPanel;
+    this.newsPanels["startups"] = startupsPanel;
+    this.panels["startups"] = startupsPanel;
 
-    const vcblogsPanel = new NewsPanel('vcblogs', 'VC Insights & Essays');
+    const vcblogsPanel = new NewsPanel("vcblogs", "VC Insights & Essays");
     this.attachRelatedAssetHandlers(vcblogsPanel);
-    this.newsPanels['vcblogs'] = vcblogsPanel;
-    this.panels['vcblogs'] = vcblogsPanel;
+    this.newsPanels["vcblogs"] = vcblogsPanel;
+    this.panels["vcblogs"] = vcblogsPanel;
 
-    const regionalStartupsPanel = new NewsPanel('regionalStartups', 'Global Startup News');
+    const regionalStartupsPanel = new NewsPanel(
+      "regionalStartups",
+      "Global Startup News",
+    );
     this.attachRelatedAssetHandlers(regionalStartupsPanel);
-    this.newsPanels['regionalStartups'] = regionalStartupsPanel;
-    this.panels['regionalStartups'] = regionalStartupsPanel;
+    this.newsPanels["regionalStartups"] = regionalStartupsPanel;
+    this.panels["regionalStartups"] = regionalStartupsPanel;
 
-    const unicornsPanel = new NewsPanel('unicorns', 'Unicorn Tracker');
+    const unicornsPanel = new NewsPanel("unicorns", "Unicorn Tracker");
     this.attachRelatedAssetHandlers(unicornsPanel);
-    this.newsPanels['unicorns'] = unicornsPanel;
-    this.panels['unicorns'] = unicornsPanel;
+    this.newsPanels["unicorns"] = unicornsPanel;
+    this.panels["unicorns"] = unicornsPanel;
 
-    const acceleratorsPanel = new NewsPanel('accelerators', 'Accelerators & Demo Days');
+    const acceleratorsPanel = new NewsPanel(
+      "accelerators",
+      "Accelerators & Demo Days",
+    );
     this.attachRelatedAssetHandlers(acceleratorsPanel);
-    this.newsPanels['accelerators'] = acceleratorsPanel;
-    this.panels['accelerators'] = acceleratorsPanel;
+    this.newsPanels["accelerators"] = acceleratorsPanel;
+    this.panels["accelerators"] = acceleratorsPanel;
 
-    const fundingPanel = new NewsPanel('funding', 'Funding & VC');
+    const fundingPanel = new NewsPanel("funding", "Funding & VC");
     this.attachRelatedAssetHandlers(fundingPanel);
-    this.newsPanels['funding'] = fundingPanel;
-    this.panels['funding'] = fundingPanel;
+    this.newsPanels["funding"] = fundingPanel;
+    this.panels["funding"] = fundingPanel;
 
-    const producthuntPanel = new NewsPanel('producthunt', 'Product Hunt');
+    const producthuntPanel = new NewsPanel("producthunt", "Product Hunt");
     this.attachRelatedAssetHandlers(producthuntPanel);
-    this.newsPanels['producthunt'] = producthuntPanel;
-    this.panels['producthunt'] = producthuntPanel;
+    this.newsPanels["producthunt"] = producthuntPanel;
+    this.panels["producthunt"] = producthuntPanel;
 
-    const securityPanel = new NewsPanel('security', 'Cybersecurity');
+    const securityPanel = new NewsPanel("security", "Cybersecurity");
     this.attachRelatedAssetHandlers(securityPanel);
-    this.newsPanels['security'] = securityPanel;
-    this.panels['security'] = securityPanel;
+    this.newsPanels["security"] = securityPanel;
+    this.panels["security"] = securityPanel;
 
-    const policyPanel = new NewsPanel('policy', 'AI Policy & Regulation');
+    const policyPanel = new NewsPanel("policy", "AI Policy & Regulation");
     this.attachRelatedAssetHandlers(policyPanel);
-    this.newsPanels['policy'] = policyPanel;
-    this.panels['policy'] = policyPanel;
+    this.newsPanels["policy"] = policyPanel;
+    this.panels["policy"] = policyPanel;
 
-    const hardwarePanel = new NewsPanel('hardware', 'Semiconductors & Hardware');
+    const hardwarePanel = new NewsPanel(
+      "hardware",
+      "Semiconductors & Hardware",
+    );
     this.attachRelatedAssetHandlers(hardwarePanel);
-    this.newsPanels['hardware'] = hardwarePanel;
-    this.panels['hardware'] = hardwarePanel;
+    this.newsPanels["hardware"] = hardwarePanel;
+    this.panels["hardware"] = hardwarePanel;
 
-    const cloudPanel = new NewsPanel('cloud', 'Cloud & Infrastructure');
+    const cloudPanel = new NewsPanel("cloud", "Cloud & Infrastructure");
     this.attachRelatedAssetHandlers(cloudPanel);
-    this.newsPanels['cloud'] = cloudPanel;
-    this.panels['cloud'] = cloudPanel;
+    this.newsPanels["cloud"] = cloudPanel;
+    this.panels["cloud"] = cloudPanel;
 
-    const devPanel = new NewsPanel('dev', 'Developer Community');
+    const devPanel = new NewsPanel("dev", "Developer Community");
     this.attachRelatedAssetHandlers(devPanel);
-    this.newsPanels['dev'] = devPanel;
-    this.panels['dev'] = devPanel;
+    this.newsPanels["dev"] = devPanel;
+    this.panels["dev"] = devPanel;
 
-    const githubPanel = new NewsPanel('github', 'GitHub Trending');
+    const githubPanel = new NewsPanel("github", "GitHub Trending");
     this.attachRelatedAssetHandlers(githubPanel);
-    this.newsPanels['github'] = githubPanel;
-    this.panels['github'] = githubPanel;
+    this.newsPanels["github"] = githubPanel;
+    this.panels["github"] = githubPanel;
 
-    const ipoPanel = new NewsPanel('ipo', 'IPO & SPAC');
+    const ipoPanel = new NewsPanel("ipo", "IPO & SPAC");
     this.attachRelatedAssetHandlers(ipoPanel);
-    this.newsPanels['ipo'] = ipoPanel;
-    this.panels['ipo'] = ipoPanel;
+    this.newsPanels["ipo"] = ipoPanel;
+    this.panels["ipo"] = ipoPanel;
 
-    const thinktanksPanel = new NewsPanel('thinktanks', 'Think Tanks');
+    const thinktanksPanel = new NewsPanel("thinktanks", "Think Tanks");
     this.attachRelatedAssetHandlers(thinktanksPanel);
-    this.newsPanels['thinktanks'] = thinktanksPanel;
-    this.panels['thinktanks'] = thinktanksPanel;
+    this.newsPanels["thinktanks"] = thinktanksPanel;
+    this.panels["thinktanks"] = thinktanksPanel;
 
     const economicPanel = new EconomicPanel();
-    this.panels['economic'] = economicPanel;
+    this.panels["economic"] = economicPanel;
 
     // New Regional Panels
-    const africaPanel = new NewsPanel('africa', 'Africa');
+    const africaPanel = new NewsPanel("africa", "Africa");
     this.attachRelatedAssetHandlers(africaPanel);
-    this.newsPanels['africa'] = africaPanel;
-    this.panels['africa'] = africaPanel;
+    this.newsPanels["africa"] = africaPanel;
+    this.panels["africa"] = africaPanel;
 
-    const latamPanel = new NewsPanel('latam', 'Latin America');
+    const latamPanel = new NewsPanel("latam", "Latin America");
     this.attachRelatedAssetHandlers(latamPanel);
-    this.newsPanels['latam'] = latamPanel;
-    this.panels['latam'] = latamPanel;
+    this.newsPanels["latam"] = latamPanel;
+    this.panels["latam"] = latamPanel;
 
-    const asiaPanel = new NewsPanel('asia', 'Asia-Pacific');
+    const asiaPanel = new NewsPanel("asia", "Asia-Pacific");
     this.attachRelatedAssetHandlers(asiaPanel);
-    this.newsPanels['asia'] = asiaPanel;
-    this.panels['asia'] = asiaPanel;
+    this.newsPanels["asia"] = asiaPanel;
+    this.panels["asia"] = asiaPanel;
 
-    const energyPanel = new NewsPanel('energy', 'Energy & Resources');
+    const energyPanel = new NewsPanel("energy", "Energy & Resources");
     this.attachRelatedAssetHandlers(energyPanel);
-    this.newsPanels['energy'] = energyPanel;
-    this.panels['energy'] = energyPanel;
+    this.newsPanels["energy"] = energyPanel;
+    this.panels["energy"] = energyPanel;
 
     // Geopolitical-only panels (not needed for tech variant)
-    if (SITE_VARIANT === 'full') {
+    if (SITE_VARIANT === "full") {
       const gdeltIntelPanel = new GdeltIntelPanel();
-      this.panels['gdelt-intel'] = gdeltIntelPanel;
+      this.panels["gdelt-intel"] = gdeltIntelPanel;
 
       const ciiPanel = new CIIPanel();
       ciiPanel.setShareStoryHandler((code, name) => {
         this.openCountryStory(code, name);
       });
-      this.panels['cii'] = ciiPanel;
+      this.panels["cii"] = ciiPanel;
 
       const cascadePanel = new CascadePanel();
-      this.panels['cascade'] = cascadePanel;
+      this.panels["cascade"] = cascadePanel;
 
       const satelliteFiresPanel = new SatelliteFiresPanel();
-      this.panels['satellite-fires'] = satelliteFiresPanel;
+      this.panels["satellite-fires"] = satelliteFiresPanel;
 
       const strategicRiskPanel = new StrategicRiskPanel();
       strategicRiskPanel.setLocationClickHandler((lat, lon) => {
         this.map?.setCenter(lat, lon, 4);
       });
-      this.panels['strategic-risk'] = strategicRiskPanel;
+      this.panels["strategic-risk"] = strategicRiskPanel;
 
       const strategicPosturePanel = new StrategicPosturePanel();
       strategicPosturePanel.setLocationClickHandler((lat, lon) => {
-        console.log('[App] StrategicPosture handler called:', { lat, lon, hasMap: !!this.map });
+        console.log("[App] StrategicPosture handler called:", {
+          lat,
+          lon,
+          hasMap: !!this.map,
+        });
         this.map?.setCenter(lat, lon, 4);
       });
-      this.panels['strategic-posture'] = strategicPosturePanel;
+      this.panels["strategic-posture"] = strategicPosturePanel;
 
       const ucdpEventsPanel = new UcdpEventsPanel();
       ucdpEventsPanel.setEventClickHandler((lat, lon) => {
         this.map?.setCenter(lat, lon, 5);
       });
-      this.panels['ucdp-events'] = ucdpEventsPanel;
+      this.panels["ucdp-events"] = ucdpEventsPanel;
 
       const displacementPanel = new DisplacementPanel();
       displacementPanel.setCountryClickHandler((lat, lon) => {
         this.map?.setCenter(lat, lon, 4);
       });
-      this.panels['displacement'] = displacementPanel;
+      this.panels["displacement"] = displacementPanel;
 
       const climatePanel = new ClimateAnomalyPanel();
       climatePanel.setZoneClickHandler((lat, lon) => {
         this.map?.setCenter(lat, lon, 4);
       });
-      this.panels['climate'] = climatePanel;
+      this.panels["climate"] = climatePanel;
 
       const populationExposurePanel = new PopulationExposurePanel();
-      this.panels['population-exposure'] = populationExposurePanel;
+      this.panels["population-exposure"] = populationExposurePanel;
     }
 
     const liveNewsPanel = new LiveNewsPanel();
-    this.panels['live-news'] = liveNewsPanel;
+    this.panels["live-news"] = liveNewsPanel;
 
     // Tech Events Panel (tech variant only - but create for all to allow toggling)
-    this.panels['events'] = new TechEventsPanel('events');
+    this.panels["events"] = new TechEventsPanel("events");
 
     // Service Status Panel (primarily for tech variant)
     const serviceStatusPanel = new ServiceStatusPanel();
-    this.panels['service-status'] = serviceStatusPanel;
+    this.panels["service-status"] = serviceStatusPanel;
 
     if (this.isDesktopApp) {
-      const runtimeConfigPanel = new RuntimeConfigPanel({ mode: 'alert' });
-      this.panels['runtime-config'] = runtimeConfigPanel;
+      const runtimeConfigPanel = new RuntimeConfigPanel({ mode: "alert" });
+      this.panels["runtime-config"] = runtimeConfigPanel;
     }
 
     // Tech Readiness Panel (tech variant only - World Bank tech indicators)
     const techReadinessPanel = new TechReadinessPanel();
-    this.panels['tech-readiness'] = techReadinessPanel;
+    this.panels["tech-readiness"] = techReadinessPanel;
 
     // Crypto & Market Intelligence Panels
-    this.panels['macro-signals'] = new MacroSignalsPanel();
-    this.panels['etf-flows'] = new ETFFlowsPanel();
-    this.panels['stablecoins'] = new StablecoinPanel();
+    this.panels["macro-signals"] = new MacroSignalsPanel();
+    this.panels["etf-flows"] = new ETFFlowsPanel();
+    this.panels["stablecoins"] = new StablecoinPanel();
 
     // AI Insights Panel (desktop only - hides itself on mobile)
     const insightsPanel = new InsightsPanel();
-    this.panels['insights'] = insightsPanel;
+    this.panels["insights"] = insightsPanel;
 
     // Add panels to grid in saved order
     // Use DEFAULT_PANELS keys for variant-aware panel order
-    const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
+    const defaultOrder = Object.keys(DEFAULT_PANELS).filter((k) => k !== "map");
     const savedOrder = this.getSavedPanelOrder();
     // Merge saved order with default to include new panels
     let panelOrder = defaultOrder;
     if (savedOrder.length > 0) {
       // Add any missing panels from default that aren't in saved order
-      const missing = defaultOrder.filter(k => !savedOrder.includes(k));
+      const missing = defaultOrder.filter((k) => !savedOrder.includes(k));
       // Remove any saved panels that no longer exist
-      const valid = savedOrder.filter(k => defaultOrder.includes(k));
+      const valid = savedOrder.filter((k) => defaultOrder.includes(k));
       // Insert missing panels after 'politics' (except monitors which goes at end)
-      const monitorsIdx = valid.indexOf('monitors');
+      const monitorsIdx = valid.indexOf("monitors");
       if (monitorsIdx !== -1) valid.splice(monitorsIdx, 1); // Remove monitors temporarily
-      const insertIdx = valid.indexOf('politics') + 1 || 0;
-      const newPanels = missing.filter(k => k !== 'monitors');
+      const insertIdx = valid.indexOf("politics") + 1 || 0;
+      const newPanels = missing.filter((k) => k !== "monitors");
       valid.splice(insertIdx, 0, ...newPanels);
-      valid.push('monitors'); // Always put monitors last
+      valid.push("monitors"); // Always put monitors last
       panelOrder = valid;
     }
 
     // CRITICAL: live-news MUST be first for CSS Grid layout (spans 2 columns)
     // Move it to position 0 if it exists and isn't already first
-    const liveNewsIdx = panelOrder.indexOf('live-news');
+    const liveNewsIdx = panelOrder.indexOf("live-news");
     if (liveNewsIdx > 0) {
       panelOrder.splice(liveNewsIdx, 1);
-      panelOrder.unshift('live-news');
+      panelOrder.unshift("live-news");
     }
 
     // Desktop configuration should stay easy to reach in Tauri builds.
     if (this.isDesktopApp) {
-      const runtimeIdx = panelOrder.indexOf('runtime-config');
+      const runtimeIdx = panelOrder.indexOf("runtime-config");
       if (runtimeIdx > 1) {
         panelOrder.splice(runtimeIdx, 1);
-        panelOrder.splice(1, 0, 'runtime-config');
+        panelOrder.splice(1, 0, "runtime-config");
       } else if (runtimeIdx === -1) {
-        panelOrder.splice(1, 0, 'runtime-config');
+        panelOrder.splice(1, 0, "runtime-config");
       }
     }
 
@@ -2005,7 +2467,6 @@ export class App {
 
     this.applyPanelSettings();
     this.applyInitialUrlState();
-
   }
 
   private applyInitialUrlState(): void {
@@ -2036,13 +2497,20 @@ export class App {
 
       // Only apply lat/lon if user has zoomed in significantly (zoom > 2)
       // At default zoom (~1-1.5), show centered global view to avoid clipping issues
-      if (lat !== undefined && lon !== undefined && zoom !== undefined && zoom > 2) {
+      if (
+        lat !== undefined &&
+        lon !== undefined &&
+        zoom !== undefined &&
+        zoom > 2
+      ) {
         this.map.setCenter(lat, lon);
       }
     }
 
     // Sync header region selector with initial view
-    const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
+    const regionSelect = document.getElementById(
+      "regionSelect",
+    ) as HTMLSelectElement;
     const currentView = this.map.getState().view;
     if (regionSelect && currentView) {
       regionSelect.value = currentView;
@@ -2059,7 +2527,7 @@ export class App {
   }
 
   private savePanelOrder(): void {
-    const grid = document.getElementById('panelsGrid');
+    const grid = document.getElementById("panelsGrid");
     if (!grid) return;
     const order = Array.from(grid.children)
       .map((el) => (el as HTMLElement).dataset.panel)
@@ -2079,32 +2547,32 @@ export class App {
     if (!this.map) return;
 
     switch (asset.type) {
-      case 'pipeline':
-        this.map.enableLayer('pipelines');
+      case "pipeline":
+        this.map.enableLayer("pipelines");
         this.mapLayers.pipelines = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
         this.map.triggerPipelineClick(asset.id);
         break;
-      case 'cable':
-        this.map.enableLayer('cables');
+      case "cable":
+        this.map.enableLayer("cables");
         this.mapLayers.cables = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
         this.map.triggerCableClick(asset.id);
         break;
-      case 'datacenter':
-        this.map.enableLayer('datacenters');
+      case "datacenter":
+        this.map.enableLayer("datacenters");
         this.mapLayers.datacenters = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
         this.map.triggerDatacenterClick(asset.id);
         break;
-      case 'base':
-        this.map.enableLayer('bases');
+      case "base":
+        this.map.enableLayer("bases");
         this.mapLayers.bases = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
         this.map.triggerBaseClick(asset.id);
         break;
-      case 'nuclear':
-        this.map.enableLayer('nuclear');
+      case "nuclear":
+        this.map.enableLayer("nuclear");
         this.mapLayers.nuclear = true;
         saveToStorage(STORAGE_KEYS.mapLayers, this.mapLayers);
         this.map.triggerNuclearClick(asset.id);
@@ -2116,33 +2584,36 @@ export class App {
     el.draggable = true;
     el.dataset.panel = key;
 
-    el.addEventListener('dragstart', (e) => {
+    el.addEventListener("dragstart", (e) => {
       const target = e.target as HTMLElement;
       // Don't start drag if panel is being resized
-      if (el.dataset.resizing === 'true') {
+      if (el.dataset.resizing === "true") {
         e.preventDefault();
         return;
       }
       // Don't start drag if target is the resize handle
-      if (target.classList.contains('panel-resize-handle') || target.closest('.panel-resize-handle')) {
+      if (
+        target.classList.contains("panel-resize-handle") ||
+        target.closest(".panel-resize-handle")
+      ) {
         e.preventDefault();
         return;
       }
-      el.classList.add('dragging');
-      e.dataTransfer?.setData('text/plain', key);
+      el.classList.add("dragging");
+      e.dataTransfer?.setData("text/plain", key);
     });
 
-    el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
       this.savePanelOrder();
     });
 
-    el.addEventListener('dragover', (e) => {
+    el.addEventListener("dragover", (e) => {
       e.preventDefault();
-      const dragging = document.querySelector('.dragging');
+      const dragging = document.querySelector(".dragging");
       if (!dragging || dragging === el) return;
 
-      const grid = document.getElementById('panelsGrid');
+      const grid = document.getElementById("panelsGrid");
       if (!grid) return;
 
       const siblings = Array.from(grid.children).filter((c) => c !== dragging);
@@ -2161,37 +2632,39 @@ export class App {
 
   private setupEventListeners(): void {
     // Search button
-    document.getElementById('searchBtn')?.addEventListener('click', () => {
+    document.getElementById("searchBtn")?.addEventListener("click", () => {
       this.updateSearchIndex();
       this.searchModal?.open();
     });
 
     // Copy link button
-    document.getElementById('copyLinkBtn')?.addEventListener('click', async () => {
-      const shareUrl = this.getShareUrl();
-      if (!shareUrl) return;
-      const button = document.getElementById('copyLinkBtn');
-      try {
-        await this.copyToClipboard(shareUrl);
-        this.setCopyLinkFeedback(button, 'Copied!');
-      } catch (error) {
-        console.warn('Failed to copy share link:', error);
-        this.setCopyLinkFeedback(button, 'Copy failed');
-      }
-    });
+    document
+      .getElementById("copyLinkBtn")
+      ?.addEventListener("click", async () => {
+        const shareUrl = this.getShareUrl();
+        if (!shareUrl) return;
+        const button = document.getElementById("copyLinkBtn");
+        try {
+          await this.copyToClipboard(shareUrl);
+          this.setCopyLinkFeedback(button, "Copied!");
+        } catch (error) {
+          console.warn("Failed to copy share link:", error);
+          this.setCopyLinkFeedback(button, "Copy failed");
+        }
+      });
 
     // Settings modal
-    document.getElementById('settingsBtn')?.addEventListener('click', () => {
-      document.getElementById('settingsModal')?.classList.add('active');
+    document.getElementById("settingsBtn")?.addEventListener("click", () => {
+      document.getElementById("settingsModal")?.classList.add("active");
     });
 
-    document.getElementById('modalClose')?.addEventListener('click', () => {
-      document.getElementById('settingsModal')?.classList.remove('active');
+    document.getElementById("modalClose")?.addEventListener("click", () => {
+      document.getElementById("settingsModal")?.classList.remove("active");
     });
 
-    document.getElementById('settingsModal')?.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
-        document.getElementById('settingsModal')?.classList.remove('active');
+    document.getElementById("settingsModal")?.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).classList.contains("modal-overlay")) {
+        document.getElementById("settingsModal")?.classList.remove("active");
       }
     });
 
@@ -2200,32 +2673,39 @@ export class App {
 
     // Variant switcher: switch variant locally on desktop (reload with new config)
     if (this.isDesktopApp) {
-      this.container.querySelectorAll<HTMLAnchorElement>('.variant-option').forEach(link => {
-        link.addEventListener('click', (e) => {
-          const variant = link.dataset.variant;
-          if (variant && variant !== SITE_VARIANT) {
-            e.preventDefault();
-            localStorage.setItem('worldmonitor-variant', variant);
-            window.location.reload();
-          }
+      this.container
+        .querySelectorAll<HTMLAnchorElement>(".variant-option")
+        .forEach((link) => {
+          link.addEventListener("click", (e) => {
+            const variant = link.dataset.variant;
+            if (variant && variant !== SITE_VARIANT) {
+              e.preventDefault();
+              localStorage.setItem("worldmonitor-variant", variant);
+              window.location.reload();
+            }
+          });
         });
-      });
     }
 
     // Fullscreen toggle
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
     if (!this.isDesktopApp && fullscreenBtn) {
-      fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+      fullscreenBtn.addEventListener("click", () => this.toggleFullscreen());
       this.boundFullscreenHandler = () => {
-        fullscreenBtn.textContent = document.fullscreenElement ? '⛶' : '⛶';
-        fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
+        fullscreenBtn.textContent = document.fullscreenElement ? "⛶" : "⛶";
+        fullscreenBtn.classList.toggle("active", !!document.fullscreenElement);
       };
-      document.addEventListener('fullscreenchange', this.boundFullscreenHandler);
+      document.addEventListener(
+        "fullscreenchange",
+        this.boundFullscreenHandler,
+      );
     }
 
     // Region selector
-    const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-    regionSelect?.addEventListener('change', () => {
+    const regionSelect = document.getElementById(
+      "regionSelect",
+    ) as HTMLSelectElement;
+    regionSelect?.addEventListener("change", () => {
       this.map?.setView(regionSelect.value as MapView);
     });
 
@@ -2233,7 +2713,7 @@ export class App {
     this.boundResizeHandler = () => {
       this.map?.render();
     };
-    window.addEventListener('resize', this.boundResizeHandler);
+    window.addEventListener("resize", this.boundResizeHandler);
 
     // Map section resize handle
     this.setupMapResize();
@@ -2243,18 +2723,18 @@ export class App {
 
     // Pause animations when tab is hidden, unload ML models to free memory
     this.boundVisibilityHandler = () => {
-      document.body.classList.toggle('animations-paused', document.hidden);
+      document.body.classList.toggle("animations-paused", document.hidden);
       if (document.hidden) {
         mlWorker.unloadOptionalModels();
       } else {
         this.resetIdleTimer();
       }
     };
-    document.addEventListener('visibilitychange', this.boundVisibilityHandler);
+    document.addEventListener("visibilitychange", this.boundVisibilityHandler);
 
     // Refresh CII when focal points are ready (ensures focal point urgency is factored in)
-    window.addEventListener('focal-points-ready', () => {
-      (this.panels['cii'] as CIIPanel)?.refresh(true); // forceLocal to use focal point data
+    window.addEventListener("focal-points-ready", () => {
+      (this.panels["cii"] as CIIPanel)?.refresh(true); // forceLocal to use focal point data
     });
 
     // Idle detection - pause animations after 2 minutes of inactivity
@@ -2266,15 +2746,19 @@ export class App {
       // User is active - resume animations if we were idle
       if (this.isIdle) {
         this.isIdle = false;
-        document.body.classList.remove('animations-paused');
+        document.body.classList.remove("animations-paused");
       }
       this.resetIdleTimer();
     };
 
     // Track user activity
-    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
-      document.addEventListener(event, this.boundIdleResetHandler!, { passive: true });
-    });
+    ["mousedown", "keydown", "scroll", "touchstart", "mousemove"].forEach(
+      (event) => {
+        document.addEventListener(event, this.boundIdleResetHandler!, {
+          passive: true,
+        });
+      },
+    );
 
     // Start the idle timer
     this.resetIdleTimer();
@@ -2287,8 +2771,8 @@ export class App {
     this.idleTimeoutId = setTimeout(() => {
       if (!document.hidden) {
         this.isIdle = true;
-        document.body.classList.add('animations-paused');
-        console.log('[App] User idle - pausing animations to save resources');
+        document.body.classList.add("animations-paused");
+        console.log("[App] User idle - pausing animations to save resources");
       }
     }, this.IDLE_PAUSE_MS);
   }
@@ -2298,13 +2782,15 @@ export class App {
     const update = debounce(() => {
       const shareUrl = this.getShareUrl();
       if (!shareUrl) return;
-      history.replaceState(null, '', shareUrl);
+      history.replaceState(null, "", shareUrl);
     }, 250);
 
     this.map.onStateChanged(() => {
       update();
       // Sync header region selector with map view
-      const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
+      const regionSelect = document.getElementById(
+        "regionSelect",
+      ) as HTMLSelectElement;
       if (regionSelect && this.map) {
         const state = this.map.getState();
         if (regionSelect.value !== state.view) {
@@ -2326,7 +2812,9 @@ export class App {
       center,
       timeRange: state.timeRange,
       layers: state.layers,
-      country: this.countryBriefPage?.isVisible() ? (this.countryBriefPage.getCode() ?? undefined) : undefined,
+      country: this.countryBriefPage?.isVisible()
+        ? (this.countryBriefPage.getCode() ?? undefined)
+        : undefined,
     });
   }
 
@@ -2335,24 +2823,27 @@ export class App {
       await navigator.clipboard.writeText(text);
       return;
     }
-    const textarea = document.createElement('textarea');
+    const textarea = document.createElement("textarea");
     textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
     document.body.appendChild(textarea);
     textarea.select();
-    document.execCommand('copy');
+    document.execCommand("copy");
     document.body.removeChild(textarea);
   }
 
-  private setCopyLinkFeedback(button: HTMLElement | null, message: string): void {
+  private setCopyLinkFeedback(
+    button: HTMLElement | null,
+    message: string,
+  ): void {
     if (!button) return;
-    const originalText = button.textContent ?? '';
+    const originalText = button.textContent ?? "";
     button.textContent = message;
-    button.classList.add('copied');
+    button.classList.add("copied");
     window.setTimeout(() => {
       button.textContent = originalText;
-      button.classList.remove('copied');
+      button.classList.remove("copied");
     }, 1500);
   }
 
@@ -2365,12 +2856,12 @@ export class App {
   }
 
   private setupMapResize(): void {
-    const mapSection = document.getElementById('mapSection');
-    const resizeHandle = document.getElementById('mapResizeHandle');
+    const mapSection = document.getElementById("mapSection");
+    const resizeHandle = document.getElementById("mapResizeHandle");
     if (!mapSection || !resizeHandle) return;
 
     // Load saved height
-    const savedHeight = localStorage.getItem('map-height');
+    const savedHeight = localStorage.getItem("map-height");
     if (savedHeight) {
       mapSection.style.height = savedHeight;
     }
@@ -2379,79 +2870,90 @@ export class App {
     let startY = 0;
     let startHeight = 0;
 
-    resizeHandle.addEventListener('mousedown', (e) => {
+    resizeHandle.addEventListener("mousedown", (e) => {
       isResizing = true;
       startY = e.clientY;
       startHeight = mapSection.offsetHeight;
-      mapSection.classList.add('resizing');
-      document.body.style.cursor = 'ns-resize';
+      mapSection.classList.add("resizing");
+      document.body.style.cursor = "ns-resize";
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener("mousemove", (e) => {
       if (!isResizing) return;
       const deltaY = e.clientY - startY;
-      const newHeight = Math.max(400, Math.min(startHeight + deltaY, window.innerHeight - 60));
+      const newHeight = Math.max(
+        400,
+        Math.min(startHeight + deltaY, window.innerHeight - 60),
+      );
       mapSection.style.height = `${newHeight}px`;
       this.map?.render();
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener("mouseup", () => {
       if (!isResizing) return;
       isResizing = false;
-      mapSection.classList.remove('resizing');
-      document.body.style.cursor = '';
+      mapSection.classList.remove("resizing");
+      document.body.style.cursor = "";
       // Save height preference
-      localStorage.setItem('map-height', mapSection.style.height);
+      localStorage.setItem("map-height", mapSection.style.height);
       this.map?.render();
     });
   }
 
   private setupMapPin(): void {
-    const mapSection = document.getElementById('mapSection');
-    const pinBtn = document.getElementById('mapPinBtn');
+    const mapSection = document.getElementById("mapSection");
+    const pinBtn = document.getElementById("mapPinBtn");
     if (!mapSection || !pinBtn) return;
 
     // Load saved pin state
-    const isPinned = localStorage.getItem('map-pinned') === 'true';
+    const isPinned = localStorage.getItem("map-pinned") === "true";
     if (isPinned) {
-      mapSection.classList.add('pinned');
-      pinBtn.classList.add('active');
+      mapSection.classList.add("pinned");
+      pinBtn.classList.add("active");
     }
 
-    pinBtn.addEventListener('click', () => {
-      const nowPinned = mapSection.classList.toggle('pinned');
-      pinBtn.classList.toggle('active', nowPinned);
-      localStorage.setItem('map-pinned', String(nowPinned));
+    pinBtn.addEventListener("click", () => {
+      const nowPinned = mapSection.classList.toggle("pinned");
+      pinBtn.classList.toggle("active", nowPinned);
+      localStorage.setItem("map-pinned", String(nowPinned));
     });
   }
 
   private renderPanelToggles(): void {
-    const container = document.getElementById('panelToggles')!;
+    const container = document.getElementById("panelToggles")!;
     container.innerHTML = Object.entries(this.panelSettings)
-      .filter(([key]) => key !== 'runtime-config' || this.isDesktopApp)
+      .filter(([key]) => key !== "runtime-config" || this.isDesktopApp)
       .map(
         ([key, panel]) => `
-        <div class="panel-toggle-item ${panel.enabled ? 'active' : ''}" data-panel="${key}">
-          <div class="panel-toggle-checkbox">${panel.enabled ? '✓' : ''}</div>
+        <div class="panel-toggle-item ${panel.enabled ? "active" : ""}" data-panel="${key}">
+          <div class="panel-toggle-checkbox">${panel.enabled ? "✓" : ""}</div>
           <span class="panel-toggle-label">${panel.name}</span>
         </div>
-      `
+      `,
       )
-      .join('');
+      .join("");
 
-    container.querySelectorAll('.panel-toggle-item').forEach((item) => {
-      item.addEventListener('click', () => {
+    container.querySelectorAll(".panel-toggle-item").forEach((item) => {
+      item.addEventListener("click", () => {
         const panelKey = (item as HTMLElement).dataset.panel!;
         const config = this.panelSettings[panelKey];
-        console.log('[Panel Toggle] Clicked:', panelKey, 'Current enabled:', config?.enabled);
+        console.log(
+          "[Panel Toggle] Clicked:",
+          panelKey,
+          "Current enabled:",
+          config?.enabled,
+        );
         if (config) {
           config.enabled = !config.enabled;
-          console.log('[Panel Toggle] New enabled:', config.enabled);
+          console.log("[Panel Toggle] New enabled:", config.enabled);
           saveToStorage(STORAGE_KEYS.panels, this.panelSettings);
           this.renderPanelToggles();
           this.applyPanelSettings();
-          console.log('[Panel Toggle] After apply - config.enabled:', this.panelSettings[panelKey]?.enabled);
+          console.log(
+            "[Panel Toggle] After apply - config.enabled:",
+            this.panelSettings[panelKey]?.enabled,
+          );
         }
       });
     });
@@ -2459,99 +2961,116 @@ export class App {
 
   private getAllSourceNames(): string[] {
     const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
+    Object.values(FEEDS).forEach((feeds) => {
+      if (feeds) feeds.forEach((f) => sources.add(f.name));
     });
-    INTEL_SOURCES.forEach(f => sources.add(f.name));
+    INTEL_SOURCES.forEach((f) => sources.add(f.name));
     return Array.from(sources).sort((a, b) => a.localeCompare(b));
   }
 
-  private renderSourceToggles(filter = ''): void {
-    const container = document.getElementById('sourceToggles')!;
+  private renderSourceToggles(filter = ""): void {
+    const container = document.getElementById("sourceToggles")!;
     const allSources = this.getAllSourceNames();
     const filterLower = filter.toLowerCase();
     const filteredSources = filter
-      ? allSources.filter(s => s.toLowerCase().includes(filterLower))
+      ? allSources.filter((s) => s.toLowerCase().includes(filterLower))
       : allSources;
 
-    container.innerHTML = filteredSources.map(source => {
-      const isEnabled = !this.disabledSources.has(source);
-      const escaped = escapeHtml(source);
-      return `
-        <div class="source-toggle-item ${isEnabled ? 'active' : ''}" data-source="${escaped}">
-          <div class="source-toggle-checkbox">${isEnabled ? '✓' : ''}</div>
+    container.innerHTML = filteredSources
+      .map((source) => {
+        const isEnabled = !this.disabledSources.has(source);
+        const escaped = escapeHtml(source);
+        return `
+        <div class="source-toggle-item ${isEnabled ? "active" : ""}" data-source="${escaped}">
+          <div class="source-toggle-checkbox">${isEnabled ? "✓" : ""}</div>
           <span class="source-toggle-label">${escaped}</span>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
-    container.querySelectorAll('.source-toggle-item').forEach(item => {
-      item.addEventListener('click', () => {
+    container.querySelectorAll(".source-toggle-item").forEach((item) => {
+      item.addEventListener("click", () => {
         const sourceName = (item as HTMLElement).dataset.source!;
         if (this.disabledSources.has(sourceName)) {
           this.disabledSources.delete(sourceName);
         } else {
           this.disabledSources.add(sourceName);
         }
-        saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.disabledSources));
+        saveToStorage(
+          STORAGE_KEYS.disabledFeeds,
+          Array.from(this.disabledSources),
+        );
         this.renderSourceToggles(filter);
       });
     });
 
     // Update counter
     const enabledCount = allSources.length - this.disabledSources.size;
-    const counterEl = document.getElementById('sourcesCounter');
+    const counterEl = document.getElementById("sourcesCounter");
     if (counterEl) {
       counterEl.textContent = `${enabledCount}/${allSources.length} enabled`;
     }
   }
 
   private setupSourcesModal(): void {
-    document.getElementById('sourcesBtn')?.addEventListener('click', () => {
-      document.getElementById('sourcesModal')?.classList.add('active');
+    document.getElementById("sourcesBtn")?.addEventListener("click", () => {
+      document.getElementById("sourcesModal")?.classList.add("active");
       // Clear search and show all sources on open
-      const searchInput = document.getElementById('sourcesSearch') as HTMLInputElement | null;
-      if (searchInput) searchInput.value = '';
+      const searchInput = document.getElementById(
+        "sourcesSearch",
+      ) as HTMLInputElement | null;
+      if (searchInput) searchInput.value = "";
       this.renderSourceToggles();
     });
 
-    document.getElementById('sourcesModalClose')?.addEventListener('click', () => {
-      document.getElementById('sourcesModal')?.classList.remove('active');
-    });
+    document
+      .getElementById("sourcesModalClose")
+      ?.addEventListener("click", () => {
+        document.getElementById("sourcesModal")?.classList.remove("active");
+      });
 
-    document.getElementById('sourcesModal')?.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
-        document.getElementById('sourcesModal')?.classList.remove('active');
+    document.getElementById("sourcesModal")?.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).classList.contains("modal-overlay")) {
+        document.getElementById("sourcesModal")?.classList.remove("active");
       }
     });
 
-    document.getElementById('sourcesSearch')?.addEventListener('input', (e) => {
+    document.getElementById("sourcesSearch")?.addEventListener("input", (e) => {
       const filter = (e.target as HTMLInputElement).value;
       this.renderSourceToggles(filter);
     });
 
-    document.getElementById('sourcesSelectAll')?.addEventListener('click', () => {
-      this.disabledSources.clear();
-      saveToStorage(STORAGE_KEYS.disabledFeeds, []);
-      const filter = (document.getElementById('sourcesSearch') as HTMLInputElement)?.value || '';
-      this.renderSourceToggles(filter);
-    });
+    document
+      .getElementById("sourcesSelectAll")
+      ?.addEventListener("click", () => {
+        this.disabledSources.clear();
+        saveToStorage(STORAGE_KEYS.disabledFeeds, []);
+        const filter =
+          (document.getElementById("sourcesSearch") as HTMLInputElement)
+            ?.value || "";
+        this.renderSourceToggles(filter);
+      });
 
-    document.getElementById('sourcesSelectNone')?.addEventListener('click', () => {
-      const allSources = this.getAllSourceNames();
-      this.disabledSources = new Set(allSources);
-      saveToStorage(STORAGE_KEYS.disabledFeeds, allSources);
-      const filter = (document.getElementById('sourcesSearch') as HTMLInputElement)?.value || '';
-      this.renderSourceToggles(filter);
-    });
+    document
+      .getElementById("sourcesSelectNone")
+      ?.addEventListener("click", () => {
+        const allSources = this.getAllSourceNames();
+        this.disabledSources = new Set(allSources);
+        saveToStorage(STORAGE_KEYS.disabledFeeds, allSources);
+        const filter =
+          (document.getElementById("sourcesSearch") as HTMLInputElement)
+            ?.value || "";
+        this.renderSourceToggles(filter);
+      });
   }
 
   private applyPanelSettings(): void {
     Object.entries(this.panelSettings).forEach(([key, config]) => {
-      if (key === 'map') {
-        const mapSection = document.getElementById('mapSection');
+      if (key === "map") {
+        const mapSection = document.getElementById("mapSection");
         if (mapSection) {
-          mapSection.classList.toggle('hidden', !config.enabled);
+          mapSection.classList.toggle("hidden", !config.enabled);
         }
         return;
       }
@@ -2562,14 +3081,17 @@ export class App {
 
   private updateTime(): void {
     const now = new Date();
-    const el = document.getElementById('timeDisplay');
+    const el = document.getElementById("timeDisplay");
     if (el) {
-      el.textContent = now.toUTCString().split(' ')[4] + ' UTC';
+      el.textContent = now.toUTCString().split(" ")[4] + " UTC";
     }
   }
 
   private async loadAllData(): Promise<void> {
-    const runGuarded = async (name: string, fn: () => Promise<void>): Promise<void> => {
+    const runGuarded = async (
+      name: string,
+      fn: () => Promise<void>,
+    ): Promise<void> => {
       if (this.inFlight.has(name)) return;
       this.inFlight.add(name);
       try {
@@ -2580,44 +3102,96 @@ export class App {
     };
 
     const tasks: Array<{ name: string; task: Promise<void> }> = [
-      { name: 'news', task: runGuarded('news', () => this.loadNews()) },
-      { name: 'markets', task: runGuarded('markets', () => this.loadMarkets()) },
-      { name: 'predictions', task: runGuarded('predictions', () => this.loadPredictions()) },
-      { name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) },
-      { name: 'fred', task: runGuarded('fred', () => this.loadFredData()) },
-      { name: 'oil', task: runGuarded('oil', () => this.loadOilAnalytics()) },
-      { name: 'spending', task: runGuarded('spending', () => this.loadGovernmentSpending()) },
+      { name: "news", task: runGuarded("news", () => this.loadNews()) },
+      {
+        name: "markets",
+        task: runGuarded("markets", () => this.loadMarkets()),
+      },
+      {
+        name: "predictions",
+        task: runGuarded("predictions", () => this.loadPredictions()),
+      },
+      {
+        name: "pizzint",
+        task: runGuarded("pizzint", () => this.loadPizzInt()),
+      },
+      { name: "fred", task: runGuarded("fred", () => this.loadFredData()) },
+      { name: "oil", task: runGuarded("oil", () => this.loadOilAnalytics()) },
+      {
+        name: "spending",
+        task: runGuarded("spending", () => this.loadGovernmentSpending()),
+      },
     ];
 
     // Load intelligence signals for CII calculation (protests, military, outages)
     // Only for geopolitical variant - tech variant doesn't need CII/focal points
-    if (SITE_VARIANT === 'full') {
-      tasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
+    if (SITE_VARIANT === "full") {
+      tasks.push({
+        name: "intelligence",
+        task: runGuarded("intelligence", () => this.loadIntelligenceSignals()),
+      });
     }
 
     // Conditionally load non-intelligence layers
     // NOTE: outages, protests, military are handled by loadIntelligenceSignals() above
     // They update the map when layers are enabled, so no duplicate tasks needed here
-    if (SITE_VARIANT === 'full') tasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
-    if (this.mapLayers.natural) tasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
-    if (this.mapLayers.weather) tasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
-    if (this.mapLayers.ais) tasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
-    if (this.mapLayers.cables) tasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
-    if (this.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
-    if (CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
-    if (this.mapLayers.techEvents || SITE_VARIANT === 'tech') tasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
+    if (SITE_VARIANT === "full")
+      tasks.push({
+        name: "firms",
+        task: runGuarded("firms", () => this.loadFirmsData()),
+      });
+    if (this.mapLayers.natural)
+      tasks.push({
+        name: "natural",
+        task: runGuarded("natural", () => this.loadNatural()),
+      });
+    if (this.mapLayers.weather)
+      tasks.push({
+        name: "weather",
+        task: runGuarded("weather", () => this.loadWeatherAlerts()),
+      });
+    if (this.mapLayers.ais)
+      tasks.push({
+        name: "ais",
+        task: runGuarded("ais", () => this.loadAisSignals()),
+      });
+    if (this.mapLayers.cables)
+      tasks.push({
+        name: "cables",
+        task: runGuarded("cables", () => this.loadCableActivity()),
+      });
+    if (this.mapLayers.flights)
+      tasks.push({
+        name: "flights",
+        task: runGuarded("flights", () => this.loadFlightDelays()),
+      });
+    if (CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats)
+      tasks.push({
+        name: "cyberThreats",
+        task: runGuarded("cyberThreats", () => this.loadCyberThreats()),
+      });
+    if (this.mapLayers.techEvents || SITE_VARIANT === "tech")
+      tasks.push({
+        name: "techEvents",
+        task: runGuarded("techEvents", () => this.loadTechEvents()),
+      });
 
     // Tech Readiness panel (tech variant only)
-    if (SITE_VARIANT === 'tech') {
-      tasks.push({ name: 'techReadiness', task: runGuarded('techReadiness', () => (this.panels['tech-readiness'] as TechReadinessPanel)?.refresh()) });
+    if (SITE_VARIANT === "tech") {
+      tasks.push({
+        name: "techReadiness",
+        task: runGuarded("techReadiness", () =>
+          (this.panels["tech-readiness"] as TechReadinessPanel)?.refresh(),
+        ),
+      });
     }
 
     // Use allSettled to ensure all tasks complete and search index always updates
-    const results = await Promise.allSettled(tasks.map(t => t.task));
+    const results = await Promise.allSettled(tasks.map((t) => t.task));
 
     // Log any failures but don't block
     results.forEach((result, idx) => {
-      if (result.status === 'rejected') {
+      if (result.status === "rejected") {
         console.error(`[App] ${tasks[idx]?.name} load failed:`, result.reason);
       }
     });
@@ -2632,44 +3206,44 @@ export class App {
     this.map?.setLayerLoading(layer, true);
     try {
       switch (layer) {
-        case 'natural':
+        case "natural":
           await this.loadNatural();
           break;
-        case 'fires':
+        case "fires":
           await this.loadFirmsData();
           break;
-        case 'weather':
+        case "weather":
           await this.loadWeatherAlerts();
           break;
-        case 'outages':
+        case "outages":
           await this.loadOutages();
           break;
-        case 'cyberThreats':
+        case "cyberThreats":
           await this.loadCyberThreats();
           break;
-        case 'ais':
+        case "ais":
           await this.loadAisSignals();
           break;
-        case 'cables':
+        case "cables":
           await this.loadCableActivity();
           break;
-        case 'protests':
+        case "protests":
           await this.loadProtests();
           break;
-        case 'flights':
+        case "flights":
           await this.loadFlightDelays();
           break;
-        case 'military':
+        case "military":
           await this.loadMilitary();
           break;
-        case 'techEvents':
-          console.log('[loadDataForLayer] Loading techEvents...');
+        case "techEvents":
+          console.log("[loadDataForLayer] Loading techEvents...");
           await this.loadTechEvents();
-          console.log('[loadDataForLayer] techEvents loaded');
+          console.log("[loadDataForLayer] techEvents loaded");
           break;
-        case 'ucdpEvents':
-        case 'displacement':
-        case 'climate':
+        case "ucdpEvents":
+        case "displacement":
+        case "climate":
           await this.loadIntelligenceSignals();
           break;
       }
@@ -2679,7 +3253,9 @@ export class App {
     }
   }
 
-  private findFlashLocation(title: string): { lat: number; lon: number } | null {
+  private findFlashLocation(
+    title: string,
+  ): { lat: number; lon: number } | null {
     const titleLower = title.toLowerCase();
     let bestMatch: { lat: number; lon: number; matches: number } | null = null;
 
@@ -2705,7 +3281,11 @@ export class App {
     for (const conflict of CONFLICT_ZONES) {
       const matches = countKeywordMatches(conflict.keywords);
       if (matches > 0 && (!bestMatch || matches > bestMatch.matches)) {
-        bestMatch = { lat: conflict.center[1], lon: conflict.center[0], matches };
+        bestMatch = {
+          lat: conflict.center[1],
+          lon: conflict.center[0],
+          matches,
+        };
       }
     }
 
@@ -2737,7 +3317,10 @@ export class App {
     }
   }
 
-  private async loadNewsCategory(category: string, feeds: typeof FEEDS.politics): Promise<NewsItem[]> {
+  private async loadNewsCategory(
+    category: string,
+    feeds: typeof FEEDS.politics,
+  ): Promise<NewsItem[]> {
     try {
       const panel = this.newsPanels[category];
       const renderIntervalMs = 250;
@@ -2746,13 +3329,18 @@ export class App {
       let pendingItems: NewsItem[] | null = null;
 
       // Filter out disabled sources
-      const enabledFeeds = (feeds ?? []).filter(f => !this.disabledSources.has(f.name));
+      const enabledFeeds = (feeds ?? []).filter(
+        (f) => !this.disabledSources.has(f.name),
+      );
       if (enabledFeeds.length === 0) {
-        if (panel) panel.showError('All sources disabled');
-        this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'ok',
-          itemCount: 0,
-        });
+        if (panel) panel.showError("All sources disabled");
+        this.statusPanel?.updateFeed(
+          category.charAt(0).toUpperCase() + category.slice(1),
+          {
+            status: "ok",
+            itemCount: 0,
+          },
+        );
         return [];
       }
 
@@ -2801,22 +3389,32 @@ export class App {
 
         const baseline = await updateBaseline(`news:${category}`, items.length);
         const deviation = calculateDeviation(items.length, baseline);
-        panel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
+        panel.setDeviation(
+          deviation.zScore,
+          deviation.percentChange,
+          deviation.level,
+        );
       }
 
-      this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'ok',
-        itemCount: items.length,
-      });
-      this.statusPanel?.updateApi('RSS2JSON', { status: 'ok' });
+      this.statusPanel?.updateFeed(
+        category.charAt(0).toUpperCase() + category.slice(1),
+        {
+          status: "ok",
+          itemCount: items.length,
+        },
+      );
+      this.statusPanel?.updateApi("RSS2JSON", { status: "ok" });
 
       return items;
     } catch (error) {
-      this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'error',
-        errorMessage: String(error),
-      });
-      this.statusPanel?.updateApi('RSS2JSON', { status: 'error' });
+      this.statusPanel?.updateFeed(
+        category.charAt(0).toUpperCase() + category.slice(1),
+        {
+          status: "error",
+          errorMessage: String(error),
+        },
+      );
+      this.statusPanel?.updateApi("RSS2JSON", { status: "error" });
       return [];
     }
   }
@@ -2824,74 +3422,90 @@ export class App {
   private async loadNews(): Promise<void> {
     // Build categories dynamically based on what feeds exist
     const allCategories = [
-      { key: 'politics', feeds: FEEDS.politics },
-      { key: 'tech', feeds: FEEDS.tech },
-      { key: 'finance', feeds: FEEDS.finance },
-      { key: 'gov', feeds: FEEDS.gov },
-      { key: 'middleeast', feeds: FEEDS.middleeast },
-      { key: 'africa', feeds: FEEDS.africa },
-      { key: 'latam', feeds: FEEDS.latam },
-      { key: 'asia', feeds: FEEDS.asia },
-      { key: 'energy', feeds: FEEDS.energy },
-      { key: 'layoffs', feeds: FEEDS.layoffs },
-      { key: 'ai', feeds: FEEDS.ai },
-      { key: 'thinktanks', feeds: FEEDS.thinktanks },
+      { key: "politics", feeds: FEEDS.politics },
+      { key: "tech", feeds: FEEDS.tech },
+      { key: "finance", feeds: FEEDS.finance },
+      { key: "gov", feeds: FEEDS.gov },
+      { key: "middleeast", feeds: FEEDS.middleeast },
+      { key: "africa", feeds: FEEDS.africa },
+      { key: "latam", feeds: FEEDS.latam },
+      { key: "asia", feeds: FEEDS.asia },
+      { key: "energy", feeds: FEEDS.energy },
+      { key: "layoffs", feeds: FEEDS.layoffs },
+      { key: "ai", feeds: FEEDS.ai },
+      { key: "thinktanks", feeds: FEEDS.thinktanks },
       // Tech variant categories
-      { key: 'startups', feeds: FEEDS.startups },
-      { key: 'vcblogs', feeds: FEEDS.vcblogs },
-      { key: 'regionalStartups', feeds: FEEDS.regionalStartups },
-      { key: 'unicorns', feeds: FEEDS.unicorns },
-      { key: 'accelerators', feeds: FEEDS.accelerators },
-      { key: 'funding', feeds: FEEDS.funding },
-      { key: 'producthunt', feeds: FEEDS.producthunt },
-      { key: 'security', feeds: FEEDS.security },
-      { key: 'policy', feeds: FEEDS.policy },
-      { key: 'hardware', feeds: FEEDS.hardware },
-      { key: 'cloud', feeds: FEEDS.cloud },
-      { key: 'dev', feeds: FEEDS.dev },
-      { key: 'github', feeds: FEEDS.github },
-      { key: 'ipo', feeds: FEEDS.ipo },
+      { key: "startups", feeds: FEEDS.startups },
+      { key: "vcblogs", feeds: FEEDS.vcblogs },
+      { key: "regionalStartups", feeds: FEEDS.regionalStartups },
+      { key: "unicorns", feeds: FEEDS.unicorns },
+      { key: "accelerators", feeds: FEEDS.accelerators },
+      { key: "funding", feeds: FEEDS.funding },
+      { key: "producthunt", feeds: FEEDS.producthunt },
+      { key: "security", feeds: FEEDS.security },
+      { key: "policy", feeds: FEEDS.policy },
+      { key: "hardware", feeds: FEEDS.hardware },
+      { key: "cloud", feeds: FEEDS.cloud },
+      { key: "dev", feeds: FEEDS.dev },
+      { key: "github", feeds: FEEDS.github },
+      { key: "ipo", feeds: FEEDS.ipo },
     ];
     // Filter to only categories that have feeds defined
-    const categories = allCategories.filter(c => c.feeds && c.feeds.length > 0);
+    const categories = allCategories.filter(
+      (c) => c.feeds && c.feeds.length > 0,
+    );
 
     // Fetch all categories in parallel
     const categoryResults = await Promise.allSettled(
-      categories.map(({ key, feeds }) => this.loadNewsCategory(key, feeds))
+      categories.map(({ key, feeds }) => this.loadNewsCategory(key, feeds)),
     );
 
     // Collect successful results
     const collectedNews: NewsItem[] = [];
     categoryResults.forEach((result, idx) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         collectedNews.push(...result.value);
       } else {
-        console.error(`[App] News category ${categories[idx]?.key} failed:`, result.reason);
+        console.error(
+          `[App] News category ${categories[idx]?.key} failed:`,
+          result.reason,
+        );
       }
     });
 
     // Intel (uses different source) - full variant only (defense/military news)
-    if (SITE_VARIANT === 'full') {
-      const enabledIntelSources = INTEL_SOURCES.filter(f => !this.disabledSources.has(f.name));
-      const intelPanel = this.newsPanels['intel'];
+    if (SITE_VARIANT === "full") {
+      const enabledIntelSources = INTEL_SOURCES.filter(
+        (f) => !this.disabledSources.has(f.name),
+      );
+      const intelPanel = this.newsPanels["intel"];
       if (enabledIntelSources.length === 0) {
-        if (intelPanel) intelPanel.showError('All Intel sources disabled');
-        this.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: 0 });
+        if (intelPanel) intelPanel.showError("All Intel sources disabled");
+        this.statusPanel?.updateFeed("Intel", { status: "ok", itemCount: 0 });
       } else {
-        const intelResult = await Promise.allSettled([fetchCategoryFeeds(enabledIntelSources)]);
-        if (intelResult[0]?.status === 'fulfilled') {
+        const intelResult = await Promise.allSettled([
+          fetchCategoryFeeds(enabledIntelSources),
+        ]);
+        if (intelResult[0]?.status === "fulfilled") {
           const intel = intelResult[0].value;
           if (intelPanel) {
             intelPanel.renderNews(intel);
-            const baseline = await updateBaseline('news:intel', intel.length);
+            const baseline = await updateBaseline("news:intel", intel.length);
             const deviation = calculateDeviation(intel.length, baseline);
-            intelPanel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
+            intelPanel.setDeviation(
+              deviation.zScore,
+              deviation.percentChange,
+              deviation.level,
+            );
           }
-          this.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: intel.length });
+          this.statusPanel?.updateFeed("Intel", {
+            status: "ok",
+            itemCount: intel.length,
+          });
           collectedNews.push(...intel);
           this.flashMapForNews(intel);
         } else {
-          console.error('[App] Intel feed failed:', intelResult[0]?.reason);
+          console.error("[App] Intel feed failed:", intelResult[0]?.reason);
         }
       }
     }
@@ -2901,10 +3515,13 @@ export class App {
     maybeShowDownloadBanner();
     // Temporal baseline: report news volume
     updateAndCheck([
-      { type: 'news', region: 'global', count: collectedNews.length },
-    ]).then(anomalies => {
-      if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-    }).catch(() => {});
+      { type: "news", region: "global", count: collectedNews.length },
+    ])
+      .then((anomalies) => {
+        if (anomalies.length > 0)
+          signalAggregator.ingestTemporalAnomalies(anomalies);
+      })
+      .catch(() => {});
 
     // Update map hotspots
     this.map?.updateHotspotActivity(this.allNews);
@@ -2920,24 +3537,29 @@ export class App {
 
       // Update AI Insights panel with new clusters (if ML available)
       if (mlWorker.isAvailable && this.latestClusters.length > 0) {
-        const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
+        const insightsPanel = this.panels["insights"] as
+          | InsightsPanel
+          | undefined;
         insightsPanel?.updateInsights(this.latestClusters);
       }
 
       // Push geo-located news clusters to map
       const geoLocated = this.latestClusters
-        .filter((c): c is typeof c & { lat: number; lon: number } => c.lat != null && c.lon != null)
-        .map(c => ({
+        .filter(
+          (c): c is typeof c & { lat: number; lon: number } =>
+            c.lat != null && c.lon != null,
+        )
+        .map((c) => ({
           lat: c.lat,
           lon: c.lon,
           title: c.primaryTitle,
-          threatLevel: c.threat?.level ?? 'info',
+          threatLevel: c.threat?.level ?? "info",
         }));
       if (geoLocated.length > 0) {
         this.map?.setNewsLocations(geoLocated);
       }
     } catch (error) {
-      console.error('[App] Clustering failed, clusters unchanged:', error);
+      console.error("[App] Clustering failed, clusters unchanged:", error);
     }
   }
 
@@ -2947,55 +3569,60 @@ export class App {
       const stocks = await fetchMultipleStocks(MARKET_SYMBOLS, {
         onBatch: (partialStocks) => {
           this.latestMarkets = partialStocks;
-          (this.panels['markets'] as MarketPanel).renderMarkets(partialStocks);
+          (this.panels["markets"] as MarketPanel).renderMarkets(partialStocks);
         },
       });
       this.latestMarkets = stocks;
-      (this.panels['markets'] as MarketPanel).renderMarkets(stocks);
-      this.statusPanel?.updateApi('Finnhub', { status: 'ok' });
+      (this.panels["markets"] as MarketPanel).renderMarkets(stocks);
+      this.statusPanel?.updateApi("Finnhub", { status: "ok" });
 
       // Sectors
       const sectors = await fetchMultipleStocks(
         SECTORS.map((s) => ({ ...s, display: s.name })),
         {
           onBatch: (partialSectors) => {
-            (this.panels['heatmap'] as HeatmapPanel).renderHeatmap(
-              partialSectors.map((s) => ({ name: s.name, change: s.change }))
+            (this.panels["heatmap"] as HeatmapPanel).renderHeatmap(
+              partialSectors.map((s) => ({ name: s.name, change: s.change })),
             );
           },
-        }
+        },
       );
-      (this.panels['heatmap'] as HeatmapPanel).renderHeatmap(
-        sectors.map((s) => ({ name: s.name, change: s.change }))
+      (this.panels["heatmap"] as HeatmapPanel).renderHeatmap(
+        sectors.map((s) => ({ name: s.name, change: s.change })),
       );
 
       // Commodities
       const commodities = await fetchMultipleStocks(COMMODITIES, {
         onBatch: (partialCommodities) => {
-          (this.panels['commodities'] as CommoditiesPanel).renderCommodities(
+          (this.panels["commodities"] as CommoditiesPanel).renderCommodities(
             partialCommodities.map((c) => ({
               display: c.display,
               price: c.price,
               change: c.change,
               sparkline: c.sparkline,
-            }))
+            })),
           );
         },
       });
-      (this.panels['commodities'] as CommoditiesPanel).renderCommodities(
-        commodities.map((c) => ({ display: c.display, price: c.price, change: c.change, sparkline: c.sparkline }))
+      (this.panels["commodities"] as CommoditiesPanel).renderCommodities(
+        commodities.map((c) => ({
+          display: c.display,
+          price: c.price,
+          change: c.change,
+          sparkline: c.sparkline,
+        })),
       );
     } catch {
-      this.statusPanel?.updateApi('Finnhub', { status: 'error' });
+      this.statusPanel?.updateApi("Finnhub", { status: "error" });
     }
 
     try {
       // Crypto
       const crypto = await fetchCrypto();
-      (this.panels['crypto'] as CryptoPanel).renderCrypto(crypto);
-      this.statusPanel?.updateApi('CoinGecko', { status: 'ok' });
+      (this.panels["crypto"] as CryptoPanel).renderCrypto(crypto);
+      this.statusPanel?.updateApi("CoinGecko", { status: "ok" });
     } catch {
-      this.statusPanel?.updateApi('CoinGecko', { status: 'error' });
+      this.statusPanel?.updateApi("CoinGecko", { status: "error" });
     }
   }
 
@@ -3003,18 +3630,26 @@ export class App {
     try {
       const predictions = await fetchPredictions();
       this.latestPredictions = predictions;
-      (this.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
+      (this.panels["polymarket"] as PredictionPanel).renderPredictions(
+        predictions,
+      );
 
-      this.statusPanel?.updateFeed('Polymarket', { status: 'ok', itemCount: predictions.length });
-      this.statusPanel?.updateApi('Polymarket', { status: 'ok' });
-      dataFreshness.recordUpdate('polymarket', predictions.length);
+      this.statusPanel?.updateFeed("Polymarket", {
+        status: "ok",
+        itemCount: predictions.length,
+      });
+      this.statusPanel?.updateApi("Polymarket", { status: "ok" });
+      dataFreshness.recordUpdate("polymarket", predictions.length);
 
       // Run correlation analysis in background (fire-and-forget via Web Worker)
       void this.runCorrelationAnalysis();
     } catch (error) {
-      this.statusPanel?.updateFeed('Polymarket', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('Polymarket', { status: 'error' });
-      dataFreshness.recordError('polymarket', String(error));
+      this.statusPanel?.updateFeed("Polymarket", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      this.statusPanel?.updateApi("Polymarket", { status: "error" });
+      dataFreshness.recordError("polymarket", String(error));
     }
   }
 
@@ -3026,95 +3661,131 @@ export class App {
     ]);
 
     // Handle earthquakes (USGS)
-    if (earthquakeResult.status === 'fulfilled') {
+    if (earthquakeResult.status === "fulfilled") {
       this.intelligenceCache.earthquakes = earthquakeResult.value;
       this.map?.setEarthquakes(earthquakeResult.value);
       ingestEarthquakes(earthquakeResult.value);
-      this.statusPanel?.updateApi('USGS', { status: 'ok' });
-      dataFreshness.recordUpdate('usgs', earthquakeResult.value.length);
+      this.statusPanel?.updateApi("USGS", { status: "ok" });
+      dataFreshness.recordUpdate("usgs", earthquakeResult.value.length);
     } else {
       this.intelligenceCache.earthquakes = [];
       this.map?.setEarthquakes([]);
-      this.statusPanel?.updateApi('USGS', { status: 'error' });
-      dataFreshness.recordError('usgs', String(earthquakeResult.reason));
+      this.statusPanel?.updateApi("USGS", { status: "error" });
+      dataFreshness.recordError("usgs", String(earthquakeResult.reason));
     }
 
     // Handle natural events (EONET - storms, fires, volcanoes, etc.)
-    if (eonetResult.status === 'fulfilled') {
+    if (eonetResult.status === "fulfilled") {
       this.map?.setNaturalEvents(eonetResult.value);
-      this.statusPanel?.updateFeed('EONET', {
-        status: 'ok',
+      this.statusPanel?.updateFeed("EONET", {
+        status: "ok",
         itemCount: eonetResult.value.length,
       });
-      this.statusPanel?.updateApi('NASA EONET', { status: 'ok' });
+      this.statusPanel?.updateApi("NASA EONET", { status: "ok" });
     } else {
       this.map?.setNaturalEvents([]);
-      this.statusPanel?.updateFeed('EONET', { status: 'error', errorMessage: String(eonetResult.reason) });
-      this.statusPanel?.updateApi('NASA EONET', { status: 'error' });
+      this.statusPanel?.updateFeed("EONET", {
+        status: "error",
+        errorMessage: String(eonetResult.reason),
+      });
+      this.statusPanel?.updateApi("NASA EONET", { status: "error" });
     }
 
     // Set layer ready based on combined data
-    const hasEarthquakes = earthquakeResult.status === 'fulfilled' && earthquakeResult.value.length > 0;
-    const hasEonet = eonetResult.status === 'fulfilled' && eonetResult.value.length > 0;
-    this.map?.setLayerReady('natural', hasEarthquakes || hasEonet);
+    const hasEarthquakes =
+      earthquakeResult.status === "fulfilled" &&
+      earthquakeResult.value.length > 0;
+    const hasEonet =
+      eonetResult.status === "fulfilled" && eonetResult.value.length > 0;
+    this.map?.setLayerReady("natural", hasEarthquakes || hasEonet);
   }
 
   private async loadTechEvents(): Promise<void> {
-    console.log('[loadTechEvents] Called. SITE_VARIANT:', SITE_VARIANT, 'techEvents layer:', this.mapLayers.techEvents);
+    console.log(
+      "[loadTechEvents] Called. SITE_VARIANT:",
+      SITE_VARIANT,
+      "techEvents layer:",
+      this.mapLayers.techEvents,
+    );
     // Only load for tech variant or if techEvents layer is enabled
-    if (SITE_VARIANT !== 'tech' && !this.mapLayers.techEvents) {
-      console.log('[loadTechEvents] Skipping - not tech variant and layer disabled');
+    if (SITE_VARIANT !== "tech" && !this.mapLayers.techEvents) {
+      console.log(
+        "[loadTechEvents] Skipping - not tech variant and layer disabled",
+      );
       return;
     }
 
     try {
-      const res = await fetch('/api/tech-events?type=conference&mappable=true&days=90&limit=50');
+      const res = await fetch(
+        "/api/tech-events?type=conference&mappable=true&days=90&limit=50",
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Unknown error');
+      if (!data.success) throw new Error(data.error || "Unknown error");
 
       // Transform events for map markers
       const now = new Date();
-      const mapEvents = data.events.map((e: {
-        id: string;
-        title: string;
-        location: string;
-        coords: { lat: number; lng: number; country: string };
-        startDate: string;
-        endDate: string;
-        url: string | null;
-      }) => ({
-        id: e.id,
-        title: e.title,
-        location: e.location,
-        lat: e.coords.lat,
-        lng: e.coords.lng,
-        country: e.coords.country,
-        startDate: e.startDate,
-        endDate: e.endDate,
-        url: e.url,
-        daysUntil: Math.ceil((new Date(e.startDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      }));
-
-      this.map?.setTechEvents(mapEvents);
-      this.map?.setLayerReady('techEvents', mapEvents.length > 0);
-      this.statusPanel?.updateFeed('Tech Events', { status: 'ok', itemCount: mapEvents.length });
-
-      // Register tech events as searchable source
-      if (SITE_VARIANT === 'tech' && this.searchModal) {
-        this.searchModal.registerSource('techevent', mapEvents.map((e: { id: string; title: string; location: string; startDate: string }) => ({
+      const mapEvents = data.events.map(
+        (e: {
+          id: string;
+          title: string;
+          location: string;
+          coords: { lat: number; lng: number; country: string };
+          startDate: string;
+          endDate: string;
+          url: string | null;
+        }) => ({
           id: e.id,
           title: e.title,
-          subtitle: `${e.location} • ${new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-          data: e,
-        })));
+          location: e.location,
+          lat: e.coords.lat,
+          lng: e.coords.lng,
+          country: e.coords.country,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          url: e.url,
+          daysUntil: Math.ceil(
+            (new Date(e.startDate).getTime() - now.getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        }),
+      );
+
+      this.map?.setTechEvents(mapEvents);
+      this.map?.setLayerReady("techEvents", mapEvents.length > 0);
+      this.statusPanel?.updateFeed("Tech Events", {
+        status: "ok",
+        itemCount: mapEvents.length,
+      });
+
+      // Register tech events as searchable source
+      if (SITE_VARIANT === "tech" && this.searchModal) {
+        this.searchModal.registerSource(
+          "techevent",
+          mapEvents.map(
+            (e: {
+              id: string;
+              title: string;
+              location: string;
+              startDate: string;
+            }) => ({
+              id: e.id,
+              title: e.title,
+              subtitle: `${e.location} • ${new Date(e.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+              data: e,
+            }),
+          ),
+        );
       }
     } catch (error) {
-      console.error('[App] Failed to load tech events:', error);
+      console.error("[App] Failed to load tech events:", error);
       this.map?.setTechEvents([]);
-      this.map?.setLayerReady('techEvents', false);
-      this.statusPanel?.updateFeed('Tech Events', { status: 'error', errorMessage: String(error) });
+      this.map?.setLayerReady("techEvents", false);
+      this.statusPanel?.updateFeed("Tech Events", {
+        status: "error",
+        errorMessage: String(error),
+      });
     }
   }
 
@@ -3122,22 +3793,33 @@ export class App {
     try {
       const alerts = await fetchWeatherAlerts();
       this.map?.setWeatherAlerts(alerts);
-      this.map?.setLayerReady('weather', alerts.length > 0);
-      this.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: alerts.length });
-      dataFreshness.recordUpdate('weather', alerts.length);
+      this.map?.setLayerReady("weather", alerts.length > 0);
+      this.statusPanel?.updateFeed("Weather", {
+        status: "ok",
+        itemCount: alerts.length,
+      });
+      dataFreshness.recordUpdate("weather", alerts.length);
     } catch (error) {
-      this.map?.setLayerReady('weather', false);
-      this.statusPanel?.updateFeed('Weather', { status: 'error' });
-      dataFreshness.recordError('weather', String(error));
+      this.map?.setLayerReady("weather", false);
+      this.statusPanel?.updateFeed("Weather", { status: "error" });
+      dataFreshness.recordError("weather", String(error));
     }
   }
 
   // Cache for intelligence data - allows CII to work even when layers are disabled
   private intelligenceCache: {
     outages?: InternetOutage[];
-    protests?: { events: SocialUnrestEvent[]; sources: { acled: number; gdelt: number } };
-    military?: { flights: MilitaryFlight[]; flightClusters: MilitaryFlightCluster[]; vessels: MilitaryVessel[]; vesselClusters: MilitaryVesselCluster[] };
-    earthquakes?: import('@/types').Earthquake[];
+    protests?: {
+      events: SocialUnrestEvent[];
+      sources: { acled: number; gdelt: number };
+    };
+    military?: {
+      flights: MilitaryFlight[];
+      flightClusters: MilitaryFlightCluster[];
+      vessels: MilitaryVessel[];
+      vesselClusters: MilitaryVesselCluster[];
+    };
+    earthquakes?: import("@/types").Earthquake[];
   } = {};
   private cyberThreatsCache: CyberThreat[] | null = null;
 
@@ -3150,24 +3832,29 @@ export class App {
     const tasks: Promise<void>[] = [];
 
     // Always fetch outages for CII (internet blackouts = major instability signal)
-    tasks.push((async () => {
-      try {
-        const outages = await fetchInternetOutages();
-        this.intelligenceCache.outages = outages;
-        ingestOutagesForCII(outages);
-        signalAggregator.ingestOutages(outages);
-        dataFreshness.recordUpdate('outages', outages.length);
-        // Update map only if layer is visible
-        if (this.mapLayers.outages) {
-          this.map?.setOutages(outages);
-          this.map?.setLayerReady('outages', outages.length > 0);
-          this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
+    tasks.push(
+      (async () => {
+        try {
+          const outages = await fetchInternetOutages();
+          this.intelligenceCache.outages = outages;
+          ingestOutagesForCII(outages);
+          signalAggregator.ingestOutages(outages);
+          dataFreshness.recordUpdate("outages", outages.length);
+          // Update map only if layer is visible
+          if (this.mapLayers.outages) {
+            this.map?.setOutages(outages);
+            this.map?.setLayerReady("outages", outages.length > 0);
+            this.statusPanel?.updateFeed("NetBlocks", {
+              status: "ok",
+              itemCount: outages.length,
+            });
+          }
+        } catch (error) {
+          console.error("[Intelligence] Outages fetch failed:", error);
+          dataFreshness.recordError("outages", String(error));
         }
-      } catch (error) {
-        console.error('[Intelligence] Outages fetch failed:', error);
-        dataFreshness.recordError('outages', String(error));
-      }
-    })());
+      })(),
+    );
 
     // Always fetch protests for CII (unrest = core instability metric)
     // This task is also used by UCDP deduplication, so keep it as a shared promise.
@@ -3178,221 +3865,303 @@ export class App {
         ingestProtests(protestData.events);
         ingestProtestsForCII(protestData.events);
         signalAggregator.ingestProtests(protestData.events);
-        const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-        if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
+        const protestCount =
+          protestData.sources.acled + protestData.sources.gdelt;
+        if (protestCount > 0) dataFreshness.recordUpdate("acled", protestCount);
+        if (protestData.sources.gdelt > 0)
+          dataFreshness.recordUpdate("gdelt", protestData.sources.gdelt);
         // Update map only if layer is visible
         if (this.mapLayers.protests) {
           this.map?.setProtests(protestData.events);
-          this.map?.setLayerReady('protests', protestData.events.length > 0);
+          this.map?.setLayerReady("protests", protestData.events.length > 0);
           const status = getProtestStatus();
-          this.statusPanel?.updateFeed('Protests', {
-            status: 'ok',
+          this.statusPanel?.updateFeed("Protests", {
+            status: "ok",
             itemCount: protestData.events.length,
-            errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
+            errorMessage:
+              status.acledConfigured === false
+                ? "ACLED not configured - using GDELT only"
+                : undefined,
           });
         }
         return protestData.events;
       } catch (error) {
-        console.error('[Intelligence] Protests fetch failed:', error);
-        dataFreshness.recordError('acled', String(error));
+        console.error("[Intelligence] Protests fetch failed:", error);
+        dataFreshness.recordError("acled", String(error));
         return [];
       }
     })();
     tasks.push(protestsTask.then(() => undefined));
 
     // Fetch armed conflict events (battles, explosions, violence) for CII
-    tasks.push((async () => {
-      try {
-        const conflictData = await fetchConflictEvents();
-        ingestConflictsForCII(conflictData.events);
-        if (conflictData.count > 0) dataFreshness.recordUpdate('acled_conflict', conflictData.count);
-      } catch (error) {
-        console.error('[Intelligence] Conflict events fetch failed:', error);
-        dataFreshness.recordError('acled_conflict', String(error));
-      }
-    })());
+    tasks.push(
+      (async () => {
+        try {
+          const conflictData = await fetchConflictEvents();
+          ingestConflictsForCII(conflictData.events);
+          if (conflictData.count > 0)
+            dataFreshness.recordUpdate("acled_conflict", conflictData.count);
+        } catch (error) {
+          console.error("[Intelligence] Conflict events fetch failed:", error);
+          dataFreshness.recordError("acled_conflict", String(error));
+        }
+      })(),
+    );
 
     // Fetch UCDP conflict classifications (war vs minor vs none)
-    tasks.push((async () => {
-      try {
-        const classifications = await fetchUcdpClassifications();
-        ingestUcdpForCII(classifications);
-        if (classifications.size > 0) dataFreshness.recordUpdate('ucdp', classifications.size);
-      } catch (error) {
-        console.error('[Intelligence] UCDP fetch failed:', error);
-        dataFreshness.recordError('ucdp', String(error));
-      }
-    })());
+    tasks.push(
+      (async () => {
+        try {
+          const classifications = await fetchUcdpClassifications();
+          ingestUcdpForCII(classifications);
+          if (classifications.size > 0)
+            dataFreshness.recordUpdate("ucdp", classifications.size);
+        } catch (error) {
+          console.error("[Intelligence] UCDP fetch failed:", error);
+          dataFreshness.recordError("ucdp", String(error));
+        }
+      })(),
+    );
 
     // Fetch HDX HAPI aggregated conflict data (fallback/validation)
-    tasks.push((async () => {
-      try {
-        const summaries = await fetchHapiSummary();
-        ingestHapiForCII(summaries);
-        if (summaries.size > 0) dataFreshness.recordUpdate('hapi', summaries.size);
-      } catch (error) {
-        console.error('[Intelligence] HAPI fetch failed:', error);
-        dataFreshness.recordError('hapi', String(error));
-      }
-    })());
+    tasks.push(
+      (async () => {
+        try {
+          const summaries = await fetchHapiSummary();
+          ingestHapiForCII(summaries);
+          if (summaries.size > 0)
+            dataFreshness.recordUpdate("hapi", summaries.size);
+        } catch (error) {
+          console.error("[Intelligence] HAPI fetch failed:", error);
+          dataFreshness.recordError("hapi", String(error));
+        }
+      })(),
+    );
 
     // Always fetch military for CII (security = core instability metric)
-    tasks.push((async () => {
-      try {
-        if (isMilitaryVesselTrackingConfigured()) {
-          initMilitaryVesselStream();
-        }
-        const [flightData, vesselData] = await Promise.all([
-          fetchMilitaryFlights(),
-          fetchMilitaryVessels(),
-        ]);
-        this.intelligenceCache.military = {
-          flights: flightData.flights,
-          flightClusters: flightData.clusters,
-          vessels: vesselData.vessels,
-          vesselClusters: vesselData.clusters,
-        };
-        ingestFlights(flightData.flights);
-        ingestVessels(vesselData.vessels);
-        ingestMilitaryForCII(flightData.flights, vesselData.vessels);
-        signalAggregator.ingestFlights(flightData.flights);
-        signalAggregator.ingestVessels(vesselData.vessels);
-        dataFreshness.recordUpdate('opensky', flightData.flights.length);
-        // Temporal baseline: report counts and check for anomalies
-        updateAndCheck([
-          { type: 'military_flights', region: 'global', count: flightData.flights.length },
-          { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-        ]).then(anomalies => {
-          if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-        }).catch(() => {});
-        // Update map only if layer is visible
-        if (this.mapLayers.military) {
-          this.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-          this.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-          this.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-          const militaryCount = flightData.flights.length + vesselData.vessels.length;
-          this.statusPanel?.updateFeed('Military', {
-            status: militaryCount > 0 ? 'ok' : 'warning',
-            itemCount: militaryCount,
-          });
-        }
-        // Detect military airlift surges and foreign presence (suppress during learning mode)
-        if (!isInLearningMode()) {
-          const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
-          if (surgeAlerts.length > 0) {
-            const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
-            addToSignalHistory(surgeSignals);
-            this.signalModal?.show(surgeSignals);
+    tasks.push(
+      (async () => {
+        try {
+          if (isMilitaryVesselTrackingConfigured()) {
+            initMilitaryVesselStream();
           }
-          const foreignAlerts = detectForeignMilitaryPresence(flightData.flights);
-          if (foreignAlerts.length > 0) {
-            const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
-            addToSignalHistory(foreignSignals);
-            this.signalModal?.show(foreignSignals);
+          const [flightData, vesselData] = await Promise.all([
+            fetchMilitaryFlights(),
+            fetchMilitaryVessels(),
+          ]);
+          this.intelligenceCache.military = {
+            flights: flightData.flights,
+            flightClusters: flightData.clusters,
+            vessels: vesselData.vessels,
+            vesselClusters: vesselData.clusters,
+          };
+          ingestFlights(flightData.flights);
+          ingestVessels(vesselData.vessels);
+          ingestMilitaryForCII(flightData.flights, vesselData.vessels);
+          signalAggregator.ingestFlights(flightData.flights);
+          signalAggregator.ingestVessels(vesselData.vessels);
+          dataFreshness.recordUpdate("opensky", flightData.flights.length);
+          // Temporal baseline: report counts and check for anomalies
+          updateAndCheck([
+            {
+              type: "military_flights",
+              region: "global",
+              count: flightData.flights.length,
+            },
+            {
+              type: "vessels",
+              region: "global",
+              count: vesselData.vessels.length,
+            },
+          ])
+            .then((anomalies) => {
+              if (anomalies.length > 0)
+                signalAggregator.ingestTemporalAnomalies(anomalies);
+            })
+            .catch(() => {});
+          // Update map only if layer is visible
+          if (this.mapLayers.military) {
+            this.map?.setMilitaryFlights(
+              flightData.flights,
+              flightData.clusters,
+            );
+            this.map?.setMilitaryVessels(
+              vesselData.vessels,
+              vesselData.clusters,
+            );
+            this.map?.updateMilitaryForEscalation(
+              flightData.flights,
+              vesselData.vessels,
+            );
+            const militaryCount =
+              flightData.flights.length + vesselData.vessels.length;
+            this.statusPanel?.updateFeed("Military", {
+              status: militaryCount > 0 ? "ok" : "warning",
+              itemCount: militaryCount,
+            });
           }
+          // Detect military airlift surges and foreign presence (suppress during learning mode)
+          if (!isInLearningMode()) {
+            const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
+            if (surgeAlerts.length > 0) {
+              const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
+              addToSignalHistory(surgeSignals);
+              this.signalModal?.show(surgeSignals);
+            }
+            const foreignAlerts = detectForeignMilitaryPresence(
+              flightData.flights,
+            );
+            if (foreignAlerts.length > 0) {
+              const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
+              addToSignalHistory(foreignSignals);
+              this.signalModal?.show(foreignSignals);
+            }
+          }
+        } catch (error) {
+          console.error("[Intelligence] Military fetch failed:", error);
+          dataFreshness.recordError("opensky", String(error));
         }
-      } catch (error) {
-        console.error('[Intelligence] Military fetch failed:', error);
-        dataFreshness.recordError('opensky', String(error));
-      }
-    })());
+      })(),
+    );
 
     // Fetch UCDP georeferenced events (battles, one-sided violence, non-state conflict)
-    tasks.push((async () => {
-      try {
-        const [result, protestEvents] = await Promise.all([
-          fetchUcdpEvents(),
-          protestsTask,
-        ]);
-        if (!result.success) {
-          dataFreshness.recordError('ucdp_events', 'UCDP events unavailable (retaining prior event state)');
-          return;
+    tasks.push(
+      (async () => {
+        try {
+          const [result, protestEvents] = await Promise.all([
+            fetchUcdpEvents(),
+            protestsTask,
+          ]);
+          if (!result.success) {
+            dataFreshness.recordError(
+              "ucdp_events",
+              "UCDP events unavailable (retaining prior event state)",
+            );
+            return;
+          }
+          const acledEvents = protestEvents.map((e) => ({
+            latitude: e.lat,
+            longitude: e.lon,
+            event_date: e.time.toISOString(),
+            fatalities: e.fatalities ?? 0,
+          }));
+          const events = deduplicateAgainstAcled(result.data, acledEvents);
+          (this.panels["ucdp-events"] as UcdpEventsPanel)?.setEvents(events);
+          if (this.mapLayers.ucdpEvents) {
+            this.map?.setUcdpEvents(events);
+          }
+          if (events.length > 0)
+            dataFreshness.recordUpdate("ucdp_events", events.length);
+        } catch (error) {
+          console.error("[Intelligence] UCDP events fetch failed:", error);
+          dataFreshness.recordError("ucdp_events", String(error));
         }
-        const acledEvents = protestEvents.map(e => ({
-          latitude: e.lat, longitude: e.lon, event_date: e.time.toISOString(), fatalities: e.fatalities ?? 0,
-        }));
-        const events = deduplicateAgainstAcled(result.data, acledEvents);
-        (this.panels['ucdp-events'] as UcdpEventsPanel)?.setEvents(events);
-        if (this.mapLayers.ucdpEvents) {
-          this.map?.setUcdpEvents(events);
-        }
-        if (events.length > 0) dataFreshness.recordUpdate('ucdp_events', events.length);
-      } catch (error) {
-        console.error('[Intelligence] UCDP events fetch failed:', error);
-        dataFreshness.recordError('ucdp_events', String(error));
-      }
-    })());
+      })(),
+    );
 
     // Fetch UNHCR displacement data (refugees, asylum seekers, IDPs)
-    tasks.push((async () => {
-      try {
-        const unhcrResult = await fetchUnhcrPopulation();
-        if (!unhcrResult.ok) {
-          dataFreshness.recordError('unhcr', 'UNHCR displacement unavailable (retaining prior displacement state)');
-          return;
+    tasks.push(
+      (async () => {
+        try {
+          const unhcrResult = await fetchUnhcrPopulation();
+          if (!unhcrResult.ok) {
+            dataFreshness.recordError(
+              "unhcr",
+              "UNHCR displacement unavailable (retaining prior displacement state)",
+            );
+            return;
+          }
+          const data = unhcrResult.data;
+          (this.panels["displacement"] as DisplacementPanel)?.setData(data);
+          ingestDisplacementForCII(data.countries);
+          if (this.mapLayers.displacement && data.topFlows) {
+            this.map?.setDisplacementFlows(data.topFlows);
+          }
+          if (data.countries.length > 0)
+            dataFreshness.recordUpdate("unhcr", data.countries.length);
+        } catch (error) {
+          console.error(
+            "[Intelligence] UNHCR displacement fetch failed:",
+            error,
+          );
+          dataFreshness.recordError("unhcr", String(error));
         }
-        const data = unhcrResult.data;
-        (this.panels['displacement'] as DisplacementPanel)?.setData(data);
-        ingestDisplacementForCII(data.countries);
-        if (this.mapLayers.displacement && data.topFlows) {
-          this.map?.setDisplacementFlows(data.topFlows);
-        }
-        if (data.countries.length > 0) dataFreshness.recordUpdate('unhcr', data.countries.length);
-      } catch (error) {
-        console.error('[Intelligence] UNHCR displacement fetch failed:', error);
-        dataFreshness.recordError('unhcr', String(error));
-      }
-    })());
+      })(),
+    );
 
     // Fetch climate anomalies (temperature/precipitation deviations)
-    tasks.push((async () => {
-      try {
-        const climateResult = await fetchClimateAnomalies();
-        if (!climateResult.ok) {
-          dataFreshness.recordError('climate', 'Climate anomalies unavailable (retaining prior climate state)');
-          return;
+    tasks.push(
+      (async () => {
+        try {
+          const climateResult = await fetchClimateAnomalies();
+          if (!climateResult.ok) {
+            dataFreshness.recordError(
+              "climate",
+              "Climate anomalies unavailable (retaining prior climate state)",
+            );
+            return;
+          }
+          const anomalies = climateResult.anomalies;
+          (this.panels["climate"] as ClimateAnomalyPanel)?.setAnomalies(
+            anomalies,
+          );
+          ingestClimateForCII(anomalies);
+          if (this.mapLayers.climate) {
+            this.map?.setClimateAnomalies(anomalies);
+          }
+          if (anomalies.length > 0)
+            dataFreshness.recordUpdate("climate", anomalies.length);
+        } catch (error) {
+          console.error(
+            "[Intelligence] Climate anomalies fetch failed:",
+            error,
+          );
+          dataFreshness.recordError("climate", String(error));
         }
-        const anomalies = climateResult.anomalies;
-        (this.panels['climate'] as ClimateAnomalyPanel)?.setAnomalies(anomalies);
-        ingestClimateForCII(anomalies);
-        if (this.mapLayers.climate) {
-          this.map?.setClimateAnomalies(anomalies);
-        }
-        if (anomalies.length > 0) dataFreshness.recordUpdate('climate', anomalies.length);
-      } catch (error) {
-        console.error('[Intelligence] Climate anomalies fetch failed:', error);
-        dataFreshness.recordError('climate', String(error));
-      }
-    })());
+      })(),
+    );
 
     await Promise.allSettled(tasks);
 
     // Fetch population exposure estimates after upstream intelligence loads complete.
     // This avoids race conditions where UCDP/protest data is still in-flight.
     try {
-      const ucdpEvts = (this.panels['ucdp-events'] as UcdpEventsPanel)?.getEvents?.() || [];
+      const ucdpEvts =
+        (this.panels["ucdp-events"] as UcdpEventsPanel)?.getEvents?.() || [];
       const events = [
-        ...(this.intelligenceCache.protests?.events || []).slice(0, 10).map(e => ({
-          id: e.id, lat: e.lat, lon: e.lon, type: 'conflict' as const, name: e.title || 'Protest',
-        })),
-        ...ucdpEvts.slice(0, 10).map(e => ({
-          id: e.id, lat: e.latitude, lon: e.longitude, type: e.type_of_violence as string, name: `${e.side_a} vs ${e.side_b}`,
+        ...(this.intelligenceCache.protests?.events || [])
+          .slice(0, 10)
+          .map((e) => ({
+            id: e.id,
+            lat: e.lat,
+            lon: e.lon,
+            type: "conflict" as const,
+            name: e.title || "Protest",
+          })),
+        ...ucdpEvts.slice(0, 10).map((e) => ({
+          id: e.id,
+          lat: e.latitude,
+          lon: e.longitude,
+          type: e.type_of_violence as string,
+          name: `${e.side_a} vs ${e.side_b}`,
         })),
       ];
       if (events.length > 0) {
         const exposures = await enrichEventsWithExposure(events);
-        (this.panels['population-exposure'] as PopulationExposurePanel)?.setExposures(exposures);
-        if (exposures.length > 0) dataFreshness.recordUpdate('worldpop', exposures.length);
+        (
+          this.panels["population-exposure"] as PopulationExposurePanel
+        )?.setExposures(exposures);
+        if (exposures.length > 0)
+          dataFreshness.recordUpdate("worldpop", exposures.length);
       }
     } catch (error) {
-      console.error('[Intelligence] Population exposure fetch failed:', error);
-      dataFreshness.recordError('worldpop', String(error));
+      console.error("[Intelligence] Population exposure fetch failed:", error);
+      dataFreshness.recordError("worldpop", String(error));
     }
 
     // Now trigger CII refresh with all intelligence data
-    (this.panels['cii'] as CIIPanel)?.refresh();
-    console.log('[Intelligence] All signals loaded for CII calculation');
+    (this.panels["cii"] as CIIPanel)?.refresh();
+    console.log("[Intelligence] All signals loaded for CII calculation");
   }
 
   private async loadOutages(): Promise<void> {
@@ -3400,37 +4169,49 @@ export class App {
     if (this.intelligenceCache.outages) {
       const outages = this.intelligenceCache.outages;
       this.map?.setOutages(outages);
-      this.map?.setLayerReady('outages', outages.length > 0);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
+      this.map?.setLayerReady("outages", outages.length > 0);
+      this.statusPanel?.updateFeed("NetBlocks", {
+        status: "ok",
+        itemCount: outages.length,
+      });
       return;
     }
     try {
       const outages = await fetchInternetOutages();
       this.intelligenceCache.outages = outages;
       this.map?.setOutages(outages);
-      this.map?.setLayerReady('outages', outages.length > 0);
+      this.map?.setLayerReady("outages", outages.length > 0);
       ingestOutagesForCII(outages);
       signalAggregator.ingestOutages(outages);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-      dataFreshness.recordUpdate('outages', outages.length);
+      this.statusPanel?.updateFeed("NetBlocks", {
+        status: "ok",
+        itemCount: outages.length,
+      });
+      dataFreshness.recordUpdate("outages", outages.length);
     } catch (error) {
-      this.map?.setLayerReady('outages', false);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'error' });
-      dataFreshness.recordError('outages', String(error));
+      this.map?.setLayerReady("outages", false);
+      this.statusPanel?.updateFeed("NetBlocks", { status: "error" });
+      dataFreshness.recordError("outages", String(error));
     }
   }
 
   private async loadCyberThreats(): Promise<void> {
     if (!CYBER_LAYER_ENABLED) {
       this.mapLayers.cyberThreats = false;
-      this.map?.setLayerReady('cyberThreats', false);
+      this.map?.setLayerReady("cyberThreats", false);
       return;
     }
 
     if (this.cyberThreatsCache) {
       this.map?.setCyberThreats(this.cyberThreatsCache);
-      this.map?.setLayerReady('cyberThreats', this.cyberThreatsCache.length > 0);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: this.cyberThreatsCache.length });
+      this.map?.setLayerReady(
+        "cyberThreats",
+        this.cyberThreatsCache.length > 0,
+      );
+      this.statusPanel?.updateFeed("Cyber Threats", {
+        status: "ok",
+        itemCount: this.cyberThreatsCache.length,
+      });
       return;
     }
 
@@ -3438,13 +4219,19 @@ export class App {
       const threats = await fetchCyberThreats({ limit: 500, days: 14 });
       this.cyberThreatsCache = threats;
       this.map?.setCyberThreats(threats);
-      this.map?.setLayerReady('cyberThreats', threats.length > 0);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: threats.length });
-      dataFreshness.recordUpdate('cyber_threats', threats.length);
+      this.map?.setLayerReady("cyberThreats", threats.length > 0);
+      this.statusPanel?.updateFeed("Cyber Threats", {
+        status: "ok",
+        itemCount: threats.length,
+      });
+      dataFreshness.recordUpdate("cyber_threats", threats.length);
     } catch (error) {
-      this.map?.setLayerReady('cyberThreats', false);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'error', errorMessage: String(error) });
-      dataFreshness.recordError('cyber_threats', String(error));
+      this.map?.setLayerReady("cyberThreats", false);
+      this.statusPanel?.updateFeed("Cyber Threats", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      dataFreshness.recordError("cyber_threats", String(error));
     }
   }
 
@@ -3452,37 +4239,51 @@ export class App {
     try {
       const { disruptions, density } = await fetchAisSignals();
       const aisStatus = getAisStatus();
-      console.log('[Ships] Events:', { disruptions: disruptions.length, density: density.length, vessels: aisStatus.vessels });
+      console.log("[Ships] Events:", {
+        disruptions: disruptions.length,
+        density: density.length,
+        vessels: aisStatus.vessels,
+      });
       this.map?.setAisData(disruptions, density);
       signalAggregator.ingestAisDisruptions(disruptions);
       // Temporal baseline: report AIS gap counts
       updateAndCheck([
-        { type: 'ais_gaps', region: 'global', count: disruptions.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-      }).catch(() => {});
+        { type: "ais_gaps", region: "global", count: disruptions.length },
+      ])
+        .then((anomalies) => {
+          if (anomalies.length > 0)
+            signalAggregator.ingestTemporalAnomalies(anomalies);
+        })
+        .catch(() => {});
 
       const hasData = disruptions.length > 0 || density.length > 0;
-      this.map?.setLayerReady('ais', hasData);
+      this.map?.setLayerReady("ais", hasData);
 
       const shippingCount = disruptions.length + density.length;
-      const shippingStatus = shippingCount > 0 ? 'ok' : (aisStatus.connected ? 'warning' : 'error');
-      this.statusPanel?.updateFeed('Shipping', {
+      const shippingStatus =
+        shippingCount > 0 ? "ok" : aisStatus.connected ? "warning" : "error";
+      this.statusPanel?.updateFeed("Shipping", {
         status: shippingStatus,
         itemCount: shippingCount,
-        errorMessage: !aisStatus.connected && shippingCount === 0 ? 'AIS snapshot unavailable' : undefined,
+        errorMessage:
+          !aisStatus.connected && shippingCount === 0
+            ? "AIS snapshot unavailable"
+            : undefined,
       });
-      this.statusPanel?.updateApi('AISStream', {
-        status: aisStatus.connected ? 'ok' : 'warning',
+      this.statusPanel?.updateApi("AISStream", {
+        status: aisStatus.connected ? "ok" : "warning",
       });
       if (hasData) {
-        dataFreshness.recordUpdate('ais', shippingCount);
+        dataFreshness.recordUpdate("ais", shippingCount);
       }
     } catch (error) {
-      this.map?.setLayerReady('ais', false);
-      this.statusPanel?.updateFeed('Shipping', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('AISStream', { status: 'error' });
-      dataFreshness.recordError('ais', String(error));
+      this.map?.setLayerReady("ais", false);
+      this.statusPanel?.updateFeed("Shipping", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      this.statusPanel?.updateApi("AISStream", { status: "error" });
+      dataFreshness.recordError("ais", String(error));
     }
   }
 
@@ -3496,16 +4297,16 @@ export class App {
 
       if (status.vessels > 0 || status.connected) {
         this.loadAisSignals();
-        this.map?.setLayerLoading('ais', false);
+        this.map?.setLayerLoading("ais", false);
         return;
       }
 
       if (attempts >= maxAttempts) {
-        this.map?.setLayerLoading('ais', false);
-        this.map?.setLayerReady('ais', false);
-        this.statusPanel?.updateFeed('Shipping', {
-          status: 'error',
-          errorMessage: 'Connection timeout'
+        this.map?.setLayerLoading("ais", false);
+        this.map?.setLayerReady("ais", false);
+        this.statusPanel?.updateFeed("Shipping", {
+          status: "error",
+          errorMessage: "Connection timeout",
         });
         return;
       }
@@ -3520,10 +4321,11 @@ export class App {
     try {
       const activity = await fetchCableActivity();
       this.map?.setCableActivity(activity.advisories, activity.repairShips);
-      const itemCount = activity.advisories.length + activity.repairShips.length;
-      this.statusPanel?.updateFeed('CableOps', { status: 'ok', itemCount });
+      const itemCount =
+        activity.advisories.length + activity.repairShips.length;
+      this.statusPanel?.updateFeed("CableOps", { status: "ok", itemCount });
     } catch {
-      this.statusPanel?.updateFeed('CableOps', { status: 'error' });
+      this.statusPanel?.updateFeed("CableOps", { status: "error" });
     }
   }
 
@@ -3532,50 +4334,61 @@ export class App {
     if (this.intelligenceCache.protests) {
       const protestData = this.intelligenceCache.protests;
       this.map?.setProtests(protestData.events);
-      this.map?.setLayerReady('protests', protestData.events.length > 0);
+      this.map?.setLayerReady("protests", protestData.events.length > 0);
       const status = getProtestStatus();
-      this.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
+      this.statusPanel?.updateFeed("Protests", {
+        status: "ok",
         itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
+        errorMessage:
+          status.acledConfigured === false
+            ? "ACLED not configured - using GDELT only"
+            : undefined,
       });
       if (status.acledConfigured === true) {
-        this.statusPanel?.updateApi('ACLED', { status: 'ok' });
+        this.statusPanel?.updateApi("ACLED", { status: "ok" });
       } else if (status.acledConfigured === null) {
-        this.statusPanel?.updateApi('ACLED', { status: 'warning' });
+        this.statusPanel?.updateApi("ACLED", { status: "warning" });
       }
-      this.statusPanel?.updateApi('GDELT', { status: 'ok' });
+      this.statusPanel?.updateApi("GDELT", { status: "ok" });
       return;
     }
     try {
       const protestData = await fetchProtestEvents();
       this.intelligenceCache.protests = protestData;
       this.map?.setProtests(protestData.events);
-      this.map?.setLayerReady('protests', protestData.events.length > 0);
+      this.map?.setLayerReady("protests", protestData.events.length > 0);
       ingestProtests(protestData.events);
       ingestProtestsForCII(protestData.events);
       signalAggregator.ingestProtests(protestData.events);
-      const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-      if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-      (this.panels['cii'] as CIIPanel)?.refresh();
+      const protestCount =
+        protestData.sources.acled + protestData.sources.gdelt;
+      if (protestCount > 0) dataFreshness.recordUpdate("acled", protestCount);
+      if (protestData.sources.gdelt > 0)
+        dataFreshness.recordUpdate("gdelt", protestData.sources.gdelt);
+      (this.panels["cii"] as CIIPanel)?.refresh();
       const status = getProtestStatus();
-      this.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
+      this.statusPanel?.updateFeed("Protests", {
+        status: "ok",
         itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
+        errorMessage:
+          status.acledConfigured === false
+            ? "ACLED not configured - using GDELT only"
+            : undefined,
       });
       if (status.acledConfigured === true) {
-        this.statusPanel?.updateApi('ACLED', { status: 'ok' });
+        this.statusPanel?.updateApi("ACLED", { status: "ok" });
       } else if (status.acledConfigured === null) {
-        this.statusPanel?.updateApi('ACLED', { status: 'warning' });
+        this.statusPanel?.updateApi("ACLED", { status: "warning" });
       }
-      this.statusPanel?.updateApi('GDELT', { status: 'ok' });
+      this.statusPanel?.updateApi("GDELT", { status: "ok" });
     } catch (error) {
-      this.map?.setLayerReady('protests', false);
-      this.statusPanel?.updateFeed('Protests', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('ACLED', { status: 'error' });
-      this.statusPanel?.updateApi('GDELT', { status: 'error' });
+      this.map?.setLayerReady("protests", false);
+      this.statusPanel?.updateFeed("Protests", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      this.statusPanel?.updateApi("ACLED", { status: "error" });
+      this.statusPanel?.updateApi("GDELT", { status: "error" });
     }
   }
 
@@ -3583,39 +4396,46 @@ export class App {
     try {
       const delays = await fetchFlightDelays();
       this.map?.setFlightDelays(delays);
-      this.map?.setLayerReady('flights', delays.length > 0);
-      this.statusPanel?.updateFeed('Flights', {
-        status: 'ok',
+      this.map?.setLayerReady("flights", delays.length > 0);
+      this.statusPanel?.updateFeed("Flights", {
+        status: "ok",
         itemCount: delays.length,
       });
-      this.statusPanel?.updateApi('FAA', { status: 'ok' });
+      this.statusPanel?.updateApi("FAA", { status: "ok" });
     } catch (error) {
-      this.map?.setLayerReady('flights', false);
-      this.statusPanel?.updateFeed('Flights', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('FAA', { status: 'error' });
+      this.map?.setLayerReady("flights", false);
+      this.statusPanel?.updateFeed("Flights", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      this.statusPanel?.updateApi("FAA", { status: "error" });
     }
   }
 
   private async loadMilitary(): Promise<void> {
     // Use cached data if available (from loadIntelligenceSignals)
     if (this.intelligenceCache.military) {
-      const { flights, flightClusters, vessels, vesselClusters } = this.intelligenceCache.military;
+      const { flights, flightClusters, vessels, vesselClusters } =
+        this.intelligenceCache.military;
       this.map?.setMilitaryFlights(flights, flightClusters);
       this.map?.setMilitaryVessels(vessels, vesselClusters);
       this.map?.updateMilitaryForEscalation(flights, vessels);
       // Fetch cached postures for banner (posture panel fetches its own data)
       this.loadCachedPosturesForBanner();
-      const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
+      const insightsPanel = this.panels["insights"] as
+        | InsightsPanel
+        | undefined;
       insightsPanel?.setMilitaryFlights(flights);
       const hasData = flights.length > 0 || vessels.length > 0;
-      this.map?.setLayerReady('military', hasData);
+      this.map?.setLayerReady("military", hasData);
       const militaryCount = flights.length + vessels.length;
-      this.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
+      this.statusPanel?.updateFeed("Military", {
+        status: militaryCount > 0 ? "ok" : "warning",
         itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
+        errorMessage:
+          militaryCount === 0 ? "No military activity in view" : undefined,
       });
-      this.statusPanel?.updateApi('OpenSky', { status: 'ok' });
+      this.statusPanel?.updateApi("OpenSky", { status: "ok" });
       return;
     }
     try {
@@ -3641,13 +4461,23 @@ export class App {
       signalAggregator.ingestVessels(vesselData.vessels);
       // Temporal baseline: report counts from standalone military load
       updateAndCheck([
-        { type: 'military_flights', region: 'global', count: flightData.flights.length },
-        { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-      }).catch(() => {});
-      this.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-      (this.panels['cii'] as CIIPanel)?.refresh();
+        {
+          type: "military_flights",
+          region: "global",
+          count: flightData.flights.length,
+        },
+        { type: "vessels", region: "global", count: vesselData.vessels.length },
+      ])
+        .then((anomalies) => {
+          if (anomalies.length > 0)
+            signalAggregator.ingestTemporalAnomalies(anomalies);
+        })
+        .catch(() => {});
+      this.map?.updateMilitaryForEscalation(
+        flightData.flights,
+        vesselData.vessels,
+      );
+      (this.panels["cii"] as CIIPanel)?.refresh();
       if (!isInLearningMode()) {
         const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
         if (surgeAlerts.length > 0) {
@@ -3665,24 +4495,32 @@ export class App {
 
       // Fetch cached postures for banner (posture panel fetches its own data)
       this.loadCachedPosturesForBanner();
-      const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
+      const insightsPanel = this.panels["insights"] as
+        | InsightsPanel
+        | undefined;
       insightsPanel?.setMilitaryFlights(flightData.flights);
 
-      const hasData = flightData.flights.length > 0 || vesselData.vessels.length > 0;
-      this.map?.setLayerReady('military', hasData);
-      const militaryCount = flightData.flights.length + vesselData.vessels.length;
-      this.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
+      const hasData =
+        flightData.flights.length > 0 || vesselData.vessels.length > 0;
+      this.map?.setLayerReady("military", hasData);
+      const militaryCount =
+        flightData.flights.length + vesselData.vessels.length;
+      this.statusPanel?.updateFeed("Military", {
+        status: militaryCount > 0 ? "ok" : "warning",
         itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
+        errorMessage:
+          militaryCount === 0 ? "No military activity in view" : undefined,
       });
-      this.statusPanel?.updateApi('OpenSky', { status: 'ok' });
-      dataFreshness.recordUpdate('opensky', flightData.flights.length);
+      this.statusPanel?.updateApi("OpenSky", { status: "ok" });
+      dataFreshness.recordUpdate("opensky", flightData.flights.length);
     } catch (error) {
-      this.map?.setLayerReady('military', false);
-      this.statusPanel?.updateFeed('Military', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('OpenSky', { status: 'error' });
-      dataFreshness.recordError('opensky', String(error));
+      this.map?.setLayerReady("military", false);
+      this.statusPanel?.updateFeed("Military", {
+        status: "error",
+        errorMessage: String(error),
+      });
+      this.statusPanel?.updateApi("OpenSky", { status: "error" });
+      dataFreshness.recordError("opensky", String(error));
     }
   }
 
@@ -3696,21 +4534,25 @@ export class App {
       if (data && data.postures.length > 0) {
         this.renderCriticalBanner(data.postures);
         // Also update posture panel with shared data (saves a duplicate fetch)
-        const posturePanel = this.panels['strategic-posture'] as StrategicPosturePanel | undefined;
+        const posturePanel = this.panels["strategic-posture"] as
+          | StrategicPosturePanel
+          | undefined;
         posturePanel?.updatePostures(data);
       }
     } catch (error) {
-      console.warn('[App] Failed to load cached postures for banner:', error);
+      console.warn("[App] Failed to load cached postures for banner:", error);
     }
   }
 
-
   private async loadFredData(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
-    const cbInfo = getCircuitBreakerCooldownInfo('FRED Economic');
+    const economicPanel = this.panels["economic"] as EconomicPanel;
+    const cbInfo = getCircuitBreakerCooldownInfo("FRED Economic");
     if (cbInfo.onCooldown) {
-      economicPanel?.setErrorState(true, `Temporarily unavailable (retry in ${cbInfo.remainingSeconds}s)`);
-      this.statusPanel?.updateApi('FRED', { status: 'error' });
+      economicPanel?.setErrorState(
+        true,
+        `Temporarily unavailable (retry in ${cbInfo.remainingSeconds}s)`,
+      );
+      this.statusPanel?.updateApi("FRED", { status: "error" });
       return;
     }
 
@@ -3719,52 +4561,55 @@ export class App {
       const data = await fetchFredData();
 
       // Check if circuit breaker tripped after fetch
-      const postInfo = getCircuitBreakerCooldownInfo('FRED Economic');
+      const postInfo = getCircuitBreakerCooldownInfo("FRED Economic");
       if (postInfo.onCooldown) {
-        economicPanel?.setErrorState(true, `Temporarily unavailable (retry in ${postInfo.remainingSeconds}s)`);
-        this.statusPanel?.updateApi('FRED', { status: 'error' });
+        economicPanel?.setErrorState(
+          true,
+          `Temporarily unavailable (retry in ${postInfo.remainingSeconds}s)`,
+        );
+        this.statusPanel?.updateApi("FRED", { status: "error" });
         return;
       }
 
       if (data.length === 0) {
-        economicPanel?.setErrorState(true, 'Failed to load economic data');
-        this.statusPanel?.updateApi('FRED', { status: 'error' });
+        economicPanel?.setErrorState(true, "Failed to load economic data");
+        this.statusPanel?.updateApi("FRED", { status: "error" });
         return;
       }
 
       economicPanel?.setErrorState(false);
       economicPanel?.update(data);
-      this.statusPanel?.updateApi('FRED', { status: 'ok' });
-      dataFreshness.recordUpdate('economic', data.length);
+      this.statusPanel?.updateApi("FRED", { status: "ok" });
+      dataFreshness.recordUpdate("economic", data.length);
     } catch {
-      this.statusPanel?.updateApi('FRED', { status: 'error' });
-      economicPanel?.setErrorState(true, 'Failed to load data');
+      this.statusPanel?.updateApi("FRED", { status: "error" });
+      economicPanel?.setErrorState(true, "Failed to load data");
       economicPanel?.setLoading(false);
     }
   }
 
   private async loadOilAnalytics(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
+    const economicPanel = this.panels["economic"] as EconomicPanel;
     try {
       const data = await fetchOilAnalytics();
       economicPanel?.updateOil(data);
     } catch (e) {
-      console.error('[App] Oil analytics failed:', e);
+      console.error("[App] Oil analytics failed:", e);
     }
   }
 
   private async loadGovernmentSpending(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
+    const economicPanel = this.panels["economic"] as EconomicPanel;
     try {
       const data = await fetchRecentAwards({ daysBack: 7, limit: 15 });
       economicPanel?.updateSpending(data);
     } catch (e) {
-      console.error('[App] Government spending failed:', e);
+      console.error("[App] Government spending failed:", e);
     }
   }
 
   private updateMonitorResults(): void {
-    const monitorPanel = this.panels['monitors'] as MonitorPanel;
+    const monitorPanel = this.panels["monitors"] as MonitorPanel;
     monitorPanel.renderResults(this.allNews);
   }
 
@@ -3780,15 +4625,15 @@ export class App {
       // Ingest news clusters for CII
       if (this.latestClusters.length > 0) {
         ingestNewsForCII(this.latestClusters);
-        dataFreshness.recordUpdate('gdelt', this.latestClusters.length);
-        (this.panels['cii'] as CIIPanel)?.refresh();
+        dataFreshness.recordUpdate("gdelt", this.latestClusters.length);
+        (this.panels["cii"] as CIIPanel)?.refresh();
       }
 
       // Run correlation analysis off main thread via Web Worker
       const signals = await analysisWorker.analyzeCorrelations(
         this.latestClusters,
         this.latestPredictions,
-        this.latestMarkets
+        this.latestMarkets,
       );
 
       // Detect geographic convergence (suppress during learning mode)
@@ -3805,7 +4650,7 @@ export class App {
         this.signalModal?.show(allSignals);
       }
     } catch (error) {
-      console.error('[App] Correlation analysis failed:', error);
+      console.error("[App] Correlation analysis failed:", error);
     }
   }
 
@@ -3817,41 +4662,48 @@ export class App {
         const stats = computeRegionStats(regions);
 
         // Feed signal aggregator
-        signalAggregator.ingestSatelliteFires(flat.map(f => ({
-          lat: f.lat,
-          lon: f.lon,
-          brightness: f.brightness,
-          frp: f.frp,
-          region: f.region,
-          acq_date: f.acq_date,
-        })));
+        signalAggregator.ingestSatelliteFires(
+          flat.map((f) => ({
+            lat: f.lat,
+            lon: f.lon,
+            brightness: f.brightness,
+            frp: f.frp,
+            region: f.region,
+            acq_date: f.acq_date,
+          })),
+        );
 
         // Feed map layer
         this.map?.setFires(flat);
 
         // Feed panel
-        (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update(stats, totalCount);
+        (this.panels["satellite-fires"] as SatelliteFiresPanel)?.update(
+          stats,
+          totalCount,
+        );
 
-        dataFreshness.recordUpdate('firms', totalCount);
+        dataFreshness.recordUpdate("firms", totalCount);
 
         // Report to temporal baseline (fire-and-forget)
         updateAndCheck([
-          { type: 'satellite_fires', region: 'global', count: totalCount },
-        ]).then(anomalies => {
-          if (anomalies.length > 0) {
-            signalAggregator.ingestTemporalAnomalies(anomalies);
-          }
-        }).catch(() => {});
+          { type: "satellite_fires", region: "global", count: totalCount },
+        ])
+          .then((anomalies) => {
+            if (anomalies.length > 0) {
+              signalAggregator.ingestTemporalAnomalies(anomalies);
+            }
+          })
+          .catch(() => {});
       } else {
         // Still update panel so it exits loading spinner
-        (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update([], 0);
+        (this.panels["satellite-fires"] as SatelliteFiresPanel)?.update([], 0);
       }
-      this.statusPanel?.updateApi('FIRMS', { status: 'ok' });
+      this.statusPanel?.updateApi("FIRMS", { status: "ok" });
     } catch (e) {
-      console.warn('[App] FIRMS load failed:', e);
-      (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update([], 0);
-      this.statusPanel?.updateApi('FIRMS', { status: 'error' });
-      dataFreshness.recordError('firms', String(e));
+      console.warn("[App] FIRMS load failed:", e);
+      (this.panels["satellite-fires"] as SatelliteFiresPanel)?.update([], 0);
+      this.statusPanel?.updateApi("FIRMS", { status: "error" });
+      dataFreshness.recordError("firms", String(e));
     }
   }
 
@@ -3859,7 +4711,7 @@ export class App {
     name: string,
     fn: () => Promise<void>,
     intervalMs: number,
-    condition?: () => boolean
+    condition?: () => boolean,
   ): void {
     const HIDDEN_REFRESH_MULTIPLIER = 4;
     const JITTER_FRACTION = 0.1;
@@ -3877,7 +4729,7 @@ export class App {
     };
     const run = async () => {
       if (this.isDestroyed) return;
-      const isHidden = document.visibilityState === 'hidden';
+      const isHidden = document.visibilityState === "hidden";
       if (isHidden) {
         scheduleNext(computeDelay(intervalMs, true));
         return;
@@ -3900,41 +4752,93 @@ export class App {
         scheduleNext(computeDelay(intervalMs, false));
       }
     };
-    scheduleNext(computeDelay(intervalMs, document.visibilityState === 'hidden'));
+    scheduleNext(
+      computeDelay(intervalMs, document.visibilityState === "hidden"),
+    );
   }
 
   private setupRefreshIntervals(): void {
     // Always refresh news, markets, predictions, pizzint
-    this.scheduleRefresh('news', () => this.loadNews(), REFRESH_INTERVALS.feeds);
-    this.scheduleRefresh('markets', () => this.loadMarkets(), REFRESH_INTERVALS.markets);
-    this.scheduleRefresh('predictions', () => this.loadPredictions(), REFRESH_INTERVALS.predictions);
-    this.scheduleRefresh('pizzint', () => this.loadPizzInt(), 10 * 60 * 1000);
+    this.scheduleRefresh(
+      "news",
+      () => this.loadNews(),
+      REFRESH_INTERVALS.feeds,
+    );
+    this.scheduleRefresh(
+      "markets",
+      () => this.loadMarkets(),
+      REFRESH_INTERVALS.markets,
+    );
+    this.scheduleRefresh(
+      "predictions",
+      () => this.loadPredictions(),
+      REFRESH_INTERVALS.predictions,
+    );
+    this.scheduleRefresh("pizzint", () => this.loadPizzInt(), 10 * 60 * 1000);
 
     // Only refresh layer data if layer is enabled
-    this.scheduleRefresh('natural', () => this.loadNatural(), 5 * 60 * 1000, () => this.mapLayers.natural);
-    this.scheduleRefresh('weather', () => this.loadWeatherAlerts(), 10 * 60 * 1000, () => this.mapLayers.weather);
-    this.scheduleRefresh('fred', () => this.loadFredData(), 30 * 60 * 1000);
-    this.scheduleRefresh('oil', () => this.loadOilAnalytics(), 30 * 60 * 1000);
-    this.scheduleRefresh('spending', () => this.loadGovernmentSpending(), 60 * 60 * 1000);
+    this.scheduleRefresh(
+      "natural",
+      () => this.loadNatural(),
+      5 * 60 * 1000,
+      () => this.mapLayers.natural,
+    );
+    this.scheduleRefresh(
+      "weather",
+      () => this.loadWeatherAlerts(),
+      10 * 60 * 1000,
+      () => this.mapLayers.weather,
+    );
+    this.scheduleRefresh("fred", () => this.loadFredData(), 30 * 60 * 1000);
+    this.scheduleRefresh("oil", () => this.loadOilAnalytics(), 30 * 60 * 1000);
+    this.scheduleRefresh(
+      "spending",
+      () => this.loadGovernmentSpending(),
+      60 * 60 * 1000,
+    );
 
     // Refresh intelligence signals for CII (geopolitical variant only)
     // This handles outages, protests, military - updates map when layers enabled
-    if (SITE_VARIANT === 'full') {
-      this.scheduleRefresh('intelligence', () => {
-        this.intelligenceCache = {}; // Clear cache to force fresh fetch
-        return this.loadIntelligenceSignals();
-      }, 5 * 60 * 1000);
+    if (SITE_VARIANT === "full") {
+      this.scheduleRefresh(
+        "intelligence",
+        () => {
+          this.intelligenceCache = {}; // Clear cache to force fresh fetch
+          return this.loadIntelligenceSignals();
+        },
+        5 * 60 * 1000,
+      );
     }
 
     // Non-intelligence layer refreshes only
     // NOTE: outages, protests, military are refreshed by intelligence schedule above
-    this.scheduleRefresh('firms', () => this.loadFirmsData(), 30 * 60 * 1000);
-    this.scheduleRefresh('ais', () => this.loadAisSignals(), REFRESH_INTERVALS.ais, () => this.mapLayers.ais);
-    this.scheduleRefresh('cables', () => this.loadCableActivity(), 30 * 60 * 1000, () => this.mapLayers.cables);
-    this.scheduleRefresh('flights', () => this.loadFlightDelays(), 10 * 60 * 1000, () => this.mapLayers.flights);
-    this.scheduleRefresh('cyberThreats', () => {
-      this.cyberThreatsCache = null;
-      return this.loadCyberThreats();
-    }, 10 * 60 * 1000, () => CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats);
+    this.scheduleRefresh("firms", () => this.loadFirmsData(), 30 * 60 * 1000);
+    this.scheduleRefresh(
+      "ais",
+      () => this.loadAisSignals(),
+      REFRESH_INTERVALS.ais,
+      () => this.mapLayers.ais,
+    );
+    this.scheduleRefresh(
+      "cables",
+      () => this.loadCableActivity(),
+      30 * 60 * 1000,
+      () => this.mapLayers.cables,
+    );
+    this.scheduleRefresh(
+      "flights",
+      () => this.loadFlightDelays(),
+      10 * 60 * 1000,
+      () => this.mapLayers.flights,
+    );
+    this.scheduleRefresh(
+      "cyberThreats",
+      () => {
+        this.cyberThreatsCache = null;
+        return this.loadCyberThreats();
+      },
+      10 * 60 * 1000,
+      () => CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats,
+    );
   }
 }

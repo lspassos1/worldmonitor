@@ -4,8 +4,8 @@
  * Requires free API key from https://www.eia.gov/opendata/
  */
 
-import { dataFreshness } from './data-freshness';
-import { isFeatureAvailable } from './runtime-config';
+import { dataFreshness } from "./data-freshness";
+import { isFeatureAvailable } from "./runtime-config";
 
 export interface OilDataPoint {
   date: string;
@@ -21,7 +21,7 @@ export interface OilMetric {
   previous: number;
   changePct: number;
   unit: string;
-  trend: 'up' | 'down' | 'stable';
+  trend: "up" | "down" | "stable";
   lastUpdated: string;
 }
 
@@ -39,7 +39,7 @@ export interface OilAnalytics {
 // PET.WCRFPUS2.W - US Crude Oil Production (Weekly)
 // PET.WCESTUS1.W - US Crude Oil Inventory (Weekly)
 
-const EIA_PROXY_URL = '/api/eia';
+const EIA_PROXY_URL = "/api/eia";
 
 // Cache for API responses
 let cachedData: OilAnalytics | null = null;
@@ -50,7 +50,7 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
  * Check if EIA API is configured
  */
 export async function checkEiaStatus(): Promise<boolean> {
-  if (!isFeatureAvailable('energyEia')) return false;
+  if (!isFeatureAvailable("energyEia")) return false;
   try {
     const response = await fetch(`${EIA_PROXY_URL}/health`);
     const data = await response.json();
@@ -64,8 +64,14 @@ export async function checkEiaStatus(): Promise<boolean> {
  * Fetch oil analytics data
  */
 export async function fetchOilAnalytics(): Promise<OilAnalytics> {
-  if (!isFeatureAvailable('energyEia')) {
-    return { wtiPrice: null, brentPrice: null, usProduction: null, usInventory: null, fetchedAt: new Date() };
+  if (!isFeatureAvailable("energyEia")) {
+    return {
+      wtiPrice: null,
+      brentPrice: null,
+      usProduction: null,
+      usInventory: null,
+      fetchedAt: new Date(),
+    };
   }
   // Return cached data if fresh
   if (cachedData && Date.now() - cacheTimestamp < CACHE_TTL) {
@@ -85,7 +91,7 @@ export async function fetchOilAnalytics(): Promise<OilAnalytics> {
 
     if (!response.ok) {
       if (response.status === 503) {
-        console.log('[EIA] API not configured');
+        console.log("[EIA] API not configured");
         return result;
       }
       throw new Error(`EIA API error: ${response.status}`);
@@ -94,16 +100,24 @@ export async function fetchOilAnalytics(): Promise<OilAnalytics> {
     const data = await response.json();
 
     if (data.wti) {
-      result.wtiPrice = parseMetric(data.wti, 'WTI Crude', '$/barrel');
+      result.wtiPrice = parseMetric(data.wti, "WTI Crude", "$/barrel");
     }
     if (data.brent) {
-      result.brentPrice = parseMetric(data.brent, 'Brent Crude', '$/barrel');
+      result.brentPrice = parseMetric(data.brent, "Brent Crude", "$/barrel");
     }
     if (data.production) {
-      result.usProduction = parseMetric(data.production, 'US Production', 'Mbbl/d');
+      result.usProduction = parseMetric(
+        data.production,
+        "US Production",
+        "Mbbl/d",
+      );
     }
     if (data.inventory) {
-      result.usInventory = parseMetric(data.inventory, 'US Inventory', 'M barrels');
+      result.usInventory = parseMetric(
+        data.inventory,
+        "US Inventory",
+        "M barrels",
+      );
     }
 
     // Cache the result
@@ -111,16 +125,23 @@ export async function fetchOilAnalytics(): Promise<OilAnalytics> {
     cacheTimestamp = Date.now();
 
     // Record freshness
-    const metricCount = [result.wtiPrice, result.brentPrice, result.usProduction, result.usInventory]
-      .filter(Boolean).length;
+    const metricCount = [
+      result.wtiPrice,
+      result.brentPrice,
+      result.usProduction,
+      result.usInventory,
+    ].filter(Boolean).length;
     if (metricCount > 0) {
-      dataFreshness.recordUpdate('oil', metricCount);
+      dataFreshness.recordUpdate("oil", metricCount);
     }
 
     console.log(`[EIA] Fetched ${metricCount} oil metrics`);
   } catch (error) {
-    console.error('[EIA] Fetch failed:', error);
-    dataFreshness.recordError('oil', error instanceof Error ? error.message : 'Unknown error');
+    console.error("[EIA] Fetch failed:", error);
+    dataFreshness.recordError(
+      "oil",
+      error instanceof Error ? error.message : "Unknown error",
+    );
   }
 
   return result;
@@ -129,23 +150,24 @@ export async function fetchOilAnalytics(): Promise<OilAnalytics> {
 function parseMetric(
   data: { current?: number; previous?: number; date?: string },
   name: string,
-  unit: string
+  unit: string,
 ): OilMetric | null {
   if (data.current == null) return null;
 
   const current = data.current;
   const previous = data.previous ?? current;
-  const changePct = previous !== 0 ? ((current - previous) / previous) * 100 : 0;
+  const changePct =
+    previous !== 0 ? ((current - previous) / previous) * 100 : 0;
 
   return {
-    id: name.toLowerCase().replace(/\s+/g, '-'),
+    id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
     description: `${name} price/volume`,
     current,
     previous,
     changePct: Math.round(changePct * 10) / 10,
     unit,
-    trend: changePct > 0.5 ? 'up' : changePct < -0.5 ? 'down' : 'stable',
+    trend: changePct > 0.5 ? "up" : changePct < -0.5 ? "down" : "stable",
     lastUpdated: data.date || new Date().toISOString(),
   };
 }
@@ -154,7 +176,7 @@ function parseMetric(
  * Format oil metric for display
  */
 export function formatOilValue(value: number, unit: string): string {
-  if (unit.includes('$')) {
+  if (unit.includes("$")) {
     return `$${value.toFixed(2)}`;
   }
   if (value >= 1000) {
@@ -166,25 +188,34 @@ export function formatOilValue(value: number, unit: string): string {
 /**
  * Get trend indicator
  */
-export function getTrendIndicator(trend: OilMetric['trend']): string {
+export function getTrendIndicator(trend: OilMetric["trend"]): string {
   switch (trend) {
-    case 'up': return '▲';
-    case 'down': return '▼';
-    default: return '●';
+    case "up":
+      return "▲";
+    case "down":
+      return "▼";
+    default:
+      return "●";
   }
 }
 
 /**
  * Get trend color
  */
-export function getTrendColor(trend: OilMetric['trend'], inverse = false): string {
+export function getTrendColor(
+  trend: OilMetric["trend"],
+  inverse = false,
+): string {
   // For prices, up = bad (red), down = good (green) - unless inverse
-  const upColor = inverse ? '#44ff88' : '#ff6b6b';
-  const downColor = inverse ? '#ff6b6b' : '#44ff88';
+  const upColor = inverse ? "#44ff88" : "#ff6b6b";
+  const downColor = inverse ? "#ff6b6b" : "#44ff88";
 
   switch (trend) {
-    case 'up': return upColor;
-    case 'down': return downColor;
-    default: return '#888888';
+    case "up":
+      return upColor;
+    case "down":
+      return downColor;
+    default:
+      return "#888888";
   }
 }

@@ -23,7 +23,8 @@ export const HIGHLIGHT_DURATION_MS = 30 * 1000;
 class ActivityTracker {
   private panels: Map<string, ActivityState> = new Map();
   private observers: Map<string, IntersectionObserver> = new Map();
-  private onChangeCallbacks: Map<string, (newCount: number) => void> = new Map();
+  private onChangeCallbacks: Map<string, (newCount: number) => void> =
+    new Map();
 
   /**
    * Initialize tracking for a panel
@@ -145,15 +146,15 @@ class ActivityTracker {
    */
   getRelativeTime(panelId: string, itemId: string): string {
     const state = this.panels.get(panelId);
-    if (!state) return '';
+    if (!state) return "";
 
     const firstSeen = state.firstSeenTime.get(itemId);
-    if (!firstSeen) return '';
+    if (!firstSeen) return "";
 
     const elapsed = Date.now() - firstSeen;
 
     if (elapsed < 60000) {
-      return 'just now';
+      return "just now";
     } else if (elapsed < 3600000) {
       const mins = Math.floor(elapsed / 60000);
       return `${mins}m ago`;
@@ -186,7 +187,7 @@ class ActivityTracker {
           }
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
 
     observer.observe(element);

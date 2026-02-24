@@ -1,6 +1,6 @@
-import { isDesktopRuntime } from '@/services/runtime';
+import { isDesktopRuntime } from "@/services/runtime";
 
-const STORAGE_KEY = 'wm-download-banner-dismissed';
+const STORAGE_KEY = "wm-download-banner-dismissed";
 const SHOW_DELAY_MS = 12_000;
 let bannerScheduled = false;
 
@@ -15,20 +15,20 @@ export function maybeShowDownloadBanner(): void {
     const panel = buildPanel();
     document.body.appendChild(panel);
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => panel.classList.add('wm-dl-show'));
+      requestAnimationFrame(() => panel.classList.add("wm-dl-show"));
     });
   }, SHOW_DELAY_MS);
 }
 
 function dismiss(panel: HTMLElement): void {
-  localStorage.setItem(STORAGE_KEY, '1');
-  panel.classList.remove('wm-dl-show');
-  panel.addEventListener('transitionend', () => panel.remove(), { once: true });
+  localStorage.setItem(STORAGE_KEY, "1");
+  panel.classList.remove("wm-dl-show");
+  panel.addEventListener("transitionend", () => panel.remove(), { once: true });
 }
 
 function buildPanel(): HTMLElement {
-  const el = document.createElement('div');
-  el.className = 'wm-dl-panel';
+  const el = document.createElement("div");
+  el.className = "wm-dl-panel";
   el.innerHTML = `
     <style>
       .wm-dl-panel {
@@ -92,9 +92,11 @@ function buildPanel(): HTMLElement {
     </div>
   `;
 
-  el.querySelector('.wm-dl-close')!.addEventListener('click', () => dismiss(el));
-  el.querySelectorAll('.wm-dl-btn').forEach(btn =>
-    btn.addEventListener('click', () => dismiss(el))
+  el.querySelector(".wm-dl-close")!.addEventListener("click", () =>
+    dismiss(el),
+  );
+  el.querySelectorAll(".wm-dl-btn").forEach((btn) =>
+    btn.addEventListener("click", () => dismiss(el)),
   );
 
   return el;

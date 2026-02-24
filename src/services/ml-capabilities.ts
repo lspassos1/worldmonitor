@@ -3,8 +3,8 @@
  * Detects device capabilities for ONNX Runtime Web
  */
 
-import { isMobileDevice } from '@/utils';
-import { ML_THRESHOLDS } from '@/config/ml-config';
+import { isMobileDevice } from "@/utils";
+import { ML_THRESHOLDS } from "@/config/ml-config";
 
 export interface MLCapabilities {
   isSupported: boolean;
@@ -14,7 +14,7 @@ export interface MLCapabilities {
   hasSIMD: boolean;
   hasThreads: boolean;
   estimatedMemoryMB: number;
-  recommendedExecutionProvider: 'webgpu' | 'webgl' | 'wasm';
+  recommendedExecutionProvider: "webgpu" | "webgl" | "wasm";
   recommendedThreads: number;
 }
 
@@ -31,17 +31,16 @@ export async function detectMLCapabilities(): Promise<MLCapabilities> {
   const hasThreads = checkThreadsSupport();
   const estimatedMemoryMB = estimateAvailableMemory();
 
-  const isSupported = isDesktop &&
-    (hasWebGL || hasWebGPU) &&
-    estimatedMemoryMB >= 100;
+  const isSupported =
+    isDesktop && (hasWebGL || hasWebGPU) && estimatedMemoryMB >= 100;
 
-  let recommendedExecutionProvider: 'webgpu' | 'webgl' | 'wasm';
+  let recommendedExecutionProvider: "webgpu" | "webgl" | "wasm";
   if (hasWebGPU) {
-    recommendedExecutionProvider = 'webgpu';
+    recommendedExecutionProvider = "webgpu";
   } else if (hasWebGL) {
-    recommendedExecutionProvider = 'webgl';
+    recommendedExecutionProvider = "webgl";
   } else {
-    recommendedExecutionProvider = 'wasm';
+    recommendedExecutionProvider = "wasm";
   }
 
   const recommendedThreads = hasThreads
@@ -60,14 +59,14 @@ export async function detectMLCapabilities(): Promise<MLCapabilities> {
     recommendedThreads,
   };
 
-  console.log('[MLCapabilities]', cachedCapabilities);
+  console.log("[MLCapabilities]", cachedCapabilities);
   return cachedCapabilities;
 }
 
 function checkWebGLSupport(): boolean {
   try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     return !!gl;
   } catch {
     return false;
@@ -76,8 +75,10 @@ function checkWebGLSupport(): boolean {
 
 async function checkWebGPUSupport(): Promise<boolean> {
   try {
-    if (!('gpu' in navigator)) return false;
-    const adapter = await (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu?.requestAdapter();
+    if (!("gpu" in navigator)) return false;
+    const adapter = await (
+      navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }
+    ).gpu?.requestAdapter();
     return adapter !== null && adapter !== undefined;
   } catch {
     return false;
@@ -86,24 +87,29 @@ async function checkWebGPUSupport(): Promise<boolean> {
 
 function checkSIMDSupport(): boolean {
   try {
-    return typeof WebAssembly.validate === 'function' &&
-      WebAssembly.validate(new Uint8Array([
-        0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123,
-        3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11
-      ]));
+    return (
+      typeof WebAssembly.validate === "function" &&
+      WebAssembly.validate(
+        new Uint8Array([
+          0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10,
+          10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11,
+        ]),
+      )
+    );
   } catch {
     return false;
   }
 }
 
 function checkThreadsSupport(): boolean {
-  return typeof SharedArrayBuffer !== 'undefined';
+  return typeof SharedArrayBuffer !== "undefined";
 }
 
 function estimateAvailableMemory(): number {
   if (isMobileDevice()) return 0;
 
-  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number })
+    .deviceMemory;
   if (deviceMemory) {
     return Math.min(deviceMemory * 256, ML_THRESHOLDS.memoryBudgetMB);
   }

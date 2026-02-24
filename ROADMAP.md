@@ -8,16 +8,16 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 
 ### What We Already Do Well
 
-| Signal Type | Description | Data Sources |
-|------------|-------------|--------------|
-| **Convergence** | 3+ source types report same story within 30min | News feeds |
-| **Triangulation** | Wire + Gov + Intel sources align on topic | News feeds |
-| **Velocity Spike** | Topic mention rate doubles with 6+ sources/hr | News feeds |
-| **Prediction Leading** | Polymarket moves 5%+ with low news coverage | Polymarket + News |
-| **Silent Divergence** | Market moves 2%+ with minimal related news | Yahoo/Finnhub + News |
-| **Flow/Price Divergence** | Energy price spike without pipeline news | Markets + News |
-| **Related Assets** | News stories enriched with nearby infrastructure | Hotspots + All assets |
-| **GDELT Tensions** | Country-pair tension scores with 7-day trends | GDELT GPR API |
+| Signal Type               | Description                                      | Data Sources          |
+| ------------------------- | ------------------------------------------------ | --------------------- |
+| **Convergence**           | 3+ source types report same story within 30min   | News feeds            |
+| **Triangulation**         | Wire + Gov + Intel sources align on topic        | News feeds            |
+| **Velocity Spike**        | Topic mention rate doubles with 6+ sources/hr    | News feeds            |
+| **Prediction Leading**    | Polymarket moves 5%+ with low news coverage      | Polymarket + News     |
+| **Silent Divergence**     | Market moves 2%+ with minimal related news       | Yahoo/Finnhub + News  |
+| **Flow/Price Divergence** | Energy price spike without pipeline news         | Markets + News        |
+| **Related Assets**        | News stories enriched with nearby infrastructure | Hotspots + All assets |
+| **GDELT Tensions**        | Country-pair tension scores with 7-day trends    | GDELT GPR API         |
 
 ### What's Missing
 
@@ -38,6 +38,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 **Why:** The most valuable I&W (Indications & Warning) signals come from multiple independent sources detecting activity in the same area. A protest + military flight activity + shipping disruption in the same region is far more significant than any single event.
 
 **Data Sources (Already Have):**
+
 - Protests (ACLED/GDELT) → lat/lon
 - Military flights (OpenSky) → lat/lon
 - Military vessels (AIS) → lat/lon
@@ -47,6 +48,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 - Pipeline incidents → lat/lon (inferred)
 
 **Implementation:**
+
 ```
 1. Define 50km grid cells globally
 2. Each refresh cycle, tag events to grid cells
@@ -56,7 +58,9 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 ```
 
 **Example Alert:**
+
 > ⚠️ **Geographic Convergence: Taiwan Strait**
+>
 > - Military flights: 12 (3x normal)
 > - Naval vessels: 8 (2x normal)
 > - News velocity: Spike (+340%)
@@ -83,11 +87,13 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 | Infrastructure incidents | Cables/pipelines | 10% |
 
 **Free Data to Add:**
+
 - **World Bank Governance Indicators** (annual, free API)
 - **UN Refugee Data** (UNHCR, RSS feeds)
 - **Election proximity** (static calendar)
 
 **Implementation:**
+
 ```
 1. Map all events to ISO country codes
 2. Maintain rolling 7-day and 30-day baselines per country
@@ -97,6 +103,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 ```
 
 **UI:**
+
 - Choropleth map layer showing index by color
 - Sortable country list panel
 - Click country → drill-down to component breakdown
@@ -131,6 +138,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 | Port delays | Inferred from AIS | Real-time |
 
 **Implementation:**
+
 ```
 1. Define route polylines with chokepoint waypoints
 2. For each chokepoint, calculate: density_change + gap_rate + weather_alerts + conflict_distance
@@ -140,6 +148,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 ```
 
 **UI:**
+
 - Route lines on map colored by risk (green → yellow → red)
 - Panel showing route rankings with trends
 - Click route → show chokepoint breakdown
@@ -156,23 +165,27 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 **Dependency Mappings:**
 
 **Ports → dependent on:**
+
 - Pipelines (oil/LNG terminals)
 - Submarine cables (data for port operations)
 - Nearby naval bases (protection)
 - Chokepoints (access routes)
 
 **Cables → serve:**
+
 - Countries (list from cable data)
 - Data centers (proximity)
 - Financial centers (criticality)
 
 **Pipelines → connect:**
+
 - Origin countries
 - Transit countries
 - Destination ports/refineries
 - Alternate routes
 
 **Implementation:**
+
 ```
 1. Build static dependency graph in config
 2. For cables: map landing points to countries
@@ -183,6 +196,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 ```
 
 **Data Enhancement (Free):**
+
 - **TeleGeography** submarine cable landing points (public)
 - **Global Energy Monitor** pipeline database (public)
 - **UN COMTRADE** for trade flow volumes (free API)
@@ -205,6 +219,7 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 | AIS gaps per region | Same weekday, 4-week rolling | Z > 2.0 |
 
 **Implementation:**
+
 ```
 1. Store hourly/daily counts by category in IndexedDB
 2. Maintain separate baselines by: weekday, month, region
@@ -214,12 +229,15 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 ```
 
 **Example Alerts:**
+
 > 📊 **Temporal Anomaly: Baltic Region**
+>
 > - Military flights: 47 (normal Tuesday avg: 15)
 > - Z-score: 2.8 (highly unusual)
 > - Last similar: March 2024 (NATO exercise)
 
 > 📊 **Temporal Anomaly: Iran Protests**
+>
 > - Events this week: 23 (normal January avg: 8)
 > - Z-score: 1.9 (elevated)
 > - Note: Anniversary of 2023 protests approaching
@@ -230,43 +248,44 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 
 ### Economic/Trade APIs (No Key Required)
 
-| Source | Endpoint | Data | Rate Limit |
-|--------|----------|------|------------|
-| **World Bank API** | `api.worldbank.org/v2/` | 16,000+ indicators, GDP, trade, FDI | None |
-| **IMF Data API** | `dataservices.imf.org/REST/SDMX_JSON.svc/` | IFS, trade flows, balance of payments | None |
-| **UN Comtrade** | `comtradeapi.un.org/public/v1/` | Bilateral trade flows by HS code | 100/day free |
-| **BIS Statistics** | `stats.bis.org/api/v1/` | Global liquidity, cross-border banking | None |
-| **OECD Data** | `stats.oecd.org/SDMX-JSON/` | OECD country indicators | None |
+| Source             | Endpoint                                   | Data                                   | Rate Limit   |
+| ------------------ | ------------------------------------------ | -------------------------------------- | ------------ |
+| **World Bank API** | `api.worldbank.org/v2/`                    | 16,000+ indicators, GDP, trade, FDI    | None         |
+| **IMF Data API**   | `dataservices.imf.org/REST/SDMX_JSON.svc/` | IFS, trade flows, balance of payments  | None         |
+| **UN Comtrade**    | `comtradeapi.un.org/public/v1/`            | Bilateral trade flows by HS code       | 100/day free |
+| **BIS Statistics** | `stats.bis.org/api/v1/`                    | Global liquidity, cross-border banking | None         |
+| **OECD Data**      | `stats.oecd.org/SDMX-JSON/`                | OECD country indicators                | None         |
 
 ### Food Security (Critical for Instability Correlation)
 
-| Source | Endpoint | Data | Notes |
-|--------|----------|------|-------|
-| **FAO GIEWS RSS** | `fao.org/giews/english/shortnews/rss.xml` | Food price alerts, country briefs | Add to feeds.ts |
-| **FAO Food Price Monitor** | `fpma.fao.org/giews/fpmat4/` | Real-time commodity prices | JSON API |
-| **FAO STAT API** | `fenixservices.fao.org/faostat/api/v1/` | Food Price Index, production | REST |
+| Source                     | Endpoint                                  | Data                              | Notes           |
+| -------------------------- | ----------------------------------------- | --------------------------------- | --------------- |
+| **FAO GIEWS RSS**          | `fao.org/giews/english/shortnews/rss.xml` | Food price alerts, country briefs | Add to feeds.ts |
+| **FAO Food Price Monitor** | `fpma.fao.org/giews/fpmat4/`              | Real-time commodity prices        | JSON API        |
+| **FAO STAT API**           | `fenixservices.fao.org/faostat/api/v1/`   | Food Price Index, production      | REST            |
 
 ### Sanctions Lists (Critical for Risk Scoring)
 
-| Source | Endpoint | Data | Update Frequency |
-|--------|----------|------|------------------|
-| **OFAC SDN List** | `sanctionslistservice.ofac.treas.gov/api/` | US sanctions | Daily |
-| **EU Sanctions** | `webgate.ec.europa.eu/fsd/fsf/public/files/` | EU restrictive measures | Weekly |
-| **UN Sanctions** | `scsanctions.un.org/resources/xml/` | Al-Qaida, DPRK, Iran, etc. | Real-time |
-| **OpenSanctions** | `api.opensanctions.org/` | Unified 100+ sources | Free tier: 1000/day |
+| Source            | Endpoint                                     | Data                       | Update Frequency    |
+| ----------------- | -------------------------------------------- | -------------------------- | ------------------- |
+| **OFAC SDN List** | `sanctionslistservice.ofac.treas.gov/api/`   | US sanctions               | Daily               |
+| **EU Sanctions**  | `webgate.ec.europa.eu/fsd/fsf/public/files/` | EU restrictive measures    | Weekly              |
+| **UN Sanctions**  | `scsanctions.un.org/resources/xml/`          | Al-Qaida, DPRK, Iran, etc. | Real-time           |
+| **OpenSanctions** | `api.opensanctions.org/`                     | Unified 100+ sources       | Free tier: 1000/day |
 
 ### Migration/Humanitarian (Instability Indicators)
 
-| Source | Endpoint | Data | Notes |
-|--------|----------|------|-------|
-| **UNHCR API** | `api.unhcr.org/` | Refugee populations, IDPs, asylum | No key |
-| **IOM DTM** | `dtm.iom.int/` | Displacement tracking, migration flows | Free registration |
-| **ReliefWeb API** | `api.reliefweb.int/v1/` | Humanitarian reports, disasters | No key |
-| **INFORM Risk** | `drmkc.jrc.ec.europa.eu/inform-index/` | Hazard/vulnerability scores | CSV download |
+| Source            | Endpoint                               | Data                                   | Notes             |
+| ----------------- | -------------------------------------- | -------------------------------------- | ----------------- |
+| **UNHCR API**     | `api.unhcr.org/`                       | Refugee populations, IDPs, asylum      | No key            |
+| **IOM DTM**       | `dtm.iom.int/`                         | Displacement tracking, migration flows | Free registration |
+| **ReliefWeb API** | `api.reliefweb.int/v1/`                | Humanitarian reports, disasters        | No key            |
+| **INFORM Risk**   | `drmkc.jrc.ec.europa.eu/inform-index/` | Hazard/vulnerability scores            | CSV download      |
 
 ### Think Tank RSS Feeds (Add to feeds.ts)
 
 **Security/Defense:**
+
 - RUSI: `rusi.org/rss.xml`
 - Chatham House: `chathamhouse.org/rss.xml`
 - ECFR: `ecfr.eu/feed/`
@@ -277,30 +296,33 @@ This document outlines the top 5 features a geopolitical intelligence analyst wo
 - CNAS: `cnas.org/rss`
 
 **Nuclear/Arms Control:**
+
 - Arms Control Association: `armscontrol.org/rss/all`
 - FAS: `fas.org/feed/`
 - NTI: `nti.org/rss/`
 - Bulletin of Atomic Scientists: `thebulletin.org/feed/`
 
 **Regional:**
+
 - Middle East Institute: `mei.edu/rss.xml`
 - Lowy Institute (Asia-Pacific): `lowyinstitute.org/feed`
 - EU ISS: `iss.europa.eu/rss.xml`
 
 ### Static Data (Annual/Quarterly Updates)
 
-| Source | Data | Format | Use Case |
-|--------|------|--------|----------|
-| **SIPRI Arms Transfers** | Weapons exports by country | CSV | Military capability assessment |
-| **SIPRI MILEX** | Military spending | CSV | Defense budget trends |
-| **V-Dem** | 400+ democracy indicators | CSV | Governance quality |
-| **Fragile States Index** | Country risk scores | CSV | Baseline instability |
-| **Freedom House** | Democracy/freedom scores | CSV | Political environment |
-| **Global Terrorism Database** | Historical incidents | Registration | Pattern analysis |
+| Source                        | Data                       | Format       | Use Case                       |
+| ----------------------------- | -------------------------- | ------------ | ------------------------------ |
+| **SIPRI Arms Transfers**      | Weapons exports by country | CSV          | Military capability assessment |
+| **SIPRI MILEX**               | Military spending          | CSV          | Defense budget trends          |
+| **V-Dem**                     | 400+ democracy indicators  | CSV          | Governance quality             |
+| **Fragile States Index**      | Country risk scores        | CSV          | Baseline instability           |
+| **Freedom House**             | Democracy/freedom scores   | CSV          | Political environment          |
+| **Global Terrorism Database** | Historical incidents       | Registration | Pattern analysis               |
 
 ### Election Calendar (Static Config)
 
 Maintain election calendar in `src/config/elections.ts`. When election date approaches:
+
 - **30 days**: Add to "upcoming events" panel
 - **7 days**: Boost country news correlation
 - **1 day**: Increase instability index weighting
@@ -310,9 +332,9 @@ Maintain election calendar in `src/config/elections.ts`. When election date appr
 interface Election {
   country: string;
   countryCode: string;
-  type: 'presidential' | 'parliamentary' | 'referendum' | 'local';
+  type: "presidential" | "parliamentary" | "referendum" | "local";
   date: Date;
-  significance: 'high' | 'medium' | 'low';
+  significance: "high" | "medium" | "low";
   notes?: string;
 }
 ```
@@ -321,13 +343,13 @@ interface Election {
 
 ## Implementation Priority
 
-| Feature | Complexity | Impact | Priority |
-|---------|------------|--------|----------|
-| Multi-Signal Geographic Convergence | Medium | Very High | 1 |
-| Country Instability Index | Medium | High | 2 |
-| Temporal Anomaly Detection | Medium | High | 3 |
-| Trade Route Risk Scoring | High | High | 4 |
-| Infrastructure Cascade Viz | High | Medium | 5 |
+| Feature                             | Complexity | Impact    | Priority |
+| ----------------------------------- | ---------- | --------- | -------- |
+| Multi-Signal Geographic Convergence | Medium     | Very High | 1        |
+| Country Instability Index           | Medium     | High      | 2        |
+| Temporal Anomaly Detection          | Medium     | High      | 3        |
+| Trade Route Risk Scoring            | High       | High      | 4        |
+| Infrastructure Cascade Viz          | High       | Medium    | 5        |
 
 **Recommended approach:** Implement features 1-3 first as they primarily leverage existing data with new correlation logic. Features 4-5 require additional data mapping and UI work.
 
@@ -339,7 +361,7 @@ interface Election {
 
 ```typescript
 interface TemporalBaseline {
-  type: 'military_flights' | 'vessels' | 'protests' | 'news' | 'ais_gaps';
+  type: "military_flights" | "vessels" | "protests" | "news" | "ais_gaps";
   region: string;
   weekday: number; // 0-6
   month: number; // 1-12
@@ -363,7 +385,7 @@ interface CountryRiskSnapshot {
     infrastructure: number;
   };
   index: number;
-  trend: 'rising' | 'stable' | 'falling';
+  trend: "rising" | "stable" | "falling";
 }
 
 interface GeographicCell {
@@ -381,20 +403,20 @@ interface GeographicCell {
 ```typescript
 type SignalType =
   // Existing
-  | 'prediction_leads_news'
-  | 'news_leads_markets'
-  | 'silent_divergence'
-  | 'velocity_spike'
-  | 'convergence'
-  | 'triangulation'
-  | 'flow_drop'
-  | 'flow_price_divergence'
+  | "prediction_leads_news"
+  | "news_leads_markets"
+  | "silent_divergence"
+  | "velocity_spike"
+  | "convergence"
+  | "triangulation"
+  | "flow_drop"
+  | "flow_price_divergence"
   // New
-  | 'geographic_convergence'
-  | 'country_risk_spike'
-  | 'trade_route_risk'
-  | 'temporal_anomaly'
-  | 'infrastructure_cascade';
+  | "geographic_convergence"
+  | "country_risk_spike"
+  | "trade_route_risk"
+  | "temporal_anomaly"
+  | "infrastructure_cascade";
 ```
 
 ---

@@ -1,22 +1,26 @@
 const HTML_ESCAPE_MAP: Record<string, string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
 };
 
 export function escapeHtml(str: string): string {
-  if (!str) return '';
-  return String(str).replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char] || char);
+  if (!str) return "";
+  return String(str).replace(
+    /[&<>"']/g,
+    (char) => HTML_ESCAPE_MAP[char] || char,
+  );
 }
 
 export function sanitizeUrl(url: string): string {
-  if (!url) return '';
+  if (!url) return "";
   const trimmed = String(url).trim();
-  if (!trimmed) return '';
+  if (!trimmed) return "";
 
-  const isAllowedProtocol = (protocol: string) => protocol === 'http:' || protocol === 'https:';
+  const isAllowedProtocol = (protocol: string) =>
+    protocol === "http:" || protocol === "https:";
 
   try {
     const parsed = new URL(trimmed);
@@ -28,18 +32,21 @@ export function sanitizeUrl(url: string): string {
   }
 
   if (!/^(\/|\.\/|\.\.\/|\?|#)/.test(trimmed)) {
-    return '';
+    return "";
   }
 
   try {
-    const base = typeof window !== 'undefined' ? window.location.origin : 'https://example.com';
+    const base =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://example.com";
     const resolved = new URL(trimmed, base);
     if (!isAllowedProtocol(resolved.protocol)) {
-      return '';
+      return "";
     }
     return escapeAttr(trimmed);
   } catch {
-    return '';
+    return "";
   }
 }
 

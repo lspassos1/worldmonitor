@@ -1,6 +1,9 @@
-import { Panel } from './Panel';
-import { escapeHtml } from '@/utils/sanitize';
-import { calculateCII, type CountryScore } from '@/services/country-instability';
+import { Panel } from "./Panel";
+import { escapeHtml } from "@/utils/sanitize";
+import {
+  calculateCII,
+  type CountryScore,
+} from "@/services/country-instability";
 
 export class CIIPanel extends Panel {
   private scores: CountryScore[] = [];
@@ -9,8 +12,8 @@ export class CIIPanel extends Panel {
 
   constructor() {
     super({
-      id: 'cii',
-      title: 'Country Instability Index',
+      id: "cii",
+      title: "Country Instability Index",
       showCount: true,
       trackActivity: true,
       infoTooltip: `<strong>CII Methodology</strong>
@@ -25,36 +28,50 @@ export class CIIPanel extends Panel {
         <em>U:S:I values show component scores.</em>
         Focal Point Detection correlates news entities with map signals for accurate scoring.`,
     });
-    this.showLoading('Scanning intelligence feeds');
+    this.showLoading("Scanning intelligence feeds");
   }
 
-  public setShareStoryHandler(handler: (code: string, name: string) => void): void {
+  public setShareStoryHandler(
+    handler: (code: string, name: string) => void,
+  ): void {
     this.onShareStory = handler;
   }
 
-  private getLevelColor(level: CountryScore['level']): string {
+  private getLevelColor(level: CountryScore["level"]): string {
     switch (level) {
-      case 'critical': return '#ff4444';
-      case 'high': return '#ff8800';
-      case 'elevated': return '#ffaa00';
-      case 'normal': return '#88aa44';
-      case 'low': return '#22aa88';
+      case "critical":
+        return "#ff4444";
+      case "high":
+        return "#ff8800";
+      case "elevated":
+        return "#ffaa00";
+      case "normal":
+        return "#88aa44";
+      case "low":
+        return "#22aa88";
     }
   }
 
-  private getLevelEmoji(level: CountryScore['level']): string {
+  private getLevelEmoji(level: CountryScore["level"]): string {
     switch (level) {
-      case 'critical': return '🔴';
-      case 'high': return '🟠';
-      case 'elevated': return '🟡';
-      case 'normal': return '🟢';
-      case 'low': return '⚪';
+      case "critical":
+        return "🔴";
+      case "high":
+        return "🟠";
+      case "elevated":
+        return "🟡";
+      case "normal":
+        return "🟢";
+      case "low":
+        return "⚪";
     }
   }
 
-  private getTrendArrow(trend: CountryScore['trend'], change: number): string {
-    if (trend === 'rising') return `<span class="trend-up">↑${change > 0 ? change : ''}</span>`;
-    if (trend === 'falling') return `<span class="trend-down">↓${Math.abs(change)}</span>`;
+  private getTrendArrow(trend: CountryScore["trend"], change: number): string {
+    if (trend === "rising")
+      return `<span class="trend-up">↑${change > 0 ? change : ""}</span>`;
+    if (trend === "falling")
+      return `<span class="trend-down">↓${Math.abs(change)}</span>`;
     return '<span class="trend-stable">→</span>';
   }
 
@@ -88,12 +105,12 @@ export class CIIPanel extends Panel {
 
   private bindShareButtons(): void {
     if (!this.onShareStory) return;
-    this.content.querySelectorAll('.cii-share-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    this.content.querySelectorAll(".cii-share-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const el = e.currentTarget as HTMLElement;
-        const code = el.dataset.code || '';
-        const name = el.dataset.name || '';
+        const code = el.dataset.code || "";
+        const name = el.dataset.name || "";
         if (code && name) this.onShareStory!(code, name);
       });
     });
@@ -106,31 +123,34 @@ export class CIIPanel extends Panel {
 
     if (forceLocal) {
       this.focalPointsReady = true;
-      console.log('[CIIPanel] Focal points ready, calculating scores...');
+      console.log("[CIIPanel] Focal points ready, calculating scores...");
     }
 
     this.showLoading();
 
     try {
       const localScores = calculateCII();
-      const localWithData = localScores.filter(s => s.score > 0).length;
+      const localWithData = localScores.filter((s) => s.score > 0).length;
       this.scores = localScores;
-      console.log(`[CIIPanel] Calculated ${localWithData} countries with focal point intelligence`);
+      console.log(
+        `[CIIPanel] Calculated ${localWithData} countries with focal point intelligence`,
+      );
 
-      const withData = this.scores.filter(s => s.score > 0);
+      const withData = this.scores.filter((s) => s.score > 0);
       this.setCount(withData.length);
 
       if (withData.length === 0) {
-        this.content.innerHTML = '<div class="empty-state">No instability signals detected</div>';
+        this.content.innerHTML =
+          '<div class="empty-state">No instability signals detected</div>';
         return;
       }
 
-      const html = withData.map(s => this.renderCountry(s)).join('');
+      const html = withData.map((s) => this.renderCountry(s)).join("");
       this.content.innerHTML = `<div class="cii-list">${html}</div>`;
       this.bindShareButtons();
     } catch (error) {
-      console.error('[CIIPanel] Refresh error:', error);
-      this.showError('Failed to calculate CII');
+      console.error("[CIIPanel] Refresh error:", error);
+      this.showError("Failed to calculate CII");
     }
   }
 

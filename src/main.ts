@@ -1,11 +1,15 @@
-import './styles/main.css';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { inject } from '@vercel/analytics';
-import { App } from './App';
-import { debugInjectTestEvents, debugGetCells, getCellCount } from '@/services/geo-convergence';
-import { initMetaTags } from '@/services/meta-tags';
-import { installRuntimeFetchPatch } from '@/services/runtime';
-import { loadDesktopSecrets } from '@/services/runtime-config';
+import "./styles/main.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { inject } from "@vercel/analytics";
+import { App } from "./App";
+import {
+  debugInjectTestEvents,
+  debugGetCells,
+  getCellCount,
+} from "@/services/geo-convergence";
+import { initMetaTags } from "@/services/meta-tags";
+import { installRuntimeFetchPatch } from "@/services/runtime";
+import { loadDesktopSecrets } from "@/services/runtime-config";
 
 // Initialize Vercel Analytics
 inject();
@@ -17,7 +21,7 @@ initMetaTags();
 installRuntimeFetchPatch();
 void loadDesktopSecrets();
 
-const app = new App('app');
+const app = new App("app");
 app.init().catch(console.error);
 
 // Debug helpers for geo-convergence testing (remove in production)
@@ -27,19 +31,24 @@ app.init().catch(console.error);
   count: getCellCount,
 };
 
-if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window)) {
-  import('virtual:pwa-register').then(({ registerSW }) => {
+if (!("__TAURI_INTERNALS__" in window) && !("__TAURI__" in window)) {
+  import("virtual:pwa-register").then(({ registerSW }) => {
     registerSW({
       onRegisteredSW(_swUrl, registration) {
         if (registration) {
-          setInterval(async () => {
-            if (!navigator.onLine) return;
-            try { await registration.update(); } catch {}
-          }, 60 * 60 * 1000);
+          setInterval(
+            async () => {
+              if (!navigator.onLine) return;
+              try {
+                await registration.update();
+              } catch {}
+            },
+            60 * 60 * 1000,
+          );
         }
       },
       onOfflineReady() {
-        console.log('[PWA] App ready for offline use');
+        console.log("[PWA] App ready for offline use");
       },
     });
   });

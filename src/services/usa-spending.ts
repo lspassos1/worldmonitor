@@ -4,7 +4,7 @@
  * Free API - no key required
  */
 
-import { dataFreshness } from './data-freshness';
+import { dataFreshness } from "./data-freshness";
 
 export interface GovernmentAward {
   id: string;
@@ -13,7 +13,7 @@ export interface GovernmentAward {
   agency: string;
   description: string;
   startDate: string;
-  awardType: 'contract' | 'grant' | 'loan' | 'other';
+  awardType: "contract" | "grant" | "loan" | "other";
 }
 
 export interface SpendingSummary {
@@ -24,24 +24,32 @@ export interface SpendingSummary {
   fetchedAt: Date;
 }
 
-const API_BASE = 'https://api.usaspending.gov/api/v2';
+const API_BASE = "https://api.usaspending.gov/api/v2";
 
 // Award type code mapping
-const AWARD_TYPE_MAP: Record<string, GovernmentAward['awardType']> = {
-  'A': 'contract', 'B': 'contract', 'C': 'contract', 'D': 'contract',
-  '02': 'grant', '03': 'grant', '04': 'grant', '05': 'grant',
-  '06': 'grant', '10': 'grant',
-  '07': 'loan', '08': 'loan',
+const AWARD_TYPE_MAP: Record<string, GovernmentAward["awardType"]> = {
+  A: "contract",
+  B: "contract",
+  C: "contract",
+  D: "contract",
+  "02": "grant",
+  "03": "grant",
+  "04": "grant",
+  "05": "grant",
+  "06": "grant",
+  "10": "grant",
+  "07": "loan",
+  "08": "loan",
 };
 
 function getDateDaysAgo(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString().split('T')[0]!;
+  return date.toISOString().split("T")[0]!;
 }
 
 function getToday(): string {
-  return new Date().toISOString().split('T')[0]!;
+  return new Date().toISOString().split("T")[0]!;
 }
 
 // Input validation bounds
@@ -61,45 +69,48 @@ function validateLimit(val: number): number {
 /**
  * Fetch recent government awards/contracts
  */
-export async function fetchRecentAwards(options: {
-  daysBack?: number;
-  limit?: number;
-  awardTypes?: ('contract' | 'grant' | 'loan')[];
-} = {}): Promise<SpendingSummary> {
+export async function fetchRecentAwards(
+  options: {
+    daysBack?: number;
+    limit?: number;
+    awardTypes?: ("contract" | "grant" | "loan")[];
+  } = {},
+): Promise<SpendingSummary> {
   const daysBack = validateDaysBack(options.daysBack ?? 7);
   const limit = validateLimit(options.limit ?? 15);
-  const awardTypes = options.awardTypes ?? ['contract'];
+  const awardTypes = options.awardTypes ?? ["contract"];
 
   const periodStart = getDateDaysAgo(daysBack);
   const periodEnd = getToday();
 
   // Map award types to codes
   const awardTypeCodes: string[] = [];
-  if (awardTypes.includes('contract')) awardTypeCodes.push('A', 'B', 'C', 'D');
-  if (awardTypes.includes('grant')) awardTypeCodes.push('02', '03', '04', '05', '06', '10');
-  if (awardTypes.includes('loan')) awardTypeCodes.push('07', '08');
+  if (awardTypes.includes("contract")) awardTypeCodes.push("A", "B", "C", "D");
+  if (awardTypes.includes("grant"))
+    awardTypeCodes.push("02", "03", "04", "05", "06", "10");
+  if (awardTypes.includes("loan")) awardTypeCodes.push("07", "08");
 
   try {
     const response = await fetch(`${API_BASE}/search/spending_by_award/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         filters: {
           time_period: [{ start_date: periodStart, end_date: periodEnd }],
           award_type_codes: awardTypeCodes,
         },
         fields: [
-          'Award ID',
-          'Recipient Name',
-          'Award Amount',
-          'Awarding Agency',
-          'Description',
-          'Start Date',
-          'Award Type',
+          "Award ID",
+          "Recipient Name",
+          "Award Amount",
+          "Awarding Agency",
+          "Description",
+          "Start Date",
+          "Award Type",
         ],
         limit,
-        order: 'desc',
-        sort: 'Award Amount',
+        order: "desc",
+        sort: "Award Amount",
       }),
     });
 
@@ -110,21 +121,23 @@ export async function fetchRecentAwards(options: {
     const data = await response.json();
     const results = data.results || [];
 
-    const awards: GovernmentAward[] = results.map((r: Record<string, unknown>) => ({
-      id: String(r['Award ID'] || ''),
-      recipientName: String(r['Recipient Name'] || 'Unknown'),
-      amount: Number(r['Award Amount']) || 0,
-      agency: String(r['Awarding Agency'] || 'Unknown'),
-      description: String(r['Description'] || '').slice(0, 200),
-      startDate: String(r['Start Date'] || ''),
-      awardType: AWARD_TYPE_MAP[String(r['Award Type'] || '')] || 'other',
-    }));
+    const awards: GovernmentAward[] = results.map(
+      (r: Record<string, unknown>) => ({
+        id: String(r["Award ID"] || ""),
+        recipientName: String(r["Recipient Name"] || "Unknown"),
+        amount: Number(r["Award Amount"]) || 0,
+        agency: String(r["Awarding Agency"] || "Unknown"),
+        description: String(r["Description"] || "").slice(0, 200),
+        startDate: String(r["Start Date"] || ""),
+        awardType: AWARD_TYPE_MAP[String(r["Award Type"] || "")] || "other",
+      }),
+    );
 
     const totalAmount = awards.reduce((sum, a) => sum + a.amount, 0);
 
     // Record data freshness
     if (awards.length > 0) {
-      dataFreshness.recordUpdate('spending', awards.length);
+      dataFreshness.recordUpdate("spending", awards.length);
     }
 
     return {
@@ -135,8 +148,11 @@ export async function fetchRecentAwards(options: {
       fetchedAt: new Date(),
     };
   } catch (error) {
-    console.error('[USASpending] Fetch failed:', error);
-    dataFreshness.recordError('spending', error instanceof Error ? error.message : 'Unknown error');
+    console.error("[USASpending] Fetch failed:", error);
+    dataFreshness.recordError(
+      "spending",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return {
       awards: [],
       totalAmount: 0,
@@ -166,11 +182,15 @@ export function formatAwardAmount(amount: number): string {
 /**
  * Get award type emoji
  */
-export function getAwardTypeIcon(type: GovernmentAward['awardType']): string {
+export function getAwardTypeIcon(type: GovernmentAward["awardType"]): string {
   switch (type) {
-    case 'contract': return '📄';
-    case 'grant': return '🎁';
-    case 'loan': return '💰';
-    default: return '📋';
+    case "contract":
+      return "📄";
+    case "grant":
+      return "🎁";
+    case "loan":
+      return "💰";
+    default:
+      return "📋";
   }
 }

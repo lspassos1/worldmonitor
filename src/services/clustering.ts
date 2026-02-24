@@ -4,11 +4,11 @@
  * Hybrid clustering combines Jaccard + semantic similarity when ML is available.
  */
 
-import type { NewsItem, ClusteredEvent } from '@/types';
-import { getSourceTier } from '@/config';
-import { clusterNewsCore } from './analysis-core';
-import { mlWorker } from './ml-worker';
-import { ML_THRESHOLDS } from '@/config/ml-config';
+import type { NewsItem, ClusteredEvent } from "@/types";
+import { getSourceTier } from "@/config";
+import { clusterNewsCore } from "./analysis-core";
+import { mlWorker } from "./ml-worker";
+import { ML_THRESHOLDS } from "@/config/ml-config";
 
 export function clusterNews(items: NewsItem[]): ClusteredEvent[] {
   return clusterNewsCore(items, getSourceTier) as ClusteredEvent[];
@@ -17,18 +17,26 @@ export function clusterNews(items: NewsItem[]): ClusteredEvent[] {
 /**
  * Hybrid clustering: Jaccard first, then semantic refinement if ML available
  */
-export async function clusterNewsHybrid(items: NewsItem[]): Promise<ClusteredEvent[]> {
+export async function clusterNewsHybrid(
+  items: NewsItem[],
+): Promise<ClusteredEvent[]> {
   // Step 1: Fast Jaccard clustering
-  const jaccardClusters = clusterNewsCore(items, getSourceTier) as ClusteredEvent[];
+  const jaccardClusters = clusterNewsCore(
+    items,
+    getSourceTier,
+  ) as ClusteredEvent[];
 
   // Step 2: If ML unavailable or too few clusters, return Jaccard results
-  if (!mlWorker.isAvailable || jaccardClusters.length < ML_THRESHOLDS.minClustersForML) {
+  if (
+    !mlWorker.isAvailable ||
+    jaccardClusters.length < ML_THRESHOLDS.minClustersForML
+  ) {
     return jaccardClusters;
   }
 
   try {
     // Get cluster primary titles for embedding
-    const clusterTexts = jaccardClusters.map(c => ({
+    const clusterTexts = jaccardClusters.map((c) => ({
       id: c.id,
       text: c.primaryTitle,
     }));
@@ -36,13 +44,16 @@ export async function clusterNewsHybrid(items: NewsItem[]): Promise<ClusteredEve
     // Get semantic groupings
     const semanticGroups = await mlWorker.clusterBySemanticSimilarity(
       clusterTexts,
-      ML_THRESHOLDS.semanticClusterThreshold
+      ML_THRESHOLDS.semanticClusterThreshold,
     );
 
     // Merge semantically similar clusters
     return mergeSemanticallySimilarClusters(jaccardClusters, semanticGroups);
   } catch (error) {
-    console.warn('[Clustering] Semantic clustering failed, using Jaccard only:', error);
+    console.warn(
+      "[Clustering] Semantic clustering failed, using Jaccard only:",
+      error,
+    );
     return jaccardClusters;
   }
 }
@@ -52,9 +63,9 @@ export async function clusterNewsHybrid(items: NewsItem[]): Promise<ClusteredEve
  */
 function mergeSemanticallySimilarClusters(
   clusters: ClusteredEvent[],
-  semanticGroups: string[][]
+  semanticGroups: string[][],
 ): ClusteredEvent[] {
-  const clusterMap = new Map(clusters.map(c => [c.id, c]));
+  const clusterMap = new Map(clusters.map((c) => [c.id, c]));
   const merged: ClusteredEvent[] = [];
   const usedIds = new Set<string>();
 
@@ -63,13 +74,15 @@ function mergeSemanticallySimilarClusters(
 
     // Get all clusters in this semantic group
     const groupClusters = group
-      .map(id => clusterMap.get(id))
-      .filter((c): c is ClusteredEvent => c !== undefined && !usedIds.has(c.id));
+      .map((id) => clusterMap.get(id))
+      .filter(
+        (c): c is ClusteredEvent => c !== undefined && !usedIds.has(c.id),
+      );
 
     if (groupClusters.length === 0) continue;
 
     // Mark all as used
-    groupClusters.forEach(c => usedIds.add(c.id));
+    groupClusters.forEach((c) => usedIds.add(c.id));
 
     const firstCluster = groupClusters[0];
     if (!firstCluster) continue;
@@ -96,7 +109,7 @@ function mergeSemanticallySimilarClusters(
 
     // Combine all items, sources, etc.
     const allItems = [...primary.allItems];
-    const topSourcesSet = new Map(primary.topSources.map(s => [s.url, s]));
+    const topSourcesSet = new Map(primary.topSources.map((s) => [s.url, s]));
 
     for (const other of others) {
       allItems.push(...other.allItems);
@@ -113,7 +126,7 @@ function mergeSemanticallySimilarClusters(
       .slice(0, 5);
 
     // Calculate merged timestamps
-    const allDates = allItems.map(i => i.pubDate.getTime());
+    const allDates = allItems.map((i) => i.pubDate.getTime());
     const firstSeen = new Date(Math.min(...allDates));
     const lastUpdated = new Date(Math.max(...allDates));
 
@@ -127,7 +140,7 @@ function mergeSemanticallySimilarClusters(
       allItems,
       firstSeen,
       lastUpdated,
-      isAlert: allItems.some(i => i.isAlert),
+      isAlert: allItems.some((i) => i.isAlert),
       monitorColor: primary.monitorColor,
       velocity: primary.velocity,
     };

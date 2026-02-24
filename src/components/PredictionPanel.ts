@@ -1,12 +1,12 @@
-import { Panel } from './Panel';
-import type { PredictionMarket } from '@/types';
-import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
+import { Panel } from "./Panel";
+import type { PredictionMarket } from "@/types";
+import { escapeHtml, sanitizeUrl } from "@/utils/sanitize";
 
 export class PredictionPanel extends Panel {
   constructor() {
     super({
-      id: 'polymarket',
-      title: 'Prediction Markets',
+      id: "polymarket",
+      title: "Prediction Markets",
       infoTooltip: `<strong>Prediction Markets</strong>
         Real-money forecasting markets:
         <ul>
@@ -19,7 +19,7 @@ export class PredictionPanel extends Panel {
   }
 
   private formatVolume(volume?: number): string {
-    if (!volume) return '';
+    if (!volume) return "";
     if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(1)}M`;
     if (volume >= 1_000) return `$${(volume / 1_000).toFixed(0)}K`;
     return `$${volume.toFixed(0)}`;
@@ -27,7 +27,7 @@ export class PredictionPanel extends Panel {
 
   public renderPredictions(data: PredictionMarket[]): void {
     if (data.length === 0) {
-      this.showError('Failed to load predictions');
+      this.showError("Failed to load predictions");
       return;
     }
 
@@ -37,7 +37,7 @@ export class PredictionPanel extends Panel {
         const noPercent = 100 - yesPercent;
         const volumeStr = this.formatVolume(p.volume);
 
-        const safeUrl = sanitizeUrl(p.url || '');
+        const safeUrl = sanitizeUrl(p.url || "");
         const titleHtml = safeUrl
           ? `<a href="${safeUrl}" target="_blank" rel="noopener" class="prediction-question prediction-link">${escapeHtml(p.title)}</a>`
           : `<div class="prediction-question">${escapeHtml(p.title)}</div>`;
@@ -45,7 +45,7 @@ export class PredictionPanel extends Panel {
         return `
       <div class="prediction-item">
         ${titleHtml}
-        ${volumeStr ? `<div class="prediction-volume">Vol: ${volumeStr}</div>` : ''}
+        ${volumeStr ? `<div class="prediction-volume">Vol: ${volumeStr}</div>` : ""}
         <div class="prediction-bar">
           <div class="prediction-yes" style="width: ${yesPercent}%">
             <span class="prediction-label">Yes ${yesPercent}%</span>
@@ -57,7 +57,7 @@ export class PredictionPanel extends Panel {
       </div>
     `;
       })
-      .join('');
+      .join("");
 
     this.setContent(html);
   }

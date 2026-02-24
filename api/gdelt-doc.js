@@ -1,5 +1,5 @@
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-export const config = { runtime: 'edge' };
+import { getCorsHeaders, isDisallowedOrigin } from "./_cors.js";
+export const config = { runtime: "edge" };
 
 const MAX_RECORDS = 20;
 const DEFAULT_RECORDS = 10;
@@ -7,31 +7,34 @@ const DEFAULT_RECORDS = 10;
 export default async function handler(req) {
   const cors = getCorsHeaders(req);
   if (isDisallowedOrigin(req)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: cors });
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403,
+      headers: cors,
+    });
   }
   const url = new URL(req.url);
-  const query = url.searchParams.get('query');
+  const query = url.searchParams.get("query");
   const maxrecords = Math.min(
-    parseInt(url.searchParams.get('maxrecords') || DEFAULT_RECORDS, 10),
-    MAX_RECORDS
+    parseInt(url.searchParams.get("maxrecords") || DEFAULT_RECORDS, 10),
+    MAX_RECORDS,
   );
-  const timespan = url.searchParams.get('timespan') || '72h';
+  const timespan = url.searchParams.get("timespan") || "72h";
 
   if (!query || query.length < 2) {
-    return new Response(JSON.stringify({ error: 'Query parameter required' }), {
+    return new Response(JSON.stringify({ error: "Query parameter required" }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   try {
-    const gdeltUrl = new URL('https://api.gdeltproject.org/api/v2/doc/doc');
-    gdeltUrl.searchParams.set('query', query);
-    gdeltUrl.searchParams.set('mode', 'artlist');
-    gdeltUrl.searchParams.set('maxrecords', maxrecords.toString());
-    gdeltUrl.searchParams.set('format', 'json');
-    gdeltUrl.searchParams.set('sort', 'date');
-    gdeltUrl.searchParams.set('timespan', timespan);
+    const gdeltUrl = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+    gdeltUrl.searchParams.set("query", query);
+    gdeltUrl.searchParams.set("mode", "artlist");
+    gdeltUrl.searchParams.set("maxrecords", maxrecords.toString());
+    gdeltUrl.searchParams.set("format", "json");
+    gdeltUrl.searchParams.set("sort", "date");
+    gdeltUrl.searchParams.set("timespan", timespan);
 
     const response = await fetch(gdeltUrl.toString());
 
@@ -41,7 +44,7 @@ export default async function handler(req) {
 
     const data = await response.json();
 
-    const articles = (data.articles || []).map(article => ({
+    const articles = (data.articles || []).map((article) => ({
       title: article.title,
       url: article.url,
       source: article.domain || article.source?.domain,
@@ -54,15 +57,19 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ articles, query }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...cors,
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+        "Cache-Control":
+          "public, max-age=300, s-maxage=300, stale-while-revalidate=60",
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message, articles: [] }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message, articles: [] }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }

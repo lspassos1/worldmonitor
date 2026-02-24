@@ -25,8 +25,9 @@ export function createIpRateLimiter({
     }
 
     const overflow = records.size - maxEntries;
-    const oldest = Array.from(records.entries())
-      .sort((a, b) => a[1].windowStart - b[1].windowStart);
+    const oldest = Array.from(records.entries()).sort(
+      (a, b) => a[1].windowStart - b[1].windowStart,
+    );
     for (let i = 0; i < overflow; i++) {
       const entry = oldest[i];
       if (!entry) break;
@@ -38,7 +39,7 @@ export function createIpRateLimiter({
     const now = Date.now();
     cleanup(now);
 
-    const key = (ip || 'unknown').trim() || 'unknown';
+    const key = (ip || "unknown").trim() || "unknown";
     const record = records.get(key);
 
     if (!record || now - record.windowStart > windowMs) {

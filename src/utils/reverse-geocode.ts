@@ -18,7 +18,10 @@ function cacheKey(lat: number, lon: number): string {
   return `${lat.toFixed(1)},${lon.toFixed(1)}`;
 }
 
-export async function reverseGeocode(lat: number, lon: number): Promise<GeoResult | null> {
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+): Promise<GeoResult | null> {
   const key = cacheKey(lat, lon);
   if (cache.has(key)) return cache.get(key) ?? null;
 
@@ -31,7 +34,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<GeoResul
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=3&accept-language=en`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'WorldMonitor/2.0 (https://worldmonitor.app)' },
+      headers: { "User-Agent": "WorldMonitor/2.0 (https://worldmonitor.app)" },
     });
     if (!res.ok) {
       cache.set(key, null);
@@ -47,11 +50,15 @@ export async function reverseGeocode(lat: number, lon: number): Promise<GeoResul
       return null;
     }
 
-    const result: GeoResult = { country, code, displayName: data.display_name || country };
+    const result: GeoResult = {
+      country,
+      code,
+      displayName: data.display_name || country,
+    };
     cache.set(key, result);
     return result;
   } catch (err) {
-    console.warn('[reverseGeocode] Failed:', err);
+    console.warn("[reverseGeocode] Failed:", err);
     cache.set(key, null);
     return null;
   }
