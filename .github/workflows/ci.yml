@@ -21,3 +21,11 @@ jobs:
         run: npm run typecheck
       - name: Format Check
         run: npm run format:check
+      - name: Build Check
+        run: npm run build
+      - name: Security Audit
+        run: npm audit --audit-level=high || true
+      - name: Data Tests
+        run: npm run test:data
+      - name: Sidecar Tests
+        run: npm run test:sidecar

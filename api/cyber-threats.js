@@ -373,10 +373,10 @@ function sanitizeThreat(threat) {
 function parseFeodoRecord(record, cutoffMs) {
   const ip = cleanString(
     record?.ip_address ||
-      record?.dst_ip ||
-      record?.ip ||
-      record?.ioc ||
-      record?.host,
+    record?.dst_ip ||
+    record?.ip ||
+    record?.ioc ||
+    record?.host,
     80,
   ).toLowerCase();
 
@@ -395,10 +395,10 @@ function parseFeodoRecord(record, cutoffMs) {
   );
   const lastSeen = toIsoDate(
     record?.last_online ||
-      record?.last_seen ||
-      record?.last_seen_utc ||
-      record?.first_seen ||
-      record?.first_seen_utc,
+    record?.last_seen ||
+    record?.last_seen_utc ||
+    record?.first_seen ||
+    record?.first_seen_utc,
   );
 
   const activityIso = lastSeen || firstSeen;
@@ -779,10 +779,16 @@ async function hydrateThreatCoordinates(threats) {
     }
   });
 
+  let timerId;
+  const timeoutPromise = new Promise((resolve) => {
+    timerId = setTimeout(resolve, GEO_OVERALL_TIMEOUT_MS);
+  });
+
   await Promise.race([
     Promise.all(workers),
-    new Promise((resolve) => setTimeout(resolve, GEO_OVERALL_TIMEOUT_MS)),
+    timeoutPromise,
   ]);
+  clearTimeout(timerId);
 
   return threats.map((threat) => {
     const hasCoords = hasValidCoordinates(threat.lat, threat.lon);

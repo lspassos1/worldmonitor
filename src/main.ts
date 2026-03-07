@@ -25,11 +25,13 @@ const app = new App("app");
 app.init().catch(console.error);
 
 // Debug helpers for geo-convergence testing (remove in production)
-(window as unknown as Record<string, unknown>).geoDebug = {
-  inject: debugInjectTestEvents,
-  cells: debugGetCells,
-  count: getCellCount,
-};
+if (import.meta.env.DEV) {
+  (window as unknown as Record<string, unknown>).geoDebug = {
+    inject: debugInjectTestEvents,
+    cells: debugGetCells,
+    count: getCellCount,
+  };
+}
 
 if (!("__TAURI_INTERNALS__" in window) && !("__TAURI__" in window)) {
   import("virtual:pwa-register").then(({ registerSW }) => {

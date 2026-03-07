@@ -10,6 +10,7 @@ const ORIGINAL_FETCH = globalThis.fetch;
 const ORIGINAL_URLHAUS_KEY = process.env.URLHAUS_AUTH_KEY;
 const ORIGINAL_OTX_KEY = process.env.OTX_API_KEY;
 const ORIGINAL_ABUSEIPDB_KEY = process.env.ABUSEIPDB_API_KEY;
+const ORIGINAL_DATENOW = Date.now;
 
 function makeRequest(path = '/api/cyber-threats', ip = '198.51.100.10') {
   const headers = new Headers();
@@ -46,11 +47,16 @@ function createMockFetch({ feodo, urlhaus, c2intel, otx, abuseipdb, geo } = {}) 
   };
 }
 
+test.beforeEach(() => {
+  Date.now = () => Date.parse('2026-02-15T12:00:00.000Z');
+});
+
 test.afterEach(() => {
   globalThis.fetch = ORIGINAL_FETCH;
   process.env.URLHAUS_AUTH_KEY = ORIGINAL_URLHAUS_KEY;
   process.env.OTX_API_KEY = ORIGINAL_OTX_KEY;
   process.env.ABUSEIPDB_API_KEY = ORIGINAL_ABUSEIPDB_KEY;
+  Date.now = ORIGINAL_DATENOW;
   __resetCyberThreatsState();
 });
 
