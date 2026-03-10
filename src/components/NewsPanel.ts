@@ -366,11 +366,15 @@ export class NewsPanel extends Panel {
     this.deviationEl.title = `z-score: ${zScore} (vs 7-day avg)`;
   }
 
+  public override showError(message?: string, onRetry?: () => void, autoRetrySeconds?: number): void {
+    this.lastRawClusters = null;
+    this.lastRawItems = null;
+    super.showError(message, onRetry, autoRetrySeconds);
+  }
+
   public renderNews(items: NewsItem[]): void {
     if (items.length === 0) {
       this.renderRequestId += 1; // Cancel in-flight clustering from previous renders.
-      this.lastRawClusters = null;
-      this.lastRawItems = null;
       this.setDataBadge('unavailable');
       this.showError(t('common.noNewsAvailable'));
       return;
