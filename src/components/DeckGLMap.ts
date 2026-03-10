@@ -533,7 +533,9 @@ export class DeckGLMap {
     }
 
     const basemapEl = document.getElementById('deckgl-basemap');
-    if (!basemapEl) return;
+    if (!basemapEl) {
+      throw new Error('Basemap container #deckgl-basemap not found in DOM');
+    }
 
     this.maplibreMap = new maplibregl.Map({
       container: basemapEl,
@@ -663,7 +665,7 @@ export class DeckGLMap {
       layers: this.buildLayers(),
       getTooltip: (info: PickingInfo) => this.getTooltip(info),
       onClick: (info: PickingInfo) => this.handleClick(info),
-      pickingRadius: 10,
+      pickingRadius: 25,
       useDevicePixels: window.devicePixelRatio > 2 ? 2 : true,
       onError: (error: Error) => console.warn('[DeckGLMap] Render error (non-fatal):', error.message),
     });
@@ -2299,19 +2301,19 @@ export class DeckGLMap {
 
   private mineralColor(mineral: string): [number, number, number, number] {
     switch (mineral) {
-      case 'Gold':        return [255, 215, 0, 210];
-      case 'Silver':      return [192, 192, 192, 200];
-      case 'Copper':      return [184, 115, 51, 210];
-      case 'Lithium':     return [0, 200, 255, 200];
-      case 'Cobalt':      return [100, 100, 255, 200];
+      case 'Gold': return [255, 215, 0, 210];
+      case 'Silver': return [192, 192, 192, 200];
+      case 'Copper': return [184, 115, 51, 210];
+      case 'Lithium': return [0, 200, 255, 200];
+      case 'Cobalt': return [100, 100, 255, 200];
       case 'Rare Earths': return [255, 100, 200, 200];
-      case 'Nickel':      return [100, 220, 100, 200];
-      case 'Platinum':    return [210, 210, 255, 200];
-      case 'Palladium':   return [180, 220, 180, 200];
-      case 'Iron Ore':    return [139, 69, 19, 210];
-      case 'Uranium':     return [50, 255, 80, 200];
-      case 'Coal':        return [80, 80, 80, 200];
-      default:            return [200, 200, 200, 200];
+      case 'Nickel': return [100, 220, 100, 200];
+      case 'Platinum': return [210, 210, 255, 200];
+      case 'Palladium': return [180, 220, 180, 200];
+      case 'Iron Ore': return [139, 69, 19, 210];
+      case 'Uranium': return [50, 255, 80, 200];
+      case 'Coal': return [80, 80, 80, 200];
+      default: return [200, 200, 200, 200];
     }
   }
 
@@ -2340,11 +2342,11 @@ export class DeckGLMap {
       getRadius: 8000,
       getFillColor: (d) => {
         switch (d.type) {
-          case 'smelter':    return [255, 80, 30, 210] as [number, number, number, number];
-          case 'refinery':   return [255, 160, 50, 200] as [number, number, number, number];
+          case 'smelter': return [255, 80, 30, 210] as [number, number, number, number];
+          case 'refinery': return [255, 160, 50, 200] as [number, number, number, number];
           case 'separation': return [160, 100, 255, 200] as [number, number, number, number];
           case 'processing': return [100, 200, 150, 200] as [number, number, number, number];
-          default:           return [200, 150, 100, 200] as [number, number, number, number];
+          default: return [200, 150, 100, 200] as [number, number, number, number];
         }
       },
       radiusMinPixels: 5,
@@ -2965,10 +2967,10 @@ export class DeckGLMap {
   }
 
   private static readonly CII_LEVEL_COLORS: Record<string, [number, number, number, number]> = {
-    low:      [40, 180, 60, 130],
-    normal:   [220, 200, 50, 135],
+    low: [40, 180, 60, 130],
+    normal: [220, 200, 50, 135],
     elevated: [240, 140, 30, 145],
-    high:     [220, 50, 20, 155],
+    high: [220, 50, 20, 155],
     critical: [140, 10, 0, 170],
   };
 
@@ -3071,7 +3073,7 @@ export class DeckGLMap {
           const item = obj.items?.[0];
           return { html: `<div class="deckgl-tooltip"><strong>${text(item?.title || t('components.deckgl.tooltip.protest'))}</strong><br/>${text(item?.city || item?.country || '')}</div>` };
         }
-        return { html: `<div class="deckgl-tooltip"><strong>${t('components.deckgl.tooltip.protestsCount', { count: String(obj.count) })}</strong><br/>${text(obj.country)}</div>` };
+        return { html: `<div class="deckgl-tooltip"><strong>${t('components.deckgl.tooltip.protestsCount', { count: String(obj.count) })}</strong><br/>${text(obj.country)}<br/><small>${t('components.deckgl.layers.protests')}</small></div>` };
       case 'tech-hq-clusters-layer':
         if (obj.count === 1) {
           const hq = obj.items?.[0];
@@ -3113,7 +3115,7 @@ export class DeckGLMap {
       }
       case 'conflict-zones-layer': {
         const props = obj.properties || obj;
-        return { html: `<div class="deckgl-tooltip"><strong>${text(props.name)}</strong><br/>${t('components.deckgl.tooltip.conflictZone')}</div>` };
+        return { html: `<div class="deckgl-tooltip"><strong>${text(props.name)}</strong><br/>${t('components.deckgl.tooltip.conflictZone')}${props.type ? ` · ${text(props.type)}` : ''}</div>` };
       }
 
       case 'natural-events-layer':
@@ -3610,15 +3612,15 @@ export class DeckGLMap {
       </div>
       <div class="toggle-list" style="max-height: 32vh; overflow-y: auto; scrollbar-width: thin;">
         ${layerConfig.map(({ key, label, icon, premium }) => {
-          const isLocked = premium === 'locked' && !_wmKey;
-          const isEnhanced = premium === 'enhanced' && !_wmKey;
-          return `
+      const isLocked = premium === 'locked' && !_wmKey;
+      const isEnhanced = premium === 'enhanced' && !_wmKey;
+      return `
           <label class="layer-toggle${isLocked ? ' layer-toggle-locked' : ''}" data-layer="${key}">
             <input type="checkbox" ${this.state.layers[key as keyof MapLayers] ? 'checked' : ''}${isLocked ? ' disabled' : ''}>
             <span class="toggle-icon">${icon}</span>
             <span class="toggle-label">${label}${isLocked ? ' \uD83D\uDD12' : ''}${isEnhanced ? ' <span class="layer-pro-badge">PRO</span>' : ''}</span>
           </label>`;
-        }).join('')}
+    }).join('')}
       </div>
     `;
 
