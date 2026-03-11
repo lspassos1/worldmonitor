@@ -95,7 +95,7 @@ describe('OpenAPI spec includes aisDisruptions', () => {
 // ========================================================================
 
 describe('Cache keys bumped to v2', () => {
-  const bootstrapSrc = readSrc('api/bootstrap.js');
+  const bootstrapSrc = readSrc('server/worldmonitor/infrastructure/v1/get-bootstrap-data.ts');
   const cacheKeysSrc = readSrc('server/_shared/cache-keys.ts');
   const chokepointSrc = readSrc('server/worldmonitor/supply-chain/v1/get-chokepoint-status.ts');
   const mineralsSrc = readSrc('server/worldmonitor/supply-chain/v1/get-critical-minerals.ts');
@@ -308,9 +308,9 @@ describe('SupplyChainPanel v2 changes', () => {
 
   it('computes activeHasData for each tab', () => {
     assert.match(src, /activeHasData/);
-    assert.match(src, /chokepointData\?\.chokepoints\.length/);
-    assert.match(src, /shippingData\?\.indices\.length/);
-    assert.match(src, /mineralsData\?\.minerals\.length/);
+    assert.match(src, /chokepointData\?\.chokepoints\?\.length/);
+    assert.match(src, /shippingData\?\.indices\?\.length/);
+    assert.match(src, /mineralsData\?\.minerals\?\.length/);
   });
 
   it('displays AIS disruption count per chokepoint via i18n', () => {
