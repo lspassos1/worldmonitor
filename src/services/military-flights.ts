@@ -15,7 +15,13 @@ import {
   checkWingbitsStatus,
 } from './wingbits';
 import { isFeatureAvailable } from './runtime-config';
-import { isDesktopRuntime } from './runtime';
+import { getApiBaseUrl, isDesktopRuntime } from './runtime';
+ import {
+  MilitaryServiceClient,
+} from '@/generated/client/worldmonitor/military/v1/service_client';
+
+
+const client = new MilitaryServiceClient(getApiBaseUrl());
 
 // Desktop: direct OpenSky proxy path (relay or Vercel)
 const OPENSKY_PROXY_URL = '/api/opensky';
@@ -43,75 +49,85 @@ const breaker = createCircuitBreaker<{ flights: MilitaryFlight[]; clusters: Mili
   cacheTtlMs: 10 * 60 * 1000,
 });
 
-interface MilitaryFlightsResponse {
-  flights: Array<{
-    id: string;
-    callsign: string;
-    hexCode: string;
-    lat: number;
-    lon: number;
-    altitude: number;
-    heading: number;
-    speed: number;
-    verticalRate?: number;
-    onGround: boolean;
-    squawk?: string;
-    aircraftType: MilitaryAircraftType;
-    operator: MilitaryOperator;
-    operatorCountry: string;
-    confidence: 'high' | 'medium' | 'low';
-    isInteresting?: boolean;
-    note?: string;
-    lastSeenMs: number;
-  }>;
-  fetchedAt: number;
-  stats: { total: number; byType: Record<string, number> };
-}
-
-async function fetchFromRedis(): Promise<MilitaryFlight[]> {
-  const resp = await fetch('/api/military-flights', {
-    headers: { Accept: 'application/json' },
+async function fetchFromRPC(): Promise<MilitaryFlight[]> {
+  const resp = await client.listMilitaryFlights({
+    neLat: 90, neLon: 180, swLat: -90, swLon: -180,
+    pageSize: 1000,
+    cursor: '',
+    operator: 'MILITARY_OPERATOR_UNSPECIFIED' as any,
+    aircraftType: 'MILITARY_AIRCRAFT_TYPE_UNSPECIFIED' as any,
   });
-  if (!resp.ok) {
-    throw new Error(`military-flights API ${resp.status}`);
-  }
-  const data: MilitaryFlightsResponse = await resp.json();
-  if (!data.flights || data.flights.length === 0) {
-    throw new Error('No flights returned — upstream may be down');
+
+  if (!resp.flights || resp.flights.length === 0) {
+    throw new Error('No flights returned from RPC');
   }
 
   const now = new Date();
-  return data.flights.map((f) => {
-    const historyKey = f.hexCode.toLowerCase();
+  return resp.flights.map((f) => {
+    const hexCode = f.hexCode || '';
+    const historyKey = hexCode.toLowerCase();
     let history = flightHistory.get(historyKey);
     if (!history) {
       history = { positions: [], lastUpdate: Date.now() };
       flightHistory.set(historyKey, history);
     }
-    history.positions.push([f.lat, f.lon]);
+    if (f.location) {
+      history.positions.push([f.location.latitude, f.location.longitude]);
+    }
     if (history.positions.length > HISTORY_MAX_POINTS) {
       history.positions.shift();
     }
     history.lastUpdate = Date.now();
 
+    // Map proto enums to frontend string types
+    const typeMap: Record<string, MilitaryAircraftType> = {
+      "MILITARY_AIRCRAFT_TYPE_FIGHTER": 'fighter',
+      "MILITARY_AIRCRAFT_TYPE_BOMBER": 'bomber',
+      "MILITARY_AIRCRAFT_TYPE_TRANSPORT": 'transport',
+      "MILITARY_AIRCRAFT_TYPE_TANKER": 'tanker',
+      "MILITARY_AIRCRAFT_TYPE_AWACS": 'awacs',
+      "MILITARY_AIRCRAFT_TYPE_RECONNAISSANCE": 'reconnaissance',
+      "MILITARY_AIRCRAFT_TYPE_HELICOPTER": 'helicopter',
+      "MILITARY_AIRCRAFT_TYPE_DRONE": 'drone',
+      "MILITARY_AIRCRAFT_TYPE_PATROL": 'patrol',
+      "MILITARY_AIRCRAFT_TYPE_SPECIAL_OPS": 'special_ops',
+      "MILITARY_AIRCRAFT_TYPE_VIP": 'vip',
+    };
+
+    const operatorMap: Record<string, MilitaryOperator> = {
+      "MILITARY_OPERATOR_USAF": 'usaf',
+      "MILITARY_OPERATOR_USN": 'usn',
+      "MILITARY_OPERATOR_USMC": 'usmc',
+      "MILITARY_OPERATOR_USA": 'usa',
+      "MILITARY_OPERATOR_RAF": 'raf',
+      "MILITARY_OPERATOR_RN": 'rn',
+      "MILITARY_OPERATOR_FAF": 'faf',
+      "MILITARY_OPERATOR_GAF": 'gaf',
+      "MILITARY_OPERATOR_PLAAF": 'plaaf',
+      "MILITARY_OPERATOR_PLAN": 'plan',
+      "MILITARY_OPERATOR_VKS": 'vks',
+      "MILITARY_OPERATOR_IAF": 'iaf',
+      "MILITARY_OPERATOR_NATO": 'nato',
+    };
+
     return {
       id: f.id,
       callsign: f.callsign,
-      hexCode: f.hexCode,
-      aircraftType: f.aircraftType,
-      operator: f.operator,
+      hexCode: hexCode.toUpperCase(),
+      aircraftType: (typeMap[f.aircraftType as string] || 'unknown') as MilitaryAircraftType,
+      operator: (operatorMap[f.operator as string] || 'other') as MilitaryOperator,
       operatorCountry: f.operatorCountry,
-      lat: f.lat,
-      lon: f.lon,
+      lat: f.location?.latitude ?? 0,
+      lon: f.location?.longitude ?? 0,
       altitude: f.altitude,
       heading: f.heading,
       speed: f.speed,
       verticalRate: f.verticalRate,
       onGround: f.onGround,
       squawk: f.squawk,
-      lastSeen: f.lastSeenMs ? new Date(f.lastSeenMs) : now,
+      lastSeen: f.lastSeenAt ? new Date(f.lastSeenAt) : now,
       track: history.positions.length > 1 ? [...history.positions] : undefined,
-      confidence: f.confidence,
+      confidence: f.confidence === "MILITARY_CONFIDENCE_HIGH" ? 'high' : f.confidence === "MILITARY_CONFIDENCE_MEDIUM" ? 'medium' : 'low',
       isInteresting: f.isInteresting,
       note: f.note,
     } satisfies MilitaryFlight;
@@ -433,7 +449,7 @@ export async function fetchMilitaryFlights(): Promise<{
       return { flights: flightCache.data, clusters };
     }
 
-    let flights = desktop ? await fetchFromOpenSky() : await fetchFromRedis();
+    let flights = desktop ? await fetchFromOpenSky() : await fetchFromRPC();
 
     if (flights.length === 0) {
       throw new Error('No flights returned — upstream may be down');

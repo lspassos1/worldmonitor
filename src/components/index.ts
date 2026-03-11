@@ -52,3 +52,4 @@ export * from './GulfEconomiesPanel';
 export * from './WorldClockPanel';
 export { AirlineIntelPanel } from './AirlineIntelPanel';
 export { AviationCommandBar } from './AviationCommandBar';
+export { GlobalHealthDashboard } from './GlobalHealthDashboard';

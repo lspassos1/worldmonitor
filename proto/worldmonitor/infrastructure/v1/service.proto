@@ -6,6 +6,9 @@ import "sebuf/http/annotations.proto";
 import "worldmonitor/infrastructure/v1/list_internet_outages.proto";
 import "worldmonitor/infrastructure/v1/list_service_statuses.proto";
 import "worldmonitor/infrastructure/v1/get_temporal_baseline.proto";
+import "worldmonitor/infrastructure/v1/get_ip_geo.proto";
+import "worldmonitor/infrastructure/v1/reverse_geocode.proto";
+import "worldmonitor/infrastructure/v1/get_bootstrap_data.proto";
 import "worldmonitor/infrastructure/v1/get_cable_health.proto";
 import "worldmonitor/infrastructure/v1/record_baseline_snapshot.proto";
 import "worldmonitor/infrastructure/v1/list_temporal_anomalies.proto";
@@ -25,9 +28,24 @@ service InfrastructureService {
     option (sebuf.http.config) = {path: "/list-service-statuses", method: HTTP_METHOD_GET};
   }
 
-  // GetTemporalBaseline checks current activity count against stored baseline for anomaly detection.
+  // GetTemporalBaseline retrieves historical baseline data for a specific signal.
   rpc GetTemporalBaseline(GetTemporalBaselineRequest) returns (GetTemporalBaselineResponse) {
     option (sebuf.http.config) = {path: "/get-temporal-baseline", method: HTTP_METHOD_GET};
+  }
+
+  // GetIpGeo retrieves geographic information based on the caller's IP address.
+  rpc GetIpGeo(GetIpGeoRequest) returns (GetIpGeoResponse) {
+    option (sebuf.http.config) = {path: "/get-ip-geo", method: HTTP_METHOD_GET};
+  }
+
+  // ReverseGeocode resolves geographic coordinates to a postal address/country.
+  rpc ReverseGeocode(ReverseGeocodeRequest) returns (ReverseGeocodeResponse) {
+    option (sebuf.http.config) = {path: "/reverse-geocode", method: HTTP_METHOD_GET};
+  }
+
+  // GetBootstrapData fetches multiple data points from the system cache in a single call.
+  rpc GetBootstrapData(GetBootstrapDataRequest) returns (GetBootstrapDataResponse) {
+    option (sebuf.http.config) = {path: "/get-bootstrap-data", method: HTTP_METHOD_GET};
   }
 
   // RecordBaselineSnapshot batch-updates baseline statistics using Welford's online algorithm.

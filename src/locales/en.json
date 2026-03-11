@@ -2382,8 +2382,16 @@
     "mapTheme": "Map Theme",
     "mapThemeDesc": "Visual style of the map tiles. Options vary by provider.",
     "globePreset": "Visual Preset",
-    "globePresetDesc": "Switch between classic and enhanced globe visuals to compare."
+    "globePresetDesc": "Switch between classic and enhanced globe visuals to compare.",
+    "typography": "Typography",
+    "fontFamily": "Font Family",
+    "fontFamilyDesc": "Choose the application font style.",
+    "fontInter": "Inter (Modern Sans)",
+    "fontRobotoMono": "Roboto Mono (Data-heavy)",
+    "fontGeist": "Geist (Next-gen)",
+    "fontSystem": "System Default"
   },
+
   "premium": {
     "pro": "PRO",
     "lockedDesc": "Requires a World Monitor license key",

@@ -1,0 +1,11 @@
+/some/path:
+  get:
+    parameters:
+      - $ref: '../components.yaml#/components/parameters/SomeParam'
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: '../components.yaml#/components/schemas/Ding'

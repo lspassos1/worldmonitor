@@ -1,0 +1,2405 @@
+// Copyright 2022 Princess B33f Heavy Industries / Dave Shanley
+// SPDX-License-Identifier: MIT
+
+package index
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/pb33f/libopenapi/utils"
+	"github.com/stretchr/testify/assert"
+	"go.yaml.in/yaml/v4"
+)
+
+const (
+	digitalOceanCommitID = "d8d390155b515cdd94555478bbcdf5682460c52e"
+)
+
+func TestSpecIndex_GetCache(t *testing.T) {
+	petstore, _ := os.ReadFile("../test_specs/petstorev3.json")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(petstore, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	extCache := index.GetCache()
+	assert.NotNil(t, extCache)
+	extCache.Store("test", "test")
+	loaded, ok := extCache.Load("test")
+	assert.Equal(t, "test", loaded)
+	assert.True(t, ok)
+
+	// create a new cache
+	newCache := new(sync.Map)
+	index.SetCache(newCache)
+
+	// check that the cache has been set.
+	assert.Equal(t, newCache, index.GetCache())
+
+	// add an item to the new cache and check it exists
+	newCache.Store("test2", "test2")
+	loaded, ok = newCache.Load("test2")
+	assert.Equal(t, "test2", loaded)
+	assert.True(t, ok)
+
+	// now check that the new item in the new cache does not exist in the old cache.
+	loaded, ok = extCache.Load("test2")
+	assert.Nil(t, loaded)
+	assert.False(t, ok)
+
+	assert.Len(t, index.GetIgnoredPolymorphicCircularReferences(), 0)
+	assert.Len(t, index.GetIgnoredArrayCircularReferences(), 0)
+	assert.Equal(t, len(index.GetRawReferencesSequenced()), 42)
+	assert.Equal(t, len(index.GetNodeMap()), 824)
+	assert.Greater(t, len(index.GetMappedReferences()), 1)
+	index.SetMappedReferences(nil)
+	assert.Zero(t, index.GetMappedReferences())
+}
+
+func TestSpecIndex_ExtractRefsStripe(t *testing.T) {
+	stripe, _ := os.ReadFile("../test_specs/stripe.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(stripe, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Equal(t, 626, len(index.allRefs))
+	assert.Equal(t, 871, len(index.allMappedRefs))
+	combined := index.GetAllCombinedReferences()
+	assert.Equal(t, 871, len(combined))
+
+	assert.Equal(t, 2712, len(index.rawSequencedRefs))
+	assert.Equal(t, 336, index.pathCount)
+	assert.Equal(t, 494, index.operationCount)
+	assert.Equal(t, 871, index.schemaCount)
+	assert.Equal(t, 0, index.globalTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Equal(t, 0, index.componentParamCount)
+	assert.Equal(t, 162, index.operationParamCount)
+	assert.Equal(t, 102, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 60, index.componentsInlineParamUniqueCount)
+	assert.Equal(t, 2579, index.enumCount)
+	assert.Equal(t, len(index.GetAllEnums()), 2579)
+	assert.Len(t, index.GetPolyAllOfReferences(), 0)
+	assert.Len(t, index.GetPolyOneOfReferences(), 315)
+	assert.Len(t, index.GetPolyAnyOfReferences(), 708)
+	assert.Len(t, index.GetAllReferenceSchemas(), 2712)
+	assert.NotNil(t, index.GetRootServersNode())
+	assert.Len(t, index.GetAllRootServers(), 1)
+	assert.Equal(t, "", index.GetSpecAbsolutePath())
+	assert.NotNil(t, index.GetLogger())
+
+	// not required, but flip the circular result switch on and off.
+	assert.False(t, index.AllowCircularReferenceResolving())
+	index.SetAllowCircularReferenceResolving(true)
+	assert.True(t, index.AllowCircularReferenceResolving())
+
+	// simulate setting of circular references, also pointless but needed for coverage.
+	assert.Nil(t, index.GetCircularReferences())
+	index.SetCircularReferences([]*CircularReferenceResult{new(CircularReferenceResult)})
+	assert.Len(t, index.GetCircularReferences(), 1)
+
+	assert.Equal(t, 871, len(index.GetRefsByLine()))
+	assert.Equal(t, 2712, len(index.GetLinesWithReferences()))
+	assert.Equal(t, 0, len(index.GetAllExternalDocuments()))
+}
+
+func TestSpecIndex_Asana(t *testing.T) {
+	asana, _ := os.ReadFile("../test_specs/asana.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(asana, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, index.allRefs, 152)
+	assert.Len(t, index.allMappedRefs, 171)
+	combined := index.GetAllCombinedReferences()
+	assert.Equal(t, 171, len(combined))
+	assert.Equal(t, 118, index.pathCount)
+	assert.Equal(t, 152, index.operationCount)
+	assert.Equal(t, 135, index.schemaCount)
+	assert.Equal(t, 26, index.globalTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Equal(t, 30, index.componentParamCount)
+	assert.Equal(t, 107, index.operationParamCount)
+	assert.Equal(t, 8, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 69, index.componentsInlineParamUniqueCount)
+}
+
+func TestSpecIndex_DigitalOcean(t *testing.T) {
+	do, _ := os.ReadFile("../test_specs/digitalocean.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(do, &rootNode)
+
+	location := "https://raw.githubusercontent.com/digitalocean/openapi/8ce96ef186fe938bdce26fb2f5d63ac53ca9d06f/specification"
+	baseURL, _ := url.Parse(location)
+
+	// create a new config that allows remote lookups.
+	cf := &SpecIndexConfig{}
+	cf.AvoidBuildIndex = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// setting this baseURL will override the base
+	cf.BaseURL = baseURL
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// create a new remote fs and set the config for indexing.
+	remoteFS, _ := NewRemoteFSWithConfig(cf)
+
+	// create a handler that uses an env variable to capture any GITHUB_TOKEN in the OS ENV
+	// and inject it into the request header, so this does not fail when running lots of local tests.
+	if os.Getenv("GH_PAT") != "" {
+		fmt.Println("GH_PAT found, setting remote handler func")
+		client := &http.Client{
+			Timeout: time.Second * 120,
+		}
+		remoteFS.SetRemoteHandlerFunc(func(url string) (*http.Response, error) {
+			request, _ := http.NewRequest(http.MethodGet, url, nil)
+			request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("GH_PAT")))
+			return client.Do(request)
+		})
+	}
+
+	// add remote filesystem
+	rolo.AddRemoteFS(location, remoteFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	assert.NoError(t, indexedErr)
+
+	// get all the files!
+	files := remoteFS.GetFiles()
+	fileLen := len(files)
+
+	// if windows
+	if runtime.GOOS != "windows" {
+		assert.Equal(t, 1660, fileLen)
+	}
+	assert.Len(t, remoteFS.GetErrors(), 0)
+
+	// check circular references
+	rolo.CheckForCircularReferences()
+	assert.Len(t, rolo.GetCaughtErrors(), 0)
+	assert.Len(t, rolo.GetIgnoredCircularReferences(), 0)
+}
+
+func TestSpecIndex_Redocly(t *testing.T) {
+	do, _ := os.ReadFile("../test_specs/redocly-starter.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(do, &rootNode)
+
+	location := "https://raw.githubusercontent.com/Redocly/openapi-starter/5d36274f068e67d630a441b33aefdc208b5f76a1/openapi"
+	baseURL, _ := url.Parse(location)
+
+	// create a new config that allows remote lookups.
+	cf := &SpecIndexConfig{}
+	cf.AvoidBuildIndex = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// setting this baseURL will override the base
+	cf.BaseURL = baseURL
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// create a new remote fs and set the config for indexing.
+	remoteFS, _ := NewRemoteFSWithConfig(cf)
+
+	// create a handler that uses an env variable to capture any GITHUB_TOKEN in the OS ENV
+	// and inject it into the request header, so this does not fail when running lots of local tests.
+	if os.Getenv("GH_PAT") != "" {
+		fmt.Println("GH_PAT found, setting remote handler func")
+		client := &http.Client{
+			Timeout: time.Second * 120,
+		}
+		remoteFS.SetRemoteHandlerFunc(func(url string) (*http.Response, error) {
+			request, _ := http.NewRequest(http.MethodGet, url, nil)
+			request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("GH_PAT")))
+			return client.Do(request)
+		})
+	}
+
+	// add remote filesystem
+	rolo.AddRemoteFS(location, remoteFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	assert.NoError(t, indexedErr)
+
+	// get all the files!
+	files := remoteFS.GetFiles()
+	fileLen := len(files)
+	assert.Equal(t, 18, fileLen)
+	assert.Len(t, remoteFS.GetErrors(), 0)
+
+	// check circular references
+	rolo.CheckForCircularReferences()
+	assert.Len(t, rolo.GetCaughtErrors(), 0)
+	assert.Len(t, rolo.GetIgnoredCircularReferences(), 0)
+}
+
+func TestSpecIndex_DigitalOcean_FullCheckoutLocalResolve(t *testing.T) {
+	// this is a full checkout of the digitalocean API repo.
+	tmp := t.TempDir()
+	cmd := exec.Command("git", "clone", "https://github.com/digitalocean/openapi", tmp)
+
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("git clone failed with %s\n", err)
+	}
+
+	if err := exec.Command("git", "-C", tmp, "reset", "--hard", digitalOceanCommitID).Run(); err != nil {
+		log.Fatalf("git reset failed with %s\n", err)
+	}
+
+	spec, _ := filepath.Abs(filepath.Join(tmp, "specification", "DigitalOcean-public.v2.yaml"))
+	doLocal, _ := os.ReadFile(spec)
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(doLocal, &rootNode)
+
+	basePath := filepath.Join(tmp, "specification")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.ExtractRefsSequentially = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = basePath
+	cf.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		DirFS:         os.DirFS(cf.BasePath),
+		Logger:        cf.Logger,
+	}
+
+	// create a new local filesystem.
+	fileFS, fsErr := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, fsErr)
+
+	files := fileFS.GetFiles()
+	fileLen := len(files)
+
+	assert.Equal(t, 1716, fileLen)
+
+	rolo.AddLocalFS(basePath, fileFS)
+
+	rErr := rolo.IndexTheRolodex(context.Background())
+
+	assert.NoError(t, rErr)
+
+	index := rolo.GetRootIndex()
+
+	assert.NotNil(t, index)
+
+	assert.Len(t, index.GetMappedReferencesSequenced(), 303)
+	assert.Len(t, index.GetMappedReferences(), 303)
+	assert.Len(t, fileFS.GetErrors(), 0)
+
+	// check circular references
+	rolo.CheckForCircularReferences()
+	assert.Len(t, rolo.GetCaughtErrors(), 0)
+	assert.Len(t, rolo.GetIgnoredCircularReferences(), 0)
+
+	if runtime.GOOS != "windows" {
+		assert.Equal(t, "1.3 MB", rolo.RolodexFileSizeAsString())
+	} else {
+		assert.Equal(t, "1.35 MB", rolo.RolodexFileSizeAsString())
+	}
+	assert.Equal(t, 1716, rolo.RolodexTotalFiles())
+}
+
+func TestSpecIndex_DigitalOcean_FullCheckoutLocalResolve_RecursiveLookup(t *testing.T) {
+	// this is a full checkout of the digitalocean API repo.
+	tmp := t.TempDir()
+	cmd := exec.Command("git", "clone", "https://github.com/digitalocean/openapi", tmp)
+
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("git clone failed with %s\n", err)
+	}
+
+	if err := exec.Command("git", "-C", tmp, "reset", "--hard", digitalOceanCommitID).Run(); err != nil {
+		log.Fatalf("git reset failed with %s\n", err)
+	}
+
+	spec, _ := filepath.Abs(filepath.Join(tmp, "specification", "DigitalOcean-public.v2.yaml"))
+	doLocal, _ := os.ReadFile(spec)
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(doLocal, &rootNode)
+
+	basePath := filepath.Join(tmp, "specification")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = basePath
+	cf.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		IndexConfig:   cf,
+		Logger:        cf.Logger,
+	}
+
+	// create a new local filesystem.
+	fileFS, fsErr := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, fsErr)
+
+	rolo.AddLocalFS(basePath, fileFS)
+
+	rErr := rolo.IndexTheRolodex(context.Background())
+	files := fileFS.GetFiles()
+	fileLen := len(files)
+
+	assert.Equal(t, 1702, fileLen)
+
+	assert.NoError(t, rErr)
+
+	index := rolo.GetRootIndex()
+
+	assert.NotNil(t, index)
+
+	assert.Len(t, index.GetMappedReferencesSequenced(), 303)
+	assert.Len(t, index.GetMappedReferences(), 303)
+	assert.Len(t, fileFS.GetErrors(), 0)
+
+	// check circular references
+	rolo.CheckForCircularReferences()
+	assert.Len(t, rolo.GetCaughtErrors(), 0)
+	assert.Len(t, rolo.GetIgnoredCircularReferences(), 0)
+	if runtime.GOOS == "windows" {
+		assert.Equal(t, "1.29 MB", rolo.RolodexFileSizeAsString())
+	} else {
+		assert.Equal(t, "1.24 MB", rolo.RolodexFileSizeAsString())
+	}
+	assert.Equal(t, 1702, rolo.RolodexTotalFiles())
+}
+
+func TestSpecIndex_DigitalOcean_LookupsNotAllowed(t *testing.T) {
+	do, _ := os.ReadFile("../test_specs/digitalocean.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(do, &rootNode)
+
+	location := "https://raw.githubusercontent.com/digitalocean/openapi/tree/" + digitalOceanCommitID + "/specification"
+	baseURL, _ := url.Parse(location)
+
+	// create a new config that does not allow remote lookups.
+	cf := &SpecIndexConfig{}
+	cf.AvoidBuildIndex = true
+	cf.AvoidCircularReferenceCheck = true
+	var op []byte
+	buf := bytes.NewBuffer(op)
+	cf.Logger = slog.New(slog.NewJSONHandler(buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// setting this baseURL will override the base
+	cf.BaseURL = baseURL
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// create a new remote fs and set the config for indexing.
+	remoteFS, _ := NewRemoteFSWithConfig(cf)
+
+	// add remote filesystem
+	rolo.AddRemoteFS(location, remoteFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	assert.Error(t, indexedErr)
+	assert.Len(t, utils.UnwrapErrors(indexedErr), 291)
+
+	index := rolo.GetRootIndex()
+
+	files := remoteFS.GetFiles()
+	fileLen := len(files)
+	assert.Equal(t, 0, fileLen)
+	assert.Len(t, remoteFS.GetErrors(), 0)
+
+	// no lookups allowed, bits have not been set, so there should just be a bunch of errors.
+	assert.True(t, len(index.GetReferenceIndexErrors()) > 0)
+}
+
+func TestSpecIndex_BaseURLError(t *testing.T) {
+	do, _ := os.ReadFile("../test_specs/digitalocean.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(do, &rootNode)
+
+	location := "https://githerbsandcoffeeandcode.com/fresh/herbs/for/you" // not gonna work bro.
+	baseURL, _ := url.Parse(location)
+
+	// create a new config that allows remote lookups.
+	cf := &SpecIndexConfig{}
+	cf.AvoidBuildIndex = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	var op []byte
+	buf := bytes.NewBuffer(op)
+	cf.Logger = slog.New(slog.NewJSONHandler(buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// setting this baseURL will override the base
+	cf.BaseURL = baseURL
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// create a new remote fs and set the config for indexing.
+	remoteFS, _ := NewRemoteFSWithConfig(cf)
+
+	// create a handler that uses an env variable to capture any GH_PAT in the OS ENV
+	// and inject it into the request header, so this does not fail when running lots of local tests.
+	if os.Getenv("GH_PAT") != "" {
+		fmt.Println("GH_PAT found, setting remote handler func")
+		client := &http.Client{
+			Timeout: time.Second * 120,
+		}
+		remoteFS.SetRemoteHandlerFunc(func(url string) (*http.Response, error) {
+			request, _ := http.NewRequest(http.MethodGet, url, nil)
+			request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("GH_PAT")))
+			return client.Do(request)
+		})
+	}
+
+	// add remote filesystem
+	rolo.AddRemoteFS(location, remoteFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	assert.Error(t, indexedErr)
+	assert.Len(t, utils.UnwrapErrors(indexedErr), 291)
+
+	files := remoteFS.GetFiles()
+	fileLen := len(files)
+	assert.Equal(t, 0, fileLen)
+	assert.GreaterOrEqual(t, len(remoteFS.GetErrors()), 155)
+}
+
+func TestSpecIndex_k8s(t *testing.T) {
+	asana, _ := os.ReadFile("../test_specs/k8s.json")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(asana, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, index.allRefs, 558)
+	assert.Equal(t, 563, len(index.allMappedRefs))
+	combined := index.GetAllCombinedReferences()
+	assert.Equal(t, 563, len(combined))
+	assert.Equal(t, 436, index.pathCount)
+	assert.Equal(t, 853, index.operationCount)
+	assert.Equal(t, 563, index.schemaCount)
+	assert.Equal(t, 0, index.globalTagsCount)
+	assert.Equal(t, 58, index.operationTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Equal(t, 0, index.componentParamCount)
+	assert.Equal(t, 36, index.operationParamCount)
+	assert.Equal(t, 26, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 10, index.componentsInlineParamUniqueCount)
+	assert.Equal(t, 58, index.GetTotalTagsCount())
+	assert.Equal(t, 2524, index.GetRawReferenceCount())
+}
+
+func TestSpecIndex_PetstoreV2(t *testing.T) {
+	asana, _ := os.ReadFile("../test_specs/petstorev2.json")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(asana, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, index.allRefs, 6)
+	assert.Len(t, index.allMappedRefs, 6)
+	assert.Equal(t, 14, index.pathCount)
+	assert.Equal(t, 20, index.operationCount)
+	assert.Equal(t, 6, index.schemaCount)
+	assert.Equal(t, 3, index.globalTagsCount)
+	assert.Equal(t, 3, index.operationTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Equal(t, 1, index.componentParamCount)
+	assert.Equal(t, 1, index.GetComponentParameterCount())
+	assert.Equal(t, 11, index.operationParamCount)
+	assert.Equal(t, 5, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 6, index.componentsInlineParamUniqueCount)
+	assert.Equal(t, 3, index.GetTotalTagsCount())
+	assert.Equal(t, 2, len(index.GetSecurityRequirementReferences()))
+}
+
+func TestSpecIndex_XSOAR(t *testing.T) {
+	xsoar, _ := os.ReadFile("../test_specs/xsoar.json")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(xsoar, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Len(t, index.allRefs, 209)
+	assert.Equal(t, 85, index.pathCount)
+	assert.Equal(t, 88, index.operationCount)
+	assert.Equal(t, 245, index.schemaCount)
+	assert.Equal(t, 207, len(index.allMappedRefs))
+	assert.Equal(t, 0, index.globalTagsCount)
+	assert.Equal(t, 0, index.operationTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Len(t, index.GetRootSecurityReferences(), 1)
+	assert.NotNil(t, index.GetRootSecurityNode())
+}
+
+func TestSpecIndex_PetstoreV3(t *testing.T) {
+	petstore, _ := os.ReadFile("../test_specs/petstorev3.json")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(petstore, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, index.allRefs, 7)
+	assert.Len(t, index.allMappedRefs, 7)
+	assert.Equal(t, 13, index.pathCount)
+	assert.Equal(t, 19, index.operationCount)
+	assert.Equal(t, 8, index.schemaCount)
+	assert.Equal(t, 3, index.globalTagsCount)
+	assert.Equal(t, 3, index.operationTagsCount)
+	assert.Equal(t, 0, index.globalLinksCount)
+	assert.Equal(t, 0, index.componentParamCount)
+	assert.Equal(t, 9, index.operationParamCount)
+	assert.Equal(t, 4, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 5, index.componentsInlineParamUniqueCount)
+	assert.Equal(t, 3, index.GetTotalTagsCount())
+	assert.Equal(t, 90, index.GetAllDescriptionsCount())
+	assert.Equal(t, 19, index.GetAllSummariesCount())
+	assert.Len(t, index.GetAllDescriptions(), 90)
+	assert.Len(t, index.GetAllSummaries(), 19)
+
+	index.SetAbsolutePath("/rooty/rootster")
+	assert.Equal(t, "/rooty/rootster", index.GetSpecAbsolutePath())
+}
+
+var mappedRefs = 15
+
+func TestSpecIndex_BurgerShop(t *testing.T) {
+	burgershop, _ := os.ReadFile("../test_specs/burgershop.openapi.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(burgershop, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, index.allRefs, mappedRefs)
+	assert.Len(t, index.allMappedRefs, mappedRefs)
+	assert.Equal(t, mappedRefs, len(index.GetMappedReferences()))
+	assert.Equal(t, mappedRefs+1, len(index.GetMappedReferencesSequenced()))
+
+	assert.Equal(t, 6, index.pathCount)
+	assert.Equal(t, 6, index.GetPathCount())
+
+	assert.Equal(t, 6, len(index.GetAllComponentSchemas()))
+	assert.Equal(t, 56, len(index.GetAllSchemas()))
+
+	assert.Equal(t, 34, len(index.GetAllSequencedReferences()))
+	assert.NotNil(t, index.GetSchemasNode())
+	assert.NotNil(t, index.GetParametersNode())
+
+	assert.Equal(t, 5, index.operationCount)
+	assert.Equal(t, 5, index.GetOperationCount())
+
+	assert.Equal(t, 6, index.schemaCount)
+	assert.Equal(t, 6, index.GetComponentSchemaCount())
+
+	assert.Equal(t, 2, index.globalTagsCount)
+	assert.Equal(t, 2, index.GetGlobalTagsCount())
+	assert.Equal(t, 2, index.GetTotalTagsCount())
+
+	assert.Equal(t, 2, index.operationTagsCount)
+	assert.Equal(t, 2, index.GetOperationTagsCount())
+
+	assert.Equal(t, 3, index.globalLinksCount)
+	assert.Equal(t, 3, index.GetGlobalLinksCount())
+
+	assert.Equal(t, 1, index.globalCallbacksCount)
+	assert.Equal(t, 1, index.GetGlobalCallbacksCount())
+
+	assert.Equal(t, 2, index.componentParamCount)
+	assert.Equal(t, 2, index.GetComponentParameterCount())
+
+	assert.Equal(t, 4, index.operationParamCount)
+	assert.Equal(t, 4, index.GetOperationsParameterCount())
+
+	assert.Equal(t, 0, index.componentsInlineParamDuplicateCount)
+	assert.Equal(t, 0, index.GetInlineDuplicateParamCount())
+
+	assert.Equal(t, 2, index.componentsInlineParamUniqueCount)
+	assert.Equal(t, 2, index.GetInlineUniqueParamCount())
+
+	assert.Equal(t, 1, len(index.GetAllRequestBodies()))
+	assert.NotNil(t, index.GetRootNode())
+	assert.NotNil(t, index.GetGlobalTagsNode())
+	assert.NotNil(t, index.GetPathsNode())
+	assert.NotNil(t, index.GetDiscoveredReferences())
+	assert.Equal(t, 1, len(index.GetPolyReferences()))
+	assert.NotNil(t, index.GetOperationParameterReferences())
+	assert.Equal(t, 3, len(index.GetAllSecuritySchemes()))
+	assert.Equal(t, 2, len(index.GetAllParameters()))
+	assert.Equal(t, 1, len(index.GetAllResponses()))
+	assert.Equal(t, 2, len(index.GetInlineOperationDuplicateParameters()))
+	assert.Equal(t, 0, len(index.GetReferencesWithSiblings()))
+	assert.Equal(t, mappedRefs, len(index.GetAllReferences()))
+	assert.Equal(t, 0, len(index.GetOperationParametersIndexErrors()))
+	assert.Equal(t, 5, len(index.GetAllPaths()))
+	assert.Equal(t, 5, len(index.GetOperationTags()))
+	assert.Equal(t, 3, len(index.GetAllParametersFromOperations()))
+}
+
+func TestSpecIndex_GetAllParametersFromOperations(t *testing.T) {
+	yml := `openapi: 3.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /test:
+    get:
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Equal(t, 1, len(index.GetAllParametersFromOperations()))
+	assert.Equal(t, 1, len(index.GetOperationParametersIndexErrors()))
+}
+
+func TestSpecIndex_BurgerShop_AllTheComponents(t *testing.T) {
+	burgershop, _ := os.ReadFile("../test_specs/all-the-components.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(burgershop, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Equal(t, 1, len(index.GetAllHeaders()))
+	assert.Equal(t, 1, len(index.GetAllLinks()))
+	assert.Equal(t, 1, len(index.GetAllCallbacks()))
+	assert.Equal(t, 1, len(index.GetAllExamples()))
+	assert.Equal(t, 1, len(index.GetAllResponses()))
+	assert.Equal(t, 2, len(index.GetAllRootServers()))
+	assert.Equal(t, 2, len(index.GetAllOperationsServers()))
+}
+
+func TestSpecIndex_SwaggerResponses(t *testing.T) {
+	yml := `swagger: 2.0
+responses:
+  niceResponse: 
+    description: hi`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Equal(t, 1, len(index.GetAllResponses()))
+}
+
+func TestSpecIndex_NoNameParam(t *testing.T) {
+	yml := `paths:
+  /users/{id}:
+    parameters:
+    - in: path
+      name: id
+    - in: query
+    get:
+      parameters:
+        - in: path
+          name: id
+        - in: query`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Equal(t, 2, len(index.GetOperationParametersIndexErrors()))
+}
+
+func TestSpecIndex_NoRoot(t *testing.T) {
+	index := NewSpecIndex(nil)
+	refs := index.ExtractRefs(context.Background(), nil, nil, nil, 0, false, "")
+	docs := index.ExtractExternalDocuments(nil)
+	assert.Nil(t, docs)
+	assert.Nil(t, refs)
+	assert.Nil(t, index.FindComponent(context.Background(), "nothing"))
+	assert.Equal(t, -1, index.GetOperationCount())
+	assert.Equal(t, -1, index.GetPathCount())
+	assert.Equal(t, -1, index.GetGlobalTagsCount())
+	assert.Equal(t, -1, index.GetOperationTagsCount())
+	assert.Equal(t, -1, index.GetTotalTagsCount())
+	assert.Equal(t, -1, index.GetOperationsParameterCount())
+	assert.Equal(t, -1, index.GetComponentParameterCount())
+	assert.Equal(t, -1, index.GetComponentSchemaCount())
+	assert.Equal(t, -1, index.GetGlobalLinksCount())
+}
+
+func test_buildMixedRefServer() *httptest.Server {
+	bs, _ := os.ReadFile("../test_specs/burgershop.openapi.yaml")
+	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
+		_, _ = rw.Write(bs)
+	}))
+}
+
+func TestSpecIndex_BurgerShopMixedRef(t *testing.T) {
+	// create a test server.
+	server := test_buildMixedRefServer()
+	defer server.Close()
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AvoidBuildIndex = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = "../test_specs"
+	cf.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// setting this baseURL will override the base
+	cf.BaseURL, _ = url.Parse(server.URL)
+
+	cFile := "../test_specs/mixedref-burgershop.openapi.yaml"
+	yml, _ := os.ReadFile(cFile)
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// create a new remote fs and set the config for indexing.
+	remoteFS, _ := NewRemoteFSWithRootURL(server.URL)
+	remoteFS.SetIndexConfig(cf)
+
+	// set our remote handler func
+
+	c := http.Client{}
+
+	remoteFS.RemoteHandlerFunc = c.Get
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		FileFilters:   []string{"burgershop.openapi.yaml"},
+		DirFS:         os.DirFS(cf.BasePath),
+	}
+
+	// create a new local filesystem.
+	fileFS, err := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, err)
+
+	// add file systems to the rolodex
+	rolo.AddLocalFS(cf.BasePath, fileFS)
+	rolo.AddRemoteFS(server.URL, remoteFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	rolo.BuildIndexes()
+
+	assert.NoError(t, indexedErr)
+
+	index := rolo.GetRootIndex()
+	rolo.CheckForCircularReferences()
+
+	assert.Len(t, index.allRefs, 5)
+	assert.Len(t, index.allMappedRefs, 5)
+	assert.Equal(t, 5, index.GetPathCount())
+	assert.Equal(t, 5, index.GetOperationCount())
+	assert.Equal(t, 1, index.GetComponentSchemaCount())
+	assert.Equal(t, 2, index.GetGlobalTagsCount())
+	assert.Equal(t, 3, index.GetTotalTagsCount())
+	assert.Equal(t, 2, index.GetOperationTagsCount())
+	assert.Equal(t, 0, index.GetGlobalLinksCount())
+	assert.Equal(t, 0, index.GetComponentParameterCount())
+	assert.Equal(t, 2, index.GetOperationsParameterCount())
+	assert.Equal(t, 1, index.GetInlineDuplicateParamCount())
+	assert.Equal(t, 1, index.GetInlineUniqueParamCount())
+	assert.Len(t, index.refErrors, 0)
+	assert.Len(t, index.GetCircularReferences(), 0)
+
+	// get the size of the rolodex.
+
+	if runtime.GOOS != "windows" {
+		assert.Equal(t, int64(60226), rolo.RolodexFileSize()+int64(len(yml)))
+		assert.Equal(t, "50.48 KB", rolo.RolodexFileSizeAsString())
+	} else {
+		assert.Equal(t, int64(62128), rolo.RolodexFileSize()+int64(len(yml)))
+		assert.Equal(t, "52.09 KB", rolo.RolodexFileSizeAsString())
+	}
+	assert.Equal(t, 3, rolo.RolodexTotalFiles())
+}
+
+func TestCalcSizeAsString(t *testing.T) {
+	assert.Equal(t, "345 B", HumanFileSize(345))
+	assert.Equal(t, "1 KB", HumanFileSize(1024))
+	assert.Equal(t, "1 KB", HumanFileSize(1025))
+	assert.Equal(t, "1.98 KB", HumanFileSize(2025))
+	assert.Equal(t, "1 MB", HumanFileSize(1025*1024))
+	assert.Equal(t, "1 GB", HumanFileSize(1025*1025*1025))
+}
+
+func TestSpecIndex_TestEmptyBrokenReferences(t *testing.T) {
+	badref, _ := os.ReadFile("../test_specs/badref-burgershop.openapi.yaml")
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal(badref, &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Equal(t, 5, index.GetPathCount())
+	assert.Equal(t, 5, index.GetOperationCount())
+	assert.Equal(t, 5, index.GetComponentSchemaCount())
+	assert.Equal(t, 2, index.GetGlobalTagsCount())
+	assert.Equal(t, 3, index.GetTotalTagsCount())
+	assert.Equal(t, 2, index.GetOperationTagsCount())
+	assert.Equal(t, 2, index.GetGlobalLinksCount())
+	assert.Equal(t, 0, index.GetComponentParameterCount())
+	assert.Equal(t, 2, index.GetOperationsParameterCount())
+	assert.Equal(t, 1, index.GetInlineDuplicateParamCount())
+	assert.Equal(t, 1, index.GetInlineUniqueParamCount())
+	assert.Len(t, index.refErrors, 6)
+}
+
+func TestTagsNoDescription(t *testing.T) {
+	yml := `tags:
+  - name: one
+  - name: two
+  - three: three`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Equal(t, 3, index.GetGlobalTagsCount())
+}
+
+func TestGlobalCallbacksNoIndexTest(t *testing.T) {
+	idx := NewTestSpecIndex().Load().(*SpecIndex)
+	assert.Equal(t, -1, idx.GetGlobalCallbacksCount())
+}
+
+func TestMultipleCallbacksPerOperationVerb(t *testing.T) {
+	yml := `components:
+  callbacks:  
+    callbackA:
+      "{$request.query.queryUrl}":
+        post:
+          description: callbackAPost
+        get:
+          description: callbackAGet
+    callbackB:
+      "{$request.query.queryUrl}":
+        post:
+          description: callbackBPost
+        get:
+          description: callbackBGet
+paths:
+  /pb33f/arriving-soon:
+    post:
+      callbacks:
+        callbackA:
+          $ref: '#/components/callbacks/CallbackA'
+        callbackB:
+          $ref: '#/components/callbacks/CallbackB'
+    get:
+      callbacks:
+        callbackB:
+          $ref: '#/components/callbacks/CallbackB'
+        callbackA:
+          $ref: '#/components/callbacks/CallbackA'`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Equal(t, 4, index.GetGlobalCallbacksCount())
+}
+
+func TestSpecIndex_ExtractComponentsFromRefs(t *testing.T) {
+	yml := `components:
+  schemas:
+    pizza:
+      properties:
+        something:
+          $ref: '#/components/\schemas/\something'
+    something:
+      description: something`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Len(t, index.GetReferenceIndexErrors(), 0)
+}
+
+func TestSpecIndex_ExtractComponentsFromRefs_EmptyRefs(t *testing.T) {
+	yml := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	// Call with empty refs - should return nil (covers line 725)
+	result := index.ExtractComponentsFromRefs(context.Background(), []*Reference{})
+	assert.Nil(t, result)
+}
+
+func TestSpecIndex_ExtractComponentsFromRefs_NotFoundAsync(t *testing.T) {
+	yml := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    exists:
+      type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	config := CreateOpenAPIIndexConfig()
+	config.ExtractRefsSequentially = false // Ensure async mode
+	index := NewSpecIndexWithConfig(&rootNode, config)
+
+	// Create a reference to a non-existent component
+	ref := &Reference{
+		FullDefinition: "#/components/schemas/doesNotExist",
+		Definition:     "#/components/schemas/doesNotExist",
+	}
+
+	// Call with a ref that won't be found - covers line 811 (nil result in async mode)
+	result := index.ExtractComponentsFromRefs(context.Background(), []*Reference{ref})
+	assert.Empty(t, result)
+	assert.Len(t, index.GetReferenceIndexErrors(), 1)
+}
+
+func TestSpecIndex_FindComponent_WithACrazyAssPath(t *testing.T) {
+	yml := `paths:
+  /crazy/ass/references:
+    get:
+      parameters:
+        - name: a param
+          schema:
+            type: string
+      description: Show information about one architecture.
+      responses:
+        "200":
+          content:
+            application/xml; charset=utf-8:
+              schema:
+                example:
+                  name: x86_64
+          description: OK. The request has succeeded.
+        "404":
+         content:
+            application/xml; charset=utf-8:
+              example:
+                code: unknown_architecture
+                summary: "Architecture does not exist: x999"
+              schema:
+                 $ref: "#/paths/~1crazy~1ass~1references/get/parameters/0"
+        "400":
+          content:
+            application/xml; charset=utf-8:
+              example:
+                code: unknown_architecture
+                summary: "Architecture does not exist: x999"
+              schema:
+                $ref: "#/paths/~1crazy~1ass~1references/get/responses/404/content/application~1xml;%20charset=utf-8/schema"
+          description: Not Found.`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Equal(t, "#/paths/~1crazy~1ass~1references/get/parameters/0",
+		index.FindComponent(context.Background(), "#/paths/~1crazy~1ass~1references/get/responses/404/content/application~1xml;%20charset=utf-8/schema").Node.Content[1].Value)
+
+	assert.Equal(t, "a param",
+		index.FindComponent(context.Background(), "#/paths/~1crazy~1ass~1references/get/parameters/0").Node.Content[1].Value)
+}
+
+func TestSpecIndex_FindComponent(t *testing.T) {
+	yml := `components:
+  schemas:
+    pizza:
+      properties:
+        something:
+          $ref: '#/components/schemas/something'
+    something:
+      description: something`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Nil(t, index.FindComponent(context.Background(), "I-do-not-exist"))
+}
+
+func TestSpecIndex_TestPathsNodeAsArray(t *testing.T) {
+	yml := `components:
+  schemas:
+    pizza:
+      properties:
+        something:
+          $ref: '#/components/schemas/something'
+    something:
+      description: something`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Nil(t, index.lookupRolodex(context.Background(), nil))
+}
+
+func TestSpecIndex_CheckBadURLRefNoRemoteAllowed(t *testing.T) {
+	yml := `openapi: 3.1.0
+paths:
+  /cakes:
+    post:
+      parameters:
+        - $ref: 'httpsss://badurl'`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	c := CreateClosedAPIIndexConfig()
+	idx := NewSpecIndexWithConfig(&rootNode, c)
+
+	assert.Len(t, idx.refErrors, 1)
+}
+
+func TestSpecIndex_CheckIndexDiscoversNoComponentLocalFileReference(t *testing.T) {
+	c := []byte("name: time for coffee")
+
+	_ = os.WriteFile("coffee-time.yaml", c, 0o664)
+	defer os.Remove("coffee-time.yaml")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = "."
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		FileFilters:   []string{"coffee-time.yaml"},
+		DirFS:         os.DirFS(cf.BasePath),
+	}
+
+	// create a new local filesystem.
+	fileFS, err := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, err)
+
+	yml := `openapi: 3.0.3
+paths:
+  /cakes:
+    post:
+      parameters:
+        - $ref: 'coffee-time.yaml'`
+
+	var coffee yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &coffee)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&coffee)
+
+	rolo.AddLocalFS(cf.BasePath, fileFS)
+	rErr := rolo.IndexTheRolodex(context.Background())
+
+	assert.NoError(t, rErr)
+
+	index := rolo.GetRootIndex()
+
+	assert.NotNil(t, index.GetAllParametersFromOperations()["/cakes"]["post"]["coffee-time.yaml"][0].Node)
+}
+
+func TestSpecIndex_lookupFileReference_MultiRes(t *testing.T) {
+	embie := []byte("naughty:\n - puppy: dog\n - puppy: naughty\npuppy:\n - naughty: puppy")
+
+	_ = os.WriteFile("embie.yaml", embie, 0o664)
+	defer os.Remove("embie.yaml")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AvoidBuildIndex = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = "."
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	var myPuppy yaml.Node
+	_ = yaml.Unmarshal(embie, &myPuppy)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&myPuppy)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		FileFilters:   []string{"embie.yaml"},
+		DirFS:         os.DirFS(cf.BasePath),
+	}
+
+	// create a new local filesystem.
+	fileFS, err := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, err)
+
+	rolo.AddLocalFS(cf.BasePath, fileFS)
+	rErr := rolo.IndexTheRolodex(context.Background())
+
+	assert.NoError(t, rErr)
+
+	embieRoloFile, fErr := rolo.Open("embie.yaml")
+
+	assert.NoError(t, fErr)
+	assert.NotNil(t, embieRoloFile)
+
+	index := rolo.GetRootIndex()
+	// index.seenRemoteSources = make(map[string]*yaml.Node)
+	absoluteRef, _ := filepath.Abs("embie.yaml#/naughty")
+	fRef, _ := index.SearchIndexForReference(absoluteRef)
+	assert.NotNil(t, fRef)
+}
+
+func TestSpecIndex_lookupFileReference(t *testing.T) {
+	pup := []byte("good:\n - puppy: dog\n - puppy: forever-more")
+
+	var myPuppy yaml.Node
+	_ = yaml.Unmarshal(pup, &myPuppy)
+
+	_ = os.WriteFile("fox.yaml", pup, 0o664)
+	defer os.Remove("fox.yaml")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AvoidBuildIndex = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = "."
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&myPuppy)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		FileFilters:   []string{"fox.yaml"},
+		DirFS:         os.DirFS(cf.BasePath),
+	}
+
+	// create a new local filesystem.
+	fileFS, err := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, err)
+
+	rolo.AddLocalFS(cf.BasePath, fileFS)
+	rErr := rolo.IndexTheRolodex(context.Background())
+
+	assert.NoError(t, rErr)
+
+	fox, fErr := rolo.Open("fox.yaml")
+	assert.NoError(t, fErr)
+	assert.Equal(t, "fox.yaml", fox.Name())
+	assert.Equal(t, "good:\n - puppy: dog\n - puppy: forever-more", string(fox.GetContent()))
+}
+
+func TestSpecIndex_parameterReferencesHavePaths(t *testing.T) {
+	_ = os.WriteFile("paramour.yaml", []byte(`components:
+  parameters:
+    param3:
+      name: param3
+      in: query
+      schema:
+        type: string`), 0o664)
+	defer os.Remove("paramour.yaml")
+
+	// create a new config that allows local and remote to be mixed up.
+	cf := CreateOpenAPIIndexConfig()
+	cf.AvoidBuildIndex = true
+	cf.AllowRemoteLookup = true
+	cf.AvoidCircularReferenceCheck = true
+	cf.BasePath = "."
+
+	yml := `paths:
+  /:
+    parameters:
+      - $ref: '#/components/parameters/param1'
+      - $ref: '#/components/parameters/param1'
+      - $ref: 'paramour.yaml#/components/parameters/param3'
+    get:
+      parameters:
+        - $ref: '#/components/parameters/param2'
+        - $ref: '#/components/parameters/param2'
+        - name: test
+          in: query
+          schema:
+            type: string
+components:
+  parameters:
+    param1:
+      name: param1
+      in: query
+      schema:
+        type: string
+    param2:
+      name: param2
+      in: query
+      schema:
+        type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	// create a new rolodex
+	rolo := NewRolodex(cf)
+
+	// set the rolodex root node to the root node of the spec.
+	rolo.SetRootNode(&rootNode)
+
+	// configure the local filesystem.
+	fsCfg := LocalFSConfig{
+		BaseDirectory: cf.BasePath,
+		FileFilters:   []string{"paramour.yaml"},
+		DirFS:         os.DirFS(cf.BasePath),
+	}
+
+	// create a new local filesystem.
+	fileFS, err := NewLocalFSWithConfig(&fsCfg)
+	assert.NoError(t, err)
+
+	// add file system
+	rolo.AddLocalFS(cf.BasePath, fileFS)
+
+	// index the rolodex.
+	indexedErr := rolo.IndexTheRolodex(context.Background())
+	assert.NoError(t, indexedErr)
+	rolo.BuildIndexes()
+
+	index := rolo.GetRootIndex()
+
+	params := index.GetAllParametersFromOperations()
+
+	if assert.Contains(t, params, "/") {
+		if assert.Contains(t, params["/"], "top") {
+			if assert.Contains(t, params["/"]["top"], "#/components/parameters/param1") {
+				assert.Equal(t, "$.components.parameters['param1']", params["/"]["top"]["#/components/parameters/param1"][0].Path)
+			}
+			if assert.Contains(t, params["/"]["top"], "paramour.yaml#/components/parameters/param3") {
+				assert.Equal(t, "$.components.parameters['param3']", params["/"]["top"]["paramour.yaml#/components/parameters/param3"][0].Path)
+			}
+		}
+		if assert.Contains(t, params["/"], "get") {
+			if assert.Contains(t, params["/"]["get"], "#/components/parameters/param2") {
+				assert.Equal(t, "$.components.parameters['param2']", params["/"]["get"]["#/components/parameters/param2"][0].Path)
+			}
+			if assert.Contains(t, params["/"]["get"], "test") {
+				assert.Equal(t, "$.paths['/'].get.parameters[2]", params["/"]["get"]["test"][0].Path)
+			}
+		}
+	}
+}
+
+func TestSpecIndex_serverReferencesHaveParentNodesAndPaths(t *testing.T) {
+	yml := `servers:
+  - url: https://api.example.com/v1
+paths:
+  /:
+    servers:
+      - url: https://api.example.com/v2
+    get:
+      servers:
+        - url: https://api.example.com/v3`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	rootServers := index.GetAllRootServers()
+
+	for i, server := range rootServers {
+		assert.NotNil(t, server.ParentNode)
+		assert.Equal(t, fmt.Sprintf("$.servers[%d]", i), server.Path)
+	}
+
+	opServers := index.GetAllOperationsServers()
+
+	for path, ops := range opServers {
+		for op, servers := range ops {
+			for i, server := range servers {
+				assert.NotNil(t, server.ParentNode)
+
+				opPath := fmt.Sprintf(".%s", op)
+				if op == "top" {
+					opPath = ""
+				}
+
+				assert.Equal(t, fmt.Sprintf("$.paths['%s']%s.servers[%d]", path, opPath, i), server.Path)
+			}
+		}
+	}
+}
+
+func TestSpecIndex_schemaComponentsHaveParentsAndPaths(t *testing.T) {
+	yml := `components:
+  schemas:
+    Pet:
+      type: object
+    Dog:
+      type: object`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	schemas := index.GetAllSchemas()
+
+	for _, schema := range schemas {
+		assert.NotNil(t, schema.ParentNode)
+		assert.Equal(t, fmt.Sprintf("$.components.schemas['%s']", schema.Name), schema.Path)
+	}
+}
+
+func TestSpecIndex_ParamsWithDuplicateNamesButUniqueInTypes(t *testing.T) {
+	yml := `openapi: 3.1.0
+info:
+ title: Test
+ version: 0.0.1
+servers:
+ - url: http://localhost:35123
+paths:
+ /example/{action}:
+  parameters:
+   - name: fastAction
+     in: path
+     required: true
+     schema:
+      type: string
+   - name: fastAction
+     in: query
+     required: true
+     schema:
+      type: string
+  get:
+     operationId: example
+     parameters:
+       - name: action
+         in: path
+         required: true
+         schema:
+           type: string
+       - name: action
+         in: query
+         required: true
+         schema:
+           type: string
+     responses:
+       "200":
+         description: OK`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	idx := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, idx.paramAllRefs, 4)
+	assert.Len(t, idx.paramInlineDuplicateNames, 2)
+	assert.Len(t, idx.operationParamErrors, 0)
+	assert.Len(t, idx.refErrors, 0)
+}
+
+func TestSpecIndex_ParamsWithDuplicateNamesAndSameInTypes(t *testing.T) {
+	yml := `openapi: 3.1.0
+info:
+ title: Test
+ version: 0.0.1
+servers:
+ - url: http://localhost:35123
+paths:
+ /example/{action}:
+  parameters:
+   - name: fastAction
+     in: path
+     required: true
+     schema:
+      type: string
+   - name: fastAction
+     in: path
+     required: true
+     schema:
+      type: string
+  get:
+     operationId: example
+     parameters:
+       - name: action
+         in: path
+         required: true
+         schema:
+           type: string
+       - name: action
+         in: query
+         required: true
+         schema:
+           type: string
+     responses:
+       "200":
+         description: OK`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	idx := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	assert.Len(t, idx.paramAllRefs, 3)
+	assert.Len(t, idx.paramInlineDuplicateNames, 2)
+	assert.Len(t, idx.operationParamErrors, 1)
+	assert.Len(t, idx.refErrors, 0)
+}
+
+func TestSpecIndex_foundObjectsWithProperties(t *testing.T) {
+	yml := `paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              type: object
+              properties:
+                test:
+                  type: string
+components:
+  schemas:
+    test:
+      type: object
+      properties:
+        test:
+          type: string
+    test2:
+      type: [object, null]
+      properties:
+        test:
+          type: string
+    test3:
+      type: object
+      additionalProperties: true`
+
+	var rootNode yaml.Node
+	yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	objects := index.GetAllObjectsWithProperties()
+	assert.Len(t, objects, 3)
+}
+
+// Example of how to load in an OpenAPI Specification and index it.
+func ExampleNewSpecIndex() {
+	// define a rootNode to hold our raw spec AST.
+	var rootNode yaml.Node
+
+	// load in the stripe OpenAPI specification into bytes (it's pretty meaty)
+	stripeSpec, _ := os.ReadFile("../test_specs/stripe.yaml")
+
+	// unmarshal spec into our rootNode
+	_ = yaml.Unmarshal(stripeSpec, &rootNode)
+
+	// create a new specification index.
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	// print out some statistics
+	fmt.Printf("There are %d references\n"+
+		"%d paths\n"+
+		"%d operations\n"+
+		"%d component schemas\n"+
+		"%d reference schemas\n"+
+		"%d inline schemas\n"+
+		"%d inline schemas that are objects or arrays\n"+
+		"%d total schemas\n"+
+		"%d enums\n"+
+		"%d polymorphic references",
+		len(index.GetAllCombinedReferences()),
+		len(index.GetAllPaths()),
+		index.GetOperationCount(),
+		len(index.GetAllComponentSchemas()),
+		len(index.GetAllReferenceSchemas()),
+		len(index.GetAllInlineSchemas()),
+		len(index.GetAllInlineSchemaObjects()),
+		len(index.GetAllSchemas()),
+		len(index.GetAllEnums()),
+		len(index.GetPolyOneOfReferences())+len(index.GetPolyAnyOfReferences()))
+	// Output: There are 871 references
+	// 336 paths
+	// 494 operations
+	// 871 component schemas
+	// 2712 reference schemas
+	// 15928 inline schemas
+	// 3857 inline schemas that are objects or arrays
+	// 19511 total schemas
+	// 2579 enums
+	// 1023 polymorphic references
+}
+
+func TestSpecIndex_GetAllPathsHavePathAndParent(t *testing.T) {
+	yml := `openapi: 3.1.0
+info:
+ title: Test
+ version: 0.0.1
+servers:
+ - url: http://localhost:35123
+paths:
+ /test:
+  get:
+     responses:
+       "200":
+         description: OK
+  post:
+     responses:
+       "200":
+         description: OK
+ /test2:
+  delete:
+     responses:
+       "200":
+         description: OK
+  put:
+     responses:
+       "200":
+         description: OK`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	idx := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	paths := idx.GetAllPaths()
+
+	assert.Equal(t, "$.paths['/test'].get", paths["/test"]["get"].Path)
+	assert.Equal(t, 9, paths["/test"]["get"].ParentNode.Line)
+	assert.Equal(t, "$.paths['/test'].post", paths["/test"]["post"].Path)
+	assert.Equal(t, 13, paths["/test"]["post"].ParentNode.Line)
+	assert.Equal(t, "$.paths['/test2'].delete", paths["/test2"]["delete"].Path)
+	assert.Equal(t, 18, paths["/test2"]["delete"].ParentNode.Line)
+	assert.Equal(t, "$.paths['/test2'].put", paths["/test2"]["put"].Path)
+	assert.Equal(t, 22, paths["/test2"]["put"].ParentNode.Line)
+}
+
+func TestSpecIndex_TestInlineSchemaPaths(t *testing.T) {
+	yml := `openapi: 3.1.0
+info:
+  title: Test
+  version: 0.0.1
+servers:
+  - url: http://localhost:35123
+paths:
+  /test:
+    get:
+      operationId: TestSomething
+      parameters:
+        - name: test
+          in: query
+          description: test param for duplicate inline schema
+          required: false
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+      responses:
+        '200':
+          description: OK
+        '5XX':
+          description: test response for slightly different inline schema
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - messages
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  messages:
+                    type: string
+        default:
+          description: test response for duplicate inline schema
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - message
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  message:
+                    type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	idx := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+
+	schemas := idx.GetAllInlineSchemas()
+	assert.Equal(t, "$.paths['/test'].get.parameters['schema']", schemas[0].Path)
+	assert.Equal(t, "$.paths['/test'].get.parameters['schema'].properties['code']", schemas[1].Path)
+	assert.Equal(t, "$.paths['/test'].get.parameters['schema'].properties['message']", schemas[2].Path)
+}
+
+func TestSpecIndex_TestPathsAsRef(t *testing.T) {
+	yml := `paths:
+  /test:
+    $ref: '#/paths/~1test-2'
+  /test-2:
+    parameters:
+      - $ref: '#/components/parameters/test-2'
+    get:
+      parameters:
+        - $ref: '#/components/parameters/test-3'
+components:
+  parameters:
+    test-2:
+      name: test-2
+      in: query
+      description: bing bong
+      schema:
+        type: string
+    test-3:
+      name: test-3
+      in: query
+      description: ding a ling
+      schema:
+        type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetOperationParameterReferences()
+	assert.Equal(t, "$.components.parameters['test-2']", params["/test"]["top"]["#/components/parameters/test-2"][0].Path)
+	assert.Equal(t, "$.components.parameters['test-3']", params["/test-2"]["get"]["#/components/parameters/test-3"][0].Path)
+	assert.Equal(t, "bing bong", params["/test"]["top"]["#/components/parameters/test-2"][0].Node.Content[5].Value)
+	assert.Equal(t, "ding a ling", params["/test"]["get"]["#/components/parameters/test-3"][0].Node.Content[5].Value)
+}
+
+func TestSpecIndex_CheckPropertiesFromExamplesIgnored(t *testing.T) {
+	yml := `paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+          x-properties:
+            properties:
+              name: not a schema
+          x-example:
+            properties:
+              name: not a schema
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Object"
+              examples:
+                Example1:
+                  value:
+                    properties:
+                      name: not a schema
+                Example2:
+                  value:
+                    properties:
+                      name: another one
+components:
+  schemas:
+    Object:
+      type: object
+      x-properties:
+        properties:
+          name: not a schema
+      properties:
+        properties:
+          type: object
+          properties:
+            name:
+              type: string
+      example:
+        properties:
+          name: not a schema`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	schemas := index.GetAllSchemas()
+	assert.Equal(t, 6, len(schemas))
+}
+
+func TestSpecIndex_CheckIgnoreDescriptionsInExamples(t *testing.T) {
+	yml := `openapi: 3.1.0
+components:
+  examples:
+    example1:
+      description: this should be ignored`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	schemas := index.GetAllDescriptions()
+	assert.Equal(t, 0, len(schemas))
+}
+
+func TestSpecIndex_CheckIgnoreSchemaLikeObjectsInExamples(t *testing.T) {
+	yml := `openapi: 3.1.0
+paths:
+  '/test':
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+              examples:
+                test example:
+                  value:
+                    type: Object
+                    description: test
+                    properties:
+                      lineItems:
+                        type: Array
+                        description: test
+                        properties:
+                          description:
+                            required: false
+                          taxRateRef:
+                            type: Object
+                            description: test
+                            properties:
+                              effectiveTaxRate:
+                                type: Number
+                                description: test
+                                required: false
+                            required: true
+                      paymentAllocations:
+                        type: Array
+                        description: test
+                        properties:
+                          payment:
+                            type: Object
+                            description: test
+                            properties:
+                              accountRef:
+                                type: Object`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	schemas := index.GetAllSchemas()
+
+	assert.Equal(t, 1, len(schemas))
+}
+
+func TestSpecIndex_Issue481(t *testing.T) {
+	yml := `openapi: 3.0.1
+components:
+  schemas:
+    PetPot:
+      type: object
+      properties:
+        value:
+          oneOf:
+            - type: array
+              items:
+                type: object
+                required:
+                  - $ref
+                  - value`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	schemas := index.GetAllReferences()
+	assert.Equal(t, 0, len(schemas))
+}
+
+func TestSpecIndex_GetAllComponentSchemas_ConcurrentAccess(t *testing.T) {
+	yml := `
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+    Cat:
+      type: object
+      properties:
+        lives:
+          type: integer
+`
+
+	// Parse the YAML into a yaml.Node
+	var rootNode yaml.Node
+	err := yaml.Unmarshal([]byte(yml), &rootNode)
+	assert.NoError(t, err)
+
+	index := NewSpecIndex(&rootNode)
+
+	callGetAllComponentSchemas := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		schemas := index.GetAllComponentSchemas()
+		assert.Equal(t, 2, len(schemas))
+	}
+
+	const numGoroutines = 10
+
+	// WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	// Start multiple goroutines
+	for i := 0; i < numGoroutines; i++ {
+		go callGetAllComponentSchemas(&wg)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+}
+
+func TestSpecIndex_GetAllComponentSchemas_NilIndex(t *testing.T) {
+	var index *SpecIndex
+	schemas := index.GetAllComponentSchemas()
+	assert.Nil(t, schemas, "Expected GetAllComponentSchemas to return nil when index is nil")
+}
+
+func TestSpecIndex_ChecTagCircularRefNil(t *testing.T) {
+	index := &SpecIndex{}
+	index.checkTagCircularReferences()
+
+}
+
+func TestSpecIndex_Cache(t *testing.T) {
+	idx := NewTestSpecIndex().Load().(*SpecIndex)
+	assert.NotNil(t, idx.GetHighCache())
+	assert.NotNil(t, uint(1), idx.HighCacheHit())
+	assert.NotNil(t, uint(1), idx.HighCacheMiss())
+	assert.NotNil(t, uint(1), idx.GetHighCacheHits())
+	assert.NotNil(t, uint(1), idx.GetHighCacheMisses())
+	idx.SetHighCache(nil)
+	assert.Nil(t, idx.GetHighCache())
+}
+
+func TestSpecIndex_getAllPathItemsFromComponents(t *testing.T) {
+	yml := `openapi: 3.0.1
+components:
+  pathItems:
+    bingo:
+      operationId: bango`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	pathItems := index.GetAllComponentPathItems()
+	assert.Equal(t, 1, len(pathItems))
+}
+
+func TestSpecIndex_SetRolodex(t *testing.T) {
+	yml := `openapi: 3.0.1
+components:
+  pathItems:
+    bingo:
+      operationId: bango`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	assert.Nil(t, index.GetRolodex())
+
+	rolo := NewRolodex(CreateOpenAPIIndexConfig())
+	index.SetRolodex(rolo)
+	assert.NotNil(t, index.GetRolodex())
+
+}
+
+// Tests for fix of issue #379: GetAllParametersFromOperations inconsistent parameter counting
+// https://github.com/pb33f/libopenapi/issues/379
+
+func TestSpecIndex_GetAllParametersFromOperations_ValidDifferentLocations(t *testing.T) {
+	// tests parameters with same name in different locations (valid per OpenAPI spec)
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: query
+          schema:
+            type: integer
+        - name: id
+          in: header
+          schema:
+            type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// should have 3 parameters with same name in different locations
+	idParams := params["/test/{id}"]["get"]["id"]
+	assert.Equal(t, 3, len(idParams), "should have 3 'id' parameters in different locations")
+
+	// verify no errors reported for valid spec
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 0, len(errors), "should have no errors for valid spec")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_DuplicateInSameLocation_PathFirst(t *testing.T) {
+	// tests duplicate parameters in same location (path param first)
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: query
+          schema:
+            type: integer
+        - name: id
+          in: query
+          schema:
+            type: boolean`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// should have 2 parameters: 1 path and 1 query (duplicate query rejected)
+	idParams := params["/test/{id}"]["get"]["id"]
+	assert.Equal(t, 2, len(idParams), "should have 2 parameters (duplicate query rejected)")
+
+	// verify error reported for duplicate
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 1, len(errors), "should have 1 error for duplicate query parameter")
+	assert.Contains(t, errors[0].Error(), "duplicate name `id` and `in` type")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_DuplicateInSameLocation_QueryFirst(t *testing.T) {
+	// tests duplicate parameters in same location (query params first)
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: integer
+        - name: id
+          in: query
+          schema:
+            type: boolean
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// should have 2 parameters: 1 query and 1 path (duplicate query rejected)
+	idParams := params["/test/{id}"]["get"]["id"]
+	assert.Equal(t, 2, len(idParams), "should have 2 parameters (duplicate query rejected)")
+
+	// verify error reported for duplicate
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 1, len(errors), "should have 1 error for duplicate query parameter")
+	assert.Contains(t, errors[0].Error(), "duplicate name `id` and `in` type")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_MultipleDuplicates(t *testing.T) {
+	// tests multiple duplicates in same location
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      parameters:
+        - name: filter
+          in: query
+          schema:
+            type: string
+        - name: filter
+          in: query
+          schema:
+            type: array
+        - name: filter
+          in: query
+          schema:
+            type: object`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// should have only 1 parameter (first one, rest are duplicates)
+	filterParams := params["/test"]["get"]["filter"]
+	assert.Equal(t, 1, len(filterParams), "should have only 1 filter parameter")
+
+	// verify errors reported for duplicates
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 2, len(errors), "should have 2 errors for 2 duplicate query parameters")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_MixedValidInvalid(t *testing.T) {
+	// tests mix of valid and invalid duplicates
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+        - name: id
+          in: query
+        - name: id
+          in: header
+        - name: id
+          in: query
+        - name: filter
+          in: query
+        - name: filter
+          in: header`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// should have 3 id params (path, query, header - duplicate query rejected)
+	// and 2 filter params (query and header)
+	idParams := params["/test/{id}"]["get"]["id"]
+	filterParams := params["/test/{id}"]["get"]["filter"]
+
+	assert.Equal(t, 3, len(idParams), "should have 3 id parameters")
+	assert.Equal(t, 2, len(filterParams), "should have 2 filter parameters")
+
+	// verify only 1 error for duplicate query param
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 1, len(errors), "should have 1 error for duplicate query parameter")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_MissingInField(t *testing.T) {
+	// tests parameters without 'in' field
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      parameters:
+        - name: param1
+        - name: param1
+          in: query`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// both should be added as they don't match (one has no 'in')
+	param1Params := params["/test"]["get"]["param1"]
+	assert.Equal(t, 2, len(param1Params), "should have 2 param1 parameters")
+
+	// no duplicate error since one has no 'in' field
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 0, len(errors), "should have no duplicate errors")
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_ConsistentOrdering(t *testing.T) {
+	// tests that parameter count is consistent regardless of order
+	// test all 6 permutations of [path, query1, query2]
+	testCases := []struct {
+		name     string
+		yml      string
+		expected int
+	}{
+		{
+			name: "order: path, query1, query2",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+        - name: id
+          in: query
+        - name: id
+          in: query`,
+			expected: 2,
+		},
+		{
+			name: "order: path, query2, query1",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+        - name: id
+          in: query
+        - name: id
+          in: query`,
+			expected: 2,
+		},
+		{
+			name: "order: query1, path, query2",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: query
+        - name: id
+          in: path
+        - name: id
+          in: query`,
+			expected: 2,
+		},
+		{
+			name: "order: query1, query2, path",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: query
+        - name: id
+          in: query
+        - name: id
+          in: path`,
+			expected: 2,
+		},
+		{
+			name: "order: query2, path, query1",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: query
+        - name: id
+          in: path
+        - name: id
+          in: query`,
+			expected: 2,
+		},
+		{
+			name: "order: query2, query1, path",
+			yml: `openapi: 3.0.0
+paths:
+  /test/{id}:
+    get:
+      parameters:
+        - name: id
+          in: query
+        - name: id
+          in: query
+        - name: id
+          in: path`,
+			expected: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var rootNode yaml.Node
+			_ = yaml.Unmarshal([]byte(tc.yml), &rootNode)
+
+			index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+			params := index.GetAllParametersFromOperations()
+
+			idParams := params["/test/{id}"]["get"]["id"]
+			assert.Equal(t, tc.expected, len(idParams),
+				"parameter count should be consistent regardless of order")
+
+			errors := index.GetOperationParametersIndexErrors()
+			assert.Equal(t, 1, len(errors),
+				"should have exactly 1 error for duplicate query parameter")
+		})
+	}
+}
+
+func TestSpecIndex_GetAllParametersFromOperations_PathLevelParameters(t *testing.T) {
+	// tests parameters at path level
+	yml := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /test:
+    parameters:
+      - name: id
+        in: query
+      - name: id
+        in: query
+      - name: id
+        in: header`
+
+	var rootNode yaml.Node
+	_ = yaml.Unmarshal([]byte(yml), &rootNode)
+
+	index := NewSpecIndexWithConfig(&rootNode, CreateOpenAPIIndexConfig())
+	params := index.GetAllParametersFromOperations()
+
+	// path-level parameters use "top" as method key
+	idParams := params["/test"]["top"]["id"]
+	assert.Equal(t, 2, len(idParams), "should have 2 parameters (duplicate query rejected)")
+
+	errors := index.GetOperationParametersIndexErrors()
+	assert.Equal(t, 1, len(errors), "should have 1 error for duplicate at path level")
+	assert.Contains(t, errors[0].Error(), "index 1 has a duplicate name `id` and `in` type")
+}

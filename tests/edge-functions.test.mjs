@@ -58,28 +58,20 @@ describe('Edge Function no node: built-ins', () => {
 
 describe('Legacy api/*.js endpoint allowlist', () => {
   const ALLOWED_LEGACY_ENDPOINTS = new Set([
-    'ais-snapshot.js',
-    'bootstrap.js',
-    'cache-purge.js',
-    'download.js',
-    'fwdstart.js',
-    'geo.js',
-    'gpsjam.js',
-    'health.js',
-    'military-flights.js',
-    'og-story.js',
-    'opensky.js',
-    'oref-alerts.js',
-    'polymarket.js',
-    'register-interest.js',
-    'reverse-geocode.js',
-    'rss-proxy.js',
-    'satellites.js',
-    'seed-health.js',
-    'story.js',
-    'telegram-feed.js',
-    'version.js',
-  ]);
+  'cache-purge.js',
+  'download.js',
+  'fwdstart.js',
+  'health.js',
+  'og-story.js',
+  'opensky.js',
+  'polymarket.js',
+  'register-interest.js',
+  'rss-proxy.js',
+  'satellites.js',
+  'seed-health.js',
+  'story.js',
+  'version.js'
+]);
 
   const currentEndpoints = readdirSync(apiDir).filter(
     (f) => f.endsWith('.js') && !f.startsWith('_'),

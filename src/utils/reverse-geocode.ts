@@ -1,51 +1,52 @@
+import { InfrastructureServiceClient } from '@/generated/client/worldmonitor/infrastructure/v1/service_client';
+
+const client = new InfrastructureServiceClient('', { fetch: (input, init) => globalThis.fetch(input, init) });
+
+/**
+ * Result of a reverse geocoding operation.
+ */
 export interface GeoResult {
-  country: string;
-  code: string;
+  country: string | null;
+  code: string | null;
   displayName: string;
 }
 
 const cache = new Map<string, GeoResult | null>();
+const TIMEOUT_MS = 10000;
 
 function cacheKey(lat: number, lon: number): string {
   return `${lat.toFixed(1)},${lon.toFixed(1)}`;
 }
 
-const TIMEOUT_MS = 8000;
-
+/**
+ * reverseGeocode takes a lat/lon and returns a human-readable country and code.
+ * Results are cached in-memory and by the server-side proxy.
+ */
 export async function reverseGeocode(lat: number, lon: number, signal?: AbortSignal): Promise<GeoResult | null> {
   const key = cacheKey(lat, lon);
   if (cache.has(key)) return cache.get(key) ?? null;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  const onExternalAbort = () => controller.abort();
-  signal?.addEventListener('abort', onExternalAbort, { once: true });
-
   try {
-    const res = await fetch(`/api/reverse-geocode?lat=${lat}&lon=${lon}`, {
-      signal: controller.signal,
-    });
-    if (!res.ok) {
+    const response = await client.reverseGeocode({ lat, lon }, { signal: signal || AbortSignal.timeout(TIMEOUT_MS) });
+    
+    if (response.error) {
+      console.warn(`[ReverseGeocode] Server error: ${response.error}`);
       cache.set(key, null);
       return null;
     }
 
-    const data = await res.json();
-    if (!data.country || !data.code) {
-      cache.set(key, null);
-      return null;
-    }
-
-    const result: GeoResult = { country: data.country, code: data.code, displayName: data.displayName || data.country };
+    const result: GeoResult = {
+      country: response.country || null,
+      code: response.code || null,
+      displayName: response.displayName || response.country || '',
+    };
+    
     cache.set(key, result);
     return result;
-  } catch {
-    if (!controller.signal.aborted) {
-      cache.set(key, null);
-    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') throw err;
+    console.warn(`[ReverseGeocode] Failed for ${lat},${lon}:`, err);
+    cache.set(key, null);
     return null;
-  } finally {
-    clearTimeout(timeout);
-    signal?.removeEventListener('abort', onExternalAbort);
   }
 }

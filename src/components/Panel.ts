@@ -875,6 +875,10 @@ export class Panel {
     else this.hide();
   }
 
+  public setEnabled(enabled: boolean): void {
+    this.toggle(enabled);
+  }
+
   /**
    * Update the "new items" badge
    * @param count Number of new items (0 hides badge)

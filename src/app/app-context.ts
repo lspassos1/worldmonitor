@@ -25,6 +25,7 @@ import type { SpeciesComebackPanel } from '@/components/SpeciesComebackPanel';
 import type { RenewableEnergyPanel } from '@/components/RenewableEnergyPanel';
 import type { TvModeController } from '@/services/tv-mode';
 import type { BreakingNewsBanner } from '@/components/BreakingNewsBanner';
+import type { AlertManager } from '@/app/alert-manager';
 
 export interface CountryBriefSignals {
   criticalNews: number;
@@ -104,10 +105,12 @@ export interface AppContext {
   exportPanel: ExportPanel | null;
   unifiedSettings: UnifiedSettings | null;
   pizzintIndicator: PizzIntIndicator | null;
-  countryBriefPage: CountryBriefPanel | null;
-  countryTimeline: CountryTimeline | null;
+   countryBriefPage: CountryBriefPanel | null;
+   countryTimeline: CountryTimeline | null;
+   globalHealthDashboard: import('@/components').GlobalHealthDashboard | null;
+ 
+   // Happy variant state
 
-  // Happy variant state
   positivePanel: PositiveNewsFeedPanel | null;
   countersPanel: CountersPanel | null;
   progressPanel: ProgressChartsPanel | null;
@@ -123,6 +126,8 @@ export interface AppContext {
   isIdle: boolean;
   initialLoadComplete: boolean;
   resolvedLocation: 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+
+  alertManager: AlertManager | null;
 
   initialUrlState: ParsedMapUrlState | null;
   readonly PANEL_ORDER_KEY: string;

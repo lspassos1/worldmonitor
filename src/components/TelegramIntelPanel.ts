@@ -91,19 +91,29 @@ export class TelegramIntelPanel extends Panel {
 
   private buildItem(item: TelegramItem): HTMLElement {
     const timeAgo = formatTelegramTime(item.ts);
+    const itemDate = new Date(item.ts).getTime();
+    const isLive = !isNaN(itemDate) && (Date.now() - itemDate) < 600000; // 10 minutes for "LIVE" status
 
-    return h('a', {
-      href: sanitizeUrl(item.url),
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      className: 'telegram-intel-item',
-    },
+    return h('div', { className: `telegram-intel-item ${isLive ? 'is-live' : ''}` },
       h('div', { className: 'telegram-intel-item-header' },
-        h('span', { className: 'telegram-intel-channel' }, item.channelTitle || item.channel),
-        h('span', { className: 'telegram-intel-topic' }, item.topic),
-        h('span', { className: 'telegram-intel-time' }, timeAgo),
+        h('div', { className: 'telegram-intel-channel-wrapper' },
+          h('span', { className: 'telegram-intel-channel' }, item.channelTitle || item.channel),
+          isLive ? h('span', { className: 'live-indicator' }, 'LIVE') : null,
+        ),
+        h('div', { className: 'telegram-intel-meta' },
+          h('span', { className: 'telegram-intel-topic' }, item.topic),
+          h('span', { className: 'telegram-intel-time' }, timeAgo),
+        ),
       ),
       h('div', { className: 'telegram-intel-text' }, item.text),
+      h('div', { className: 'telegram-intel-item-actions' },
+        h('a', {
+          href: sanitizeUrl(item.url),
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          className: 'telegram-follow-btn',
+        }, t('components.telegramIntel.viewSource')),
+      ),
     );
   }
 

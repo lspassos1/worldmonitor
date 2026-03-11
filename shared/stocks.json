@@ -27,7 +27,9 @@
     { "symbol": "JNJ", "name": "J&J", "display": "JNJ" },
     { "symbol": "HD", "name": "Home Depot", "display": "HD" },
     { "symbol": "NFLX", "name": "Netflix", "display": "NFLX" },
-    { "symbol": "BAC", "name": "BofA", "display": "BAC" }
+    { "symbol": "BAC", "name": "BofA", "display": "BAC" },
+    { "symbol": "^NSEI", "name": "Nifty 50", "display": "NIFTY" },
+    { "symbol": "^BSESN", "name": "S&P BSE SENSEX", "display": "SENSEX" }
   ],
-  "yahooOnly": ["^GSPC", "^DJI", "^IXIC"]
+  "yahooOnly": ["^GSPC", "^DJI", "^IXIC", "^NSEI", "^BSESN"]
 }

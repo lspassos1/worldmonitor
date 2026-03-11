@@ -11,6 +11,7 @@
 
 import { createRouter, type RouteDescriptor } from './router';
 import { getCorsHeaders, isDisallowedOrigin } from './cors';
+// @ts-ignore
 import { validateApiKey } from '../api/_api-key.js';
 import { mapErrorToResponse } from './error-mapper';
 import { checkRateLimit, checkEndpointRateLimit, hasEndpointRatePolicy } from './_shared/rate-limit';
@@ -46,6 +47,23 @@ const TIER_CDN_CACHE: Record<CacheTier, string | null> = {
 };
 
 const RPC_CACHE_TIER: Record<string, CacheTier> = {
+  '/api/aviation/v1/get-airport-ops-summary': 'slow',
+  '/api/aviation/v1/get-carrier-ops': 'slow',
+  '/api/aviation/v1/get-flight-status': 'slow',
+  '/api/aviation/v1/get-youtube-live-stream-info': 'static',
+  '/api/aviation/v1/list-airport-delays': 'slow',
+  '/api/aviation/v1/list-airport-flights': 'slow',
+  '/api/aviation/v1/list-aviation-news': 'slow',
+  '/api/aviation/v1/search-flight-prices': 'medium',
+  '/api/aviation/v1/track-aircraft': 'medium',
+  '/api/infrastructure/v1/get-bootstrap-data': 'medium',
+  '/api/infrastructure/v1/get-ip-geo': 'slow',
+  '/api/infrastructure/v1/reverse-geocode': 'slow',
+  '/api/intelligence/v1/list-gps-interference': 'slow',
+  '/api/intelligence/v1/list-oref-alerts': 'slow',
+  '/api/intelligence/v1/list-satellites': 'slow',
+  '/api/intelligence/v1/list-telegram-feed': 'slow',
+
   '/api/maritime/v1/get-vessel-snapshot': 'no-store',
 
   '/api/market/v1/list-market-quotes': 'medium',
@@ -79,7 +97,6 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/research/v1/list-arxiv-papers': 'static',
   '/api/research/v1/list-trending-repos': 'static',
   '/api/giving/v1/get-giving-summary': 'static',
-  '/api/intelligence/v1/get-country-intel-brief': 'static',
   '/api/climate/v1/list-climate-anomalies': 'static',
   '/api/research/v1/list-tech-events': 'static',
   '/api/military/v1/get-usni-fleet-report': 'static',
@@ -104,9 +121,6 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/military/v1/list-military-flights': 'slow',
   '/api/market/v1/list-etf-flows': 'slow',
   '/api/research/v1/list-hackernews-items': 'slow',
-  '/api/intelligence/v1/get-risk-scores': 'slow',
-  '/api/intelligence/v1/get-pizzint-status': 'slow',
-  '/api/intelligence/v1/search-gdelt-documents': 'slow',
   '/api/infrastructure/v1/get-cable-health': 'slow',
   '/api/positive-events/v1/list-positive-geo-events': 'slow',
 
@@ -115,7 +129,6 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/prediction/v1/list-prediction-markets': 'medium',
   '/api/supply-chain/v1/get-chokepoint-status': 'medium',
   '/api/news/v1/list-feed-digest': 'slow',
-  '/api/intelligence/v1/classify-event': 'static',
   '/api/news/v1/summarize-article-cache': 'slow',
 };
 

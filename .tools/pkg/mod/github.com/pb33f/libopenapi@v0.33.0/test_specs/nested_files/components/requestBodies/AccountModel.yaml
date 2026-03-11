@@ -1,0 +1,6 @@
+description: TODO
+required: true
+content:
+  application/json:
+    schema:
+      $ref: ../schemas/AccountModel.yaml

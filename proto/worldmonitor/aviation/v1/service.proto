@@ -8,6 +8,7 @@ import "worldmonitor/aviation/v1/get_airport_ops_summary.proto";
 import "worldmonitor/aviation/v1/list_airport_flights.proto";
 import "worldmonitor/aviation/v1/get_carrier_ops.proto";
 import "worldmonitor/aviation/v1/get_flight_status.proto";
+import "worldmonitor/aviation/v1/get_youtube_live_stream_info.proto";
 import "worldmonitor/aviation/v1/track_aircraft.proto";
 import "worldmonitor/aviation/v1/search_flight_prices.proto";
 import "worldmonitor/aviation/v1/list_aviation_news.proto";
@@ -42,9 +43,14 @@ service AviationService {
     option (sebuf.http.config) = {path: "/get-flight-status", method: HTTP_METHOD_GET};
   }
 
-  // TrackAircraft retrieves recent position data for an aircraft.
-  rpc TrackAircraft(TrackAircraftRequest) returns (TrackAircraftResponse) {
+  // TrackAircraft retrieves live position stream for a specific aircraft hex.
+  rpc TrackAircraft(TrackAircraftRequest) returns (stream TrackAircraftResponse) {
     option (sebuf.http.config) = {path: "/track-aircraft", method: HTTP_METHOD_GET};
+  }
+
+  // GetYoutubeLiveStreamInfo retrieves information about a YouTube live stream (status, title, etc).
+  rpc GetYoutubeLiveStreamInfo(GetYoutubeLiveStreamInfoRequest) returns (GetYoutubeLiveStreamInfoResponse) {
+    option (sebuf.http.config) = {path: "/get-youtube-live-stream-info", method: HTTP_METHOD_GET};
   }
 
   // SearchFlightPrices searches for flight price offers on a route.

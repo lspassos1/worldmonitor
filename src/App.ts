@@ -28,16 +28,19 @@ import { isDesktopRuntime, waitForSidecarReady } from '@/services/runtime';
 import { getSecretState } from '@/services/runtime-config';
 import { BETA_MODE } from '@/config/beta';
 import { trackEvent, trackDeeplinkOpened } from '@/services/analytics';
-import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
-import { initI18n } from '@/services/i18n';
+ import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
+ import { initI18n } from '@/services/i18n';
+ import { applyFontFamily, getFontFamily } from '@/services/font-settings';
+ 
+ import { computeDefaultDisabledSources, getLocaleBoostedSources, getTotalFeedCount } from '@/config/feeds';
 
-import { computeDefaultDisabledSources, getLocaleBoostedSources, getTotalFeedCount } from '@/config/feeds';
 import { fetchBootstrapData } from '@/services/bootstrap';
 import { DesktopUpdater } from '@/app/desktop-updater';
 import { CountryIntelManager } from '@/app/country-intel';
 import { SearchManager } from '@/app/search-manager';
 import { RefreshScheduler } from '@/app/refresh-scheduler';
 import { PanelLayoutManager } from '@/app/panel-layout';
+import { AlertManager } from '@/app/alert-manager';
 import { DataLoaderManager } from '@/app/data-loader';
 import { EventHandlerManager } from '@/app/event-handlers';
 import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinates } from '@/utils/user-location';
@@ -59,6 +62,7 @@ export class App {
   private searchManager: SearchManager;
   private countryIntel: CountryIntelManager;
   private refreshScheduler: RefreshScheduler;
+  private alertManager: AlertManager;
   private desktopUpdater: DesktopUpdater;
 
   private modules: { destroy(): void }[] = [];
@@ -223,6 +227,8 @@ export class App {
     const disabledSources = new Set(loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []));
 
     // Build shared state object
+    this.alertManager = new AlertManager();
+
     this.state = {
       map: null,
       isMobile,
@@ -240,21 +246,23 @@ export class App {
       intelligenceCache: {},
       cyberThreatsCache: null,
       disabledSources,
-      currentTimeRange: '7d',
-      inFlight: new Set(),
-      seenGeoAlerts: new Set(),
+      currentTimeRange: '24h',
+      inFlight: new Set<string>(),
+      seenGeoAlerts: new Set<string>(),
       monitors,
       signalModal: null,
       statusPanel: null,
       searchModal: null,
       findingsBadge: null,
       breakingBanner: null,
+      alertManager: this.alertManager,
       playbackControl: null,
       exportPanel: null,
       unifiedSettings: null,
       pizzintIndicator: null,
       countryBriefPage: null,
       countryTimeline: null,
+      globalHealthDashboard: null,
       positivePanel: null,
       countersPanel: null,
       progressPanel: null,
@@ -433,14 +441,21 @@ export class App {
     this.eventHandlers.startHeaderClock();
     this.eventHandlers.setupPlaybackControl();
     this.eventHandlers.setupStatusPanel();
-    this.eventHandlers.setupPizzIntIndicator();
-    this.eventHandlers.setupExportPanel();
-    this.eventHandlers.setupUnifiedSettings();
+     this.eventHandlers.setupPizzIntIndicator();
+     this.eventHandlers.setupExportPanel();
+     this.eventHandlers.setupHealthIndicator();
+     this.eventHandlers.setupUnifiedSettings();
+ 
+     applyFontFamily(getFontFamily());
+
+    const { GlobalHealthDashboard } = await import('@/components/GlobalHealthDashboard');
+    this.state.globalHealthDashboard = new GlobalHealthDashboard();
 
     // Phase 4: SearchManager, MapLayerHandlers, CountryIntel
-    this.searchManager.init();
-    this.eventHandlers.setupMapLayerHandlers();
-    this.countryIntel.init();
+     this.searchManager.init();
+     // this.eventHandlers.setupMapLayerHandlers();
+     this.countryIntel.init();
+
 
     // Phase 5: Event listeners + URL sync
     this.eventHandlers.init();
@@ -478,21 +493,23 @@ export class App {
       this.state.map?.hideLayerToggle('cyberThreats');
     }
 
-    // Phase 7: Refresh scheduling
-    this.setupRefreshIntervals();
-    this.eventHandlers.setupSnapshotSaving();
-    cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
+     // Phase 7: Refresh scheduling
+     this.setupRefreshIntervals();
+     // this.eventHandlers.setupSnapshotSaving();
+     cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
+
 
     // Phase 8: Update checks
     this.desktopUpdater.init();
 
     // Analytics
-    trackEvent('wm_app_loaded', {
-      load_time_ms: Math.round(performance.now() - initStart),
-      panel_count: Object.keys(this.state.panels).length,
-    });
-    this.eventHandlers.setupPanelViewTracking();
-  }
+     trackEvent('wm_app_loaded', {
+       load_time_ms: Math.round(performance.now() - initStart),
+       panel_count: Object.keys(this.state.panels).length,
+     });
+     // this.eventHandlers.setupPanelViewTracking();
+   }
+
 
   public destroy(): void {
     this.state.isDestroyed = true;

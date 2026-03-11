@@ -715,6 +715,7 @@ export class DataLoaderManager implements AppModule {
         }
 
         checkBatchForBreakingAlerts(items);
+        this.ctx.alertManager?.checkIntelAlerts(items.map(i => ({ id: `${i.source}-${i.title}`, source: i.source, headline: i.title })));
         this.flashMapForNews(items);
         this.renderNewsForCategory(category, items);
 
@@ -1119,6 +1120,7 @@ export class DataLoaderManager implements AppModule {
           sparkline: q.sparkline?.length > 0 ? q.sparkline : undefined,
         }));
         this.ctx.latestMarkets = data;
+        this.ctx.alertManager?.checkMarketAlerts(data);
         marketsPanel?.renderMarkets(data);
         stocksResult = { data, skipped: hydratedMarkets.finnhubSkipped || undefined, rateLimited: hydratedMarkets.rateLimited || undefined };
       } else {
@@ -2547,6 +2549,7 @@ export class DataLoaderManager implements AppModule {
     try {
       const result = await fetchTelegramFeed();
       this.callPanel('telegram-intel', 'setData', result);
+      this.ctx.alertManager?.checkIntelAlerts(result.items.map(i => ({ id: i.id, source: i.channelTitle, headline: i.text })));
     } catch (error) {
       console.error('[App] Telegram intel fetch failed:', error);
     }

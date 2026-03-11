@@ -195,7 +195,7 @@ describe('getTechReadinessRankings — bootstrap-only data flow', () => {
 
     assert.match(fnBody, /getHydratedData\s*\(\s*'techReadiness'\s*\)/,
       'Must try bootstrap hydration cache first');
-    assert.match(fnBody, /\/api\/bootstrap\?keys=techReadiness/,
+    assert.match(fnBody, /fetchBootstrapKeys\(\['techReadiness'\]/,
       'Must fallback to bootstrap endpoint');
     assert.doesNotMatch(fnBody, /getIndicatorData\s*\(/,
       'Must NOT call getIndicatorData (WB API) from frontend');

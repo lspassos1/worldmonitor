@@ -23,4 +23,8 @@ message Satellite {
   double velocity = 6;
   // Orbital inclination in degrees.
   double inclination = 7;
+  // TLE line 1.
+  string line1 = 8;
+  // TLE line 2.
+  string line2 = 9;
 }

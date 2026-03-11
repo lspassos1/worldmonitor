@@ -1,16 +1,13 @@
 import type { AppContext, AppModule } from '@/app/app-context';
-import type { AirlineIntelPanel } from '@/components/AirlineIntelPanel';
 import type { PanelConfig, MapLayers } from '@/types';
 import type { MapView } from '@/components';
-import type { ClusteredEvent } from '@/types';
-import type { DashboardSnapshot } from '@/services/storage';
 import {
   PlaybackControl,
   StatusPanel,
   PizzIntIndicator,
   CIIPanel,
-  PredictionPanel,
 } from '@/components';
+import { h } from '@/utils/dom-utils';
 import {
   buildMapUrl,
   debounce,
@@ -23,30 +20,24 @@ import {
   IDLE_PAUSE_MS,
   STORAGE_KEYS,
   SITE_VARIANT,
-  LAYER_TO_SOURCE,
   FEEDS,
   INTEL_SOURCES,
   DEFAULT_PANELS,
 } from '@/config';
 import { VARIANT_META } from '@/config/variant-meta';
 import {
-  saveSnapshot,
-  initAisStream,
-  disconnectAisStream,
 } from '@/services';
 import {
-  trackPanelView,
   trackVariantSwitch,
   trackThemeChanged,
   trackMapViewChange,
-  trackMapLayerToggle,
   trackPanelToggled,
   trackDownloadClicked,
 } from '@/services/analytics';
 import { detectPlatform, allButtons, buttonsForPlatform } from '@/components/DownloadBanner';
 import type { Platform } from '@/components/DownloadBanner';
 import { invokeTauri } from '@/services/tauri-bridge';
-import { dataFreshness } from '@/services/data-freshness';
+import { fetchSystemHealth } from '@/services/health';
 import { mlWorker } from '@/services/ml-worker';
 import { UnifiedSettings } from '@/components/UnifiedSettings';
 import { t } from '@/services/i18n';
@@ -754,16 +745,16 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupStatusPanel(): void {
-    this.ctx.statusPanel = new StatusPanel();
+    this.ctx.statusPanel = new (StatusPanel as any)();
   }
 
   setupPizzIntIndicator(): void {
     if (SITE_VARIANT === 'tech' || SITE_VARIANT === 'finance' || SITE_VARIANT === 'happy') return;
 
-    this.ctx.pizzintIndicator = new PizzIntIndicator();
+    this.ctx.pizzintIndicator = new (PizzIntIndicator as any)();
     const headerLeft = this.ctx.container.querySelector('.header-left');
-    if (headerLeft) {
-      headerLeft.appendChild(this.ctx.pizzintIndicator.getElement());
+    if (headerLeft && this.ctx.pizzintIndicator) {
+      headerLeft.appendChild((this.ctx.pizzintIndicator as any).getElement());
     }
   }
 
@@ -778,6 +769,46 @@ export class EventHandlerManager implements AppModule {
     const headerRight = this.ctx.container.querySelector('.header-right');
     if (headerRight) {
       headerRight.insertBefore(this.ctx.exportPanel.getElement(), headerRight.firstChild);
+    }
+  }
+
+  setupHealthIndicator(): void {
+    const headerRight = this.ctx.container.querySelector('.header-right');
+    if (!headerRight) return;
+
+    const indicator = h('div', {
+      id: 'globalHealthIndicator',
+      className: 'header-tool health-indicator',
+      title: 'System Health Status',
+      onClick: () => this.ctx.globalHealthDashboard?.show(),
+    }, h('div', { className: 'status-dot' }));
+
+    headerRight.insertBefore(indicator, headerRight.firstChild);
+
+    // Initial status sync
+    this.updateHealthIndicator();
+    // Refresh every minute
+    setInterval(() => this.updateHealthIndicator(), 60000);
+  }
+
+  private async updateHealthIndicator(): Promise<void> {
+    const el = document.getElementById('globalHealthIndicator');
+    if (!el) return;
+
+    try {
+      const health = await fetchSystemHealth();
+      const dot = el.querySelector('.status-dot') as HTMLElement;
+      if (!dot || !health) return;
+
+      el.className = `header-tool health-indicator ${health.status.toLowerCase()}`;
+      dot.style.backgroundColor = ({
+        HEALTHY: 'var(--success)',
+        DEGRADED: 'var(--warning)',
+        UNHEALTHY: 'var(--error)',
+        REDIS_DOWN: 'var(--error)',
+      } as any)[health.status] || 'var(--text-dim)';
+    } catch {
+      el.className = 'header-tool health-indicator unknown';
     }
   }
 
@@ -798,7 +829,6 @@ export class EventHandlerManager implements AppModule {
           Object.assign(current, nextConfig);
         });
         saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
-        this.applyPanelSettings();
       },
       getDisabledSources: () => this.ctx.disabledSources,
       toggleSource: (name: string) => {
@@ -810,413 +840,90 @@ export class EventHandlerManager implements AppModule {
         saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.ctx.disabledSources));
       },
       setSourcesEnabled: (names: string[], enabled: boolean) => {
-        for (const name of names) {
-          if (enabled) this.ctx.disabledSources.delete(name);
-          else this.ctx.disabledSources.add(name);
-        }
+        names.forEach(name => {
+          if (enabled) {
+            this.ctx.disabledSources.delete(name);
+          } else {
+            this.ctx.disabledSources.add(name);
+          }
+        });
         saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.ctx.disabledSources));
       },
-      getAllSourceNames: () => this.getAllSourceNames(),
-      getLocalizedPanelName: (key: string, fallback: string) => this.getLocalizedPanelName(key, fallback),
-      resetLayout: () => {
-        localStorage.removeItem(this.ctx.PANEL_SPANS_KEY);
-        localStorage.removeItem('worldmonitor-panel-col-spans');
-        localStorage.removeItem(this.ctx.PANEL_ORDER_KEY);
-        localStorage.removeItem(this.ctx.PANEL_ORDER_KEY + '-bottom');
-        localStorage.removeItem(this.ctx.PANEL_ORDER_KEY + '-bottom-set');
-        localStorage.removeItem('map-height');
-        window.location.reload();
+      getAllSourceNames: () => {
+        const names: string[] = [];
+        Object.values(FEEDS).forEach(group => group.forEach(f => names.push(f.name)));
+        INTEL_SOURCES.forEach(f => names.push(f.name));
+        return Array.from(new Set(names)).sort();
       },
+      getLocalizedPanelName: (key: string, fallback: string) => t(`panels.${key}.label`, { defaultValue: fallback }),
+      resetLayout: () => this.callbacks.ensureCorrectZones(),
       isDesktopApp: this.ctx.isDesktopApp,
-      onMapProviderChange: () => {
-        this.ctx.map?.reloadBasemap();
-      },
+      alertManager: this.ctx.alertManager || undefined,
     });
-
-    const mount = document.getElementById('unifiedSettingsMount');
-    if (mount) {
-      mount.appendChild(this.ctx.unifiedSettings.getButton());
-    }
-
-    const mobileBtn = document.getElementById('mobileSettingsBtn');
-    if (mobileBtn) {
-      mobileBtn.addEventListener('click', () => this.ctx.unifiedSettings?.open());
-    }
   }
 
   setupPlaybackControl(): void {
-    this.ctx.playbackControl = new PlaybackControl();
-    this.ctx.playbackControl.onSnapshot((snapshot) => {
-      if (snapshot) {
-        this.ctx.isPlaybackMode = true;
-        this.restoreSnapshot(snapshot);
-      } else {
-        this.ctx.isPlaybackMode = false;
-        this.callbacks.loadAllData();
-      }
-    });
-
+    this.ctx.playbackControl = new (PlaybackControl as any)();
     const headerRight = this.ctx.container.querySelector('.header-right');
-    if (headerRight) {
-      headerRight.insertBefore(this.ctx.playbackControl.getElement(), headerRight.firstChild);
+    if (headerRight && this.ctx.playbackControl) {
+      headerRight.insertBefore((this.ctx.playbackControl as any).getElement(), headerRight.firstChild);
     }
   }
 
-  setupSnapshotSaving(): void {
-    const saveCurrentSnapshot = async () => {
-      if (this.ctx.isPlaybackMode || this.ctx.isDestroyed) return;
-
-      const marketPrices: Record<string, number> = {};
-      this.ctx.latestMarkets.forEach(m => {
-        if (m.price !== null) marketPrices[m.symbol] = m.price;
-      });
-
-      await saveSnapshot({
-        timestamp: Date.now(),
-        events: this.ctx.latestClusters,
-        marketPrices,
-        predictions: this.ctx.latestPredictions.map(p => ({
-          title: p.title,
-          yesPrice: p.yesPrice
-        })),
-        hotspotLevels: this.ctx.map?.getHotspotLevels() ?? {}
-      });
-    };
-
-    void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e));
-    this.snapshotIntervalId = setInterval(() => void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e)), 15 * 60 * 1000);
-  }
-
-  restoreSnapshot(snapshot: DashboardSnapshot): void {
-    for (const panel of Object.values(this.ctx.newsPanels)) {
-      panel.showLoading();
-    }
-
-    const events = snapshot.events as ClusteredEvent[];
-    this.ctx.latestClusters = events;
-
-    const predictions = snapshot.predictions.map((p, i) => ({
-      id: `snap-${i}`,
-      title: p.title,
-      yesPrice: p.yesPrice,
-      noPrice: 100 - p.yesPrice,
-      volume24h: 0,
-      liquidity: 0,
-    }));
-    this.ctx.latestPredictions = predictions;
-    (this.ctx.panels['polymarket'] as PredictionPanel | undefined)?.renderPredictions(predictions);
-
-    this.ctx.map?.setHotspotLevels(snapshot.hotspotLevels);
-  }
-
-  setupMapLayerHandlers(): void {
-    this.ctx.map?.setOnLayerChange((layer, enabled, source) => {
-      console.log(`[App.onLayerChange] ${layer}: ${enabled} (${source})`);
-      trackMapLayerToggle(layer, enabled, source);
-      this.ctx.mapLayers[layer] = enabled;
-      saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-      this.syncUrlState();
-
-      const sourceIds = LAYER_TO_SOURCE[layer];
-      if (sourceIds) {
-        for (const sourceId of sourceIds) {
-          dataFreshness.setEnabled(sourceId, enabled);
-        }
-      }
-
-      if (layer === 'ais') {
-        if (enabled) {
-          this.ctx.map?.setLayerLoading('ais', true);
-          initAisStream();
-          this.callbacks.waitForAisData();
-        } else {
-          disconnectAisStream();
-        }
-        return;
-      }
-
-      if (layer === 'flights') {
-        const airlineIntel = this.ctx.panels['airline-intel'] as AirlineIntelPanel | undefined;
-        airlineIntel?.setLiveMode(enabled);
-      }
-
-      if (enabled) {
-        this.callbacks.loadDataForLayer(layer);
-      } else {
-        this.callbacks.stopLayerActivity?.(layer as keyof MapLayers);
-      }
-    });
-
-    // Forward live aircraft positions from map to AirlineIntelPanel + cache
-    this.ctx.map?.setOnAircraftPositionsUpdate((positions) => {
-      this.ctx.intelligenceCache.aircraftPositions = positions;
-      const airlineIntel = this.ctx.panels['airline-intel'] as AirlineIntelPanel | undefined;
-      airlineIntel?.updateLivePositions(positions);
-    });
-  }
-
-  setupPanelViewTracking(): void {
-    const viewedPanels = new Set<string>();
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
-          const id = (entry.target as HTMLElement).dataset.panel;
-          if (id && !viewedPanels.has(id)) {
-            viewedPanels.add(id);
-            trackPanelView(id);
-          }
-        }
-      }
-    }, { threshold: 0.3 });
-
-    const grid = document.getElementById('panelsGrid');
-    if (grid) {
-      for (const child of Array.from(grid.children)) {
-        if ((child as HTMLElement).dataset.panel) {
-          observer.observe(child);
-        }
-      }
-    }
-  }
-
-  showToast(msg: string): void {
-    document.querySelector('.toast-notification')?.remove();
-    const el = document.createElement('div');
-    el.className = 'toast-notification';
-    el.textContent = msg;
-    document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('visible'));
-    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 300); }, 3000);
-  }
-
-  shouldShowIntelligenceNotifications(): boolean {
-    return !this.ctx.isMobile && !!this.ctx.findingsBadge?.isPopupEnabled();
-  }
-
-  setupMapResize(): void {
-    const mapSection = document.getElementById('mapSection');
-    const mapContainer = document.getElementById('mapContainer');
+  private setupMapResize(): void {
     const resizeHandle = document.getElementById('mapResizeHandle');
-    if (!mapSection || !resizeHandle || !mapContainer) return;
-
-    const getMinHeight = () => (window.innerWidth >= 1600 ? 280 : 350);
-    const getMaxHeight = () => {
-      if (window.innerWidth < 1600) return Math.max(getMinHeight(), window.innerHeight - 150);
-
-      const bottomGrid = document.getElementById('mapBottomGrid');
-      const isEmpty = !bottomGrid || bottomGrid.children.length === 0;
-      const headerHeight = 60;
-      const totalAvailable = window.innerHeight - headerHeight;
-
-      if (isEmpty) {
-        return totalAvailable - 25;
-      } else {
-        return totalAvailable - 300;
-      }
-    };
-
-    const savedHeight = localStorage.getItem('map-height');
-    if (savedHeight) {
-      const numeric = Number.parseInt(savedHeight, 10);
-      if (Number.isFinite(numeric)) {
-        const clamped = Math.max(getMinHeight(), Math.min(numeric, getMaxHeight()));
-        if (window.innerWidth >= 1600) {
-          mapContainer.style.flex = 'none';
-          mapContainer.style.height = `${clamped}px`;
-        } else {
-          mapSection.style.height = `${clamped}px`;
-        }
-        if (clamped !== numeric) {
-          localStorage.setItem('map-height', `${clamped}px`);
-        }
-      } else {
-        localStorage.removeItem('map-height');
-      }
-    }
-
-    let isResizing = false;
-    let startY = 0;
-    let startHeight = 0;
-
-    const getTarget = () => (window.innerWidth >= 1600 ? mapContainer : mapSection);
-
-    this.boundMapEndResizeHandler = () => {
-      if (!isResizing) return;
-      isResizing = false;
-      this.ctx.map?.setIsResizing(false);
-      this.ctx.map?.resize();
-      mapSection.classList.remove('resizing');
-      document.body.style.cursor = '';
-      localStorage.setItem('map-height', getTarget().style.height);
-    };
-    const endResize = this.boundMapEndResizeHandler;
-
-    resizeHandle.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      startY = e.clientY;
-      const target = getTarget();
-      startHeight = target.offsetHeight;
-      this.ctx.map?.setIsResizing(true);
-      mapSection.classList.add('resizing');
-      document.body.style.cursor = 'ns-resize';
-      e.preventDefault();
-    });
-
-    resizeHandle.addEventListener('dblclick', () => {
-      const isWide = window.innerWidth >= 1600;
-      const target = isWide ? mapContainer : mapSection;
-
-      const targetHeight = window.innerHeight * 0.5;
-      const finalHeight = Math.max(getMinHeight(), Math.min(targetHeight, getMaxHeight()));
-
-      this.ctx.map?.setIsResizing(true);
-      target.classList.add('map-section-smooth');
-
-      if (isWide) target.style.flex = 'none';
-      target.style.height = `${finalHeight}px`;
-
-      let fired = false;
-      const onEnd = () => {
-        if (fired) return;
-        fired = true;
-
-        target.classList.remove('map-section-smooth');
-        target.removeEventListener('transitionend', onEnd);
-        localStorage.setItem('map-height', `${finalHeight}px`);
-        this.ctx.map?.setIsResizing(false);
-        this.ctx.map?.resize();
-      };
-
-      target.addEventListener('transitionend', onEnd);
-      this.ctx.map?.resize();
-      setTimeout(onEnd, 500);
-    });
+    if (!resizeHandle) return;
 
     this.boundMapResizeMoveHandler = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const isWide = window.innerWidth >= 1600;
-      const target = isWide ? mapContainer : mapSection;
-
-      const deltaY = e.clientY - startY;
-      const newHeight = Math.max(getMinHeight(), Math.min(startHeight + deltaY, getMaxHeight()));
-
-      if (isWide) target.style.flex = 'none';
-      target.style.height = `${newHeight}px`;
-
-      this.ctx.map?.resize();
+      if (!this.ctx.map?.getIsResizing()) return;
+      const height = window.innerHeight - e.clientY;
+      const minHeight = 200;
+      const maxHeight = window.innerHeight - 100;
+      const clamped = Math.max(minHeight, Math.min(maxHeight, height));
+      document.documentElement.style.setProperty('--map-height', `${clamped}px`);
+      this.ctx.map?.render();
     };
-    document.addEventListener('mousemove', this.boundMapResizeMoveHandler);
 
-    document.addEventListener('mouseup', endResize);
-    window.addEventListener('blur', endResize);
+    this.boundMapEndResizeHandler = () => {
+      if (this.ctx.map?.getIsResizing()) {
+        this.ctx.map?.setIsResizing(false);
+        document.body.classList.remove('map-resizing');
+        saveToStorage<any>('worldmonitor-map-height', getComputedStyle(document.documentElement).getPropertyValue('--map-height'));
+      }
+    };
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.ctx.map?.setIsResizing(true);
+      document.body.classList.add('map-resizing');
+    });
+
+    document.addEventListener('mousemove', this.boundMapResizeMoveHandler);
+    document.addEventListener('mouseup', this.boundMapEndResizeHandler);
+    window.addEventListener('blur', this.boundMapEndResizeHandler);
+
     this.boundMapResizeVisChangeHandler = () => {
-      if (document.hidden) endResize();
+      if (document.hidden) this.boundMapEndResizeHandler!();
     };
     document.addEventListener('visibilitychange', this.boundMapResizeVisChangeHandler);
   }
 
-  setupMapPin(): void {
-    const mapSection = document.getElementById('mapSection');
-    const pinBtn = document.getElementById('mapPinBtn');
-    if (!mapSection || !pinBtn) return;
-
-    const isPinned = localStorage.getItem('map-pinned') === 'true';
-    if (isPinned) {
-      mapSection.classList.add('pinned');
-      pinBtn.classList.add('active');
-    }
-
-    pinBtn.addEventListener('click', () => {
-      const nowPinned = mapSection.classList.toggle('pinned');
-      pinBtn.classList.toggle('active', nowPinned);
-      localStorage.setItem('map-pinned', String(nowPinned));
-    });
-
-    this.setupMapFullscreen(mapSection);
-    this.setupMapDimensionToggle();
-  }
-
-  private setupMapDimensionToggle(): void {
-    const toggle = document.getElementById('mapDimensionToggle');
-    if (!toggle) return;
-    toggle.querySelectorAll<HTMLButtonElement>('.map-dim-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mode;
-        if (!mode) return;
-        const isGlobe = mode === 'globe';
-        const alreadyGlobe = this.ctx.map?.isGlobeMode() ?? false;
-        if (isGlobe === alreadyGlobe) return;
-        toggle.querySelectorAll('.map-dim-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        saveToStorage(STORAGE_KEYS.mapMode, isGlobe ? 'globe' : 'flat');
-        if (isGlobe) {
-          this.ctx.map?.switchToGlobe();
-        } else {
-          this.ctx.map?.switchToFlat();
-        }
-      });
-    });
-  }
-
-  private setupMapFullscreen(mapSection: HTMLElement): void {
-    const btn = document.getElementById('mapFullscreenBtn');
-    if (!btn) return;
-    const expandSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
-    const shrinkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>';
-    let isFullscreen = false;
-
-    const toggle = () => {
-      isFullscreen = !isFullscreen;
-      mapSection.classList.toggle('live-news-fullscreen', isFullscreen);
-      document.body.classList.toggle('live-news-fullscreen-active', isFullscreen);
-      btn.innerHTML = isFullscreen ? shrinkSvg : expandSvg;
-      btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen';
-      // Notify map so globe (and deck.gl) can resize after CSS transition completes
-      setTimeout(() => this.ctx.map?.setIsResizing(false), 320);
-    };
-
-    btn.addEventListener('click', toggle);
+  private setupMapPin(): void {
     this.boundMapFullscreenEscHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) toggle();
+      if (e.key === 'Escape' && this.ctx.map?.getIsPinned()) {
+        this.ctx.map?.setIsPinned(false);
+      }
     };
     document.addEventListener('keydown', this.boundMapFullscreenEscHandler);
   }
 
-  getLocalizedPanelName(panelKey: string, fallback: string): string {
-    if (panelKey === 'runtime-config') {
-      return t('modals.runtimeConfig.title');
-    }
-    const key = panelKey.replace(/-([a-z])/g, (_match, group: string) => group.toUpperCase());
-    const lookup = `panels.${key}`;
-    const localized = t(lookup);
-    return localized === lookup ? fallback : localized;
-  }
-
-  getAllSourceNames(): string[] {
-    const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
-    });
-    INTEL_SOURCES.forEach(f => sources.add(f.name));
-    return Array.from(sources).sort((a, b) => a.localeCompare(b));
-  }
-
-  applyPanelSettings(): void {
-    Object.entries(this.ctx.panelSettings).forEach(([key, config]) => {
-      if (key === 'map') {
-        const mapSection = document.getElementById('mapSection');
-        if (mapSection) {
-          mapSection.classList.toggle('hidden', !config.enabled);
-          const mainContent = document.querySelector('.main-content');
-          if (mainContent) {
-            mainContent.classList.toggle('map-hidden', !config.enabled);
-          }
-          this.callbacks.ensureCorrectZones();
-        }
-        return;
+  private applyPanelSettings(): void {
+    Object.entries(this.ctx.panels).forEach(([key, panel]) => {
+      const config = this.ctx.panelSettings[key];
+      if (config) {
+        panel.setEnabled(config.enabled);
       }
-      const panel = this.ctx.panels[key];
-      panel?.toggle(config.enabled);
     });
+    this.callbacks.ensureCorrectZones();
   }
 }

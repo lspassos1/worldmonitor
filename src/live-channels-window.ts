@@ -14,7 +14,7 @@ import {
 import { t } from '@/services/i18n';
 import { escapeHtml } from '@/utils/sanitize';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
-import { resolveUserCountryCode } from '@/utils/user-location';
+import { resolveCountryCode } from '@/utils/user-location';
 
 /** Builds a stable custom channel id from a YouTube handle (e.g. @Foo -> custom-foo). */
 function customChannelIdFromHandle(handle: string): string {
@@ -81,7 +81,7 @@ export async function initLiveChannelsWindow(containerEl?: HTMLElement): Promise
   const appEl = containerEl ?? document.getElementById('app');
   if (!appEl) return;
 
-  const userCountry = await resolveUserCountryCode();
+  const userCountry = await resolveCountryCode();
   const filteredChannels = getFilteredOptionalChannels(userCountry);
   const filteredRegions = getFilteredChannelRegions(userCountry);
   const optionalChannelMap = new Map<string, LiveChannel>();

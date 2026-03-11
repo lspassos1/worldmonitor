@@ -127,7 +127,7 @@ export class CountryIntelManager implements AppModule {
     const localGeo = getCountryAtCoordinates(lat, lon);
     if (localGeo) {
       if (token !== this.briefRequestToken) return;
-      this.openCountryBriefByCode(localGeo.code, localGeo.name);
+      this.openCountryBriefByCode(localGeo.code ?? 'XX', localGeo.name);
       return;
     }
 
@@ -143,7 +143,7 @@ export class CountryIntelManager implements AppModule {
       return;
     }
 
-    this.openCountryBriefByCode(geo.code, geo.country);
+    this.openCountryBriefByCode(geo.code ?? 'XX', geo.country ?? 'Unknown');
   }
 
   async openCountryBriefByCode(code: string, country: string, opts?: { maximize?: boolean }): Promise<void> {
