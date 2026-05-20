@@ -91,12 +91,15 @@ import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import {
   FEEDS,
+  CANONICAL_FEEDS,
   INTEL_SOURCES,
   STORAGE_KEYS,
   SITE_VARIANT,
   ALL_PANELS,
   VARIANT_DEFAULTS,
+  isPanelInVariantDefaults,
 } from '@/config';
+import { resolveNewsCategories, enabledNewsCategoryKeys } from '@/config/feed-resolution';
 import { BETA_MODE } from '@/config/beta';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
@@ -1007,14 +1010,24 @@ export class PanelLayoutManager implements AppModule {
     this.createNewsPanel('asia', 'panels.asia');
     this.createNewsPanel('energy', 'panels.energy');
 
-    for (const key of Object.keys(FEEDS)) {
+    // Iterate CANONICAL_FEEDS (union of all variants), not just the active
+    // variant's FEEDS preset — so a news panel the user customized in from
+    // another variant (e.g. Finance `forex` added to a `full` session) still
+    // gets a NewsPanel created. The panelSettings gate below ensures only
+    // panels the user actually enabled are instantiated.
+    for (const key of Object.keys(CANONICAL_FEEDS)) {
       if (this.ctx.newsPanels[key]) continue;
-      if (!Array.isArray((FEEDS as Record<string, unknown>)[key])) continue;
+      if (!Array.isArray((CANONICAL_FEEDS as Record<string, unknown>)[key])) continue;
       const panelKey = this.ctx.panels[key] && !this.ctx.newsPanels[key] ? `${key}-news` : key;
       if (this.ctx.panels[panelKey]) continue;
-      if (!this.ctx.panelSettings[panelKey] && !this.ctx.panelSettings[key]) continue;
-      const panelConfig = this.ctx.panelSettings[panelKey] ?? this.ctx.panelSettings[key] ?? ALL_PANELS[panelKey] ?? ALL_PANELS[key];
-      const label = panelConfig?.name ?? key.charAt(0).toUpperCase() + key.slice(1);
+      // Gate on panelKey, NOT key. When `key` collided with a non-news data
+      // panel (panelKey became `${key}-news` — e.g. `markets`/`crypto`/`economic`
+      // in the full variant), that data panel's own settings entry must NOT
+      // spawn a phantom news panel: the remapped key has to be explicitly
+      // enabled. When there's no collision, panelKey === key so this is unchanged.
+      const panelConfig = this.ctx.panelSettings[panelKey];
+      if (!panelConfig) continue;
+      const label = panelConfig.name ?? key.charAt(0).toUpperCase() + key.slice(1);
       const tooltip = PanelLayoutManager.NEWS_PANEL_TOOLTIPS[panelKey] ?? PanelLayoutManager.NEWS_PANEL_TOOLTIPS[key];
       const panel = new NewsPanel(panelKey, label, tooltip);
       this.attachRelatedAssetHandlers(panel);
@@ -1025,7 +1038,12 @@ export class PanelLayoutManager implements AppModule {
 
     this.createPanel('gdelt-intel', () => new GdeltIntelPanel());
 
+    // Two-arg `.then(onFulfilled, onRejected)` so the rejection handler ONLY catches
+    // the dynamic-import promise itself (already suppressed in main.ts beforeSend) and
+    // does NOT swallow synchronous throws from the callback body (panel construction,
+    // makeDraggable, etc.) — those must continue to surface in Sentry as real bugs.
     import('@/components/DeductionPanel').then(({ DeductionPanel }) => {
+      if (typeof DeductionPanel !== 'function') return;
       const deductionPanel = new DeductionPanel(() => this.ctx.allNews);
       this.ctx.panels['deduction'] = deductionPanel;
       const el = deductionPanel.getElement();
@@ -1041,9 +1059,13 @@ export class PanelLayoutManager implements AppModule {
       }
       this.applyPanelSettings();
       this.updatePanelGating(getAuthState());
-    });
+    }, () => undefined);
 
+    // Guard against named-export resolving to undefined (Safari ESM cache / proxy truncation
+    // edge case, WORLDMONITOR-R4): `new undefined` surfaced as
+    // `TypeError: undefined is not a constructor (evaluating 'new m')` from this exact line.
     import('@/components/RegionalIntelligenceBoard').then(({ RegionalIntelligenceBoard }) => {
+      if (typeof RegionalIntelligenceBoard !== 'function') return;
       const regionalBoard = new RegionalIntelligenceBoard();
       this.ctx.panels['regional-intelligence'] = regionalBoard;
       const el = regionalBoard.getElement();
@@ -1059,7 +1081,7 @@ export class PanelLayoutManager implements AppModule {
       }
       this.applyPanelSettings();
       this.updatePanelGating(getAuthState());
-    });
+    }, () => undefined);
 
     if (this.shouldCreatePanel('cii')) {
       const ciiPanel = new CIIPanel();
@@ -1266,7 +1288,14 @@ export class PanelLayoutManager implements AppModule {
     this.lazyPanel('tech-readiness', () =>
       import('@/components/TechReadinessPanel').then(m => {
         const p = new m.TechReadinessPanel();
-        void p.refresh();
+        // Only auto-refresh on variants whose bootstrap seeds techReadiness
+        // (full + tech). On commodity/finance/energy the seed key is empty
+        // and the 5s fetch at services/economic/index.ts:694 just times out.
+        // The panel is still created so users who opt-in via settings can
+        // trigger a manual refresh from its UI.
+        if (isPanelInVariantDefaults('tech-readiness')) {
+          void p.refresh();
+        }
         return p;
       }),
     );
@@ -2362,9 +2391,10 @@ export class PanelLayoutManager implements AppModule {
 
   getAllSourceNames(): string[] {
     const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
-    });
+    // Preset feeds + sources from any custom news panels the user added, so
+    // the source manager stays in sync with what loadNews() actually fetches.
+    const categories = resolveNewsCategories(FEEDS, CANONICAL_FEEDS, enabledNewsCategoryKeys(this.ctx.newsPanels, this.ctx.panels, this.ctx.panelSettings));
+    categories.forEach(({ feeds }) => feeds.forEach(f => sources.add(f.name)));
     INTEL_SOURCES.forEach(f => sources.add(f.name));
     return Array.from(sources).sort((a, b) => a.localeCompare(b));
   }

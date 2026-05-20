@@ -92,6 +92,8 @@
               "methodology/storage",
               "methodology/shortages",
               "methodology/disruptions",
+              "methodology/cii-risk-scores",
+              "methodology/disease-alert-level",
               "corrections",
               "geographic-convergence",
               "strategic-risk",
@@ -181,6 +183,7 @@
             "pages": [
               "agent-discovery",
               "mcp-server",
+              "mcp-tools-reference",
               "api-oauth",
               "api-notifications"
             ]

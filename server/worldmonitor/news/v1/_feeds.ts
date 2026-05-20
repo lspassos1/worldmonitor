@@ -15,6 +15,7 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'AP News', url: gn('site:apnews.com when:1d') },
       { name: 'Reuters World', url: gn('site:reuters.com world when:1d') },
       { name: 'CNN World', url: gn('site:cnn.com world news when:1d') },
+      { name: 'Trump - Truth Social', url: 'https://trumpstruth.org/feed' },
     ],
     us: [
       { name: 'Reuters US', url: gn('site:reuters.com US when:1d') },
@@ -259,7 +260,11 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Cointelegraph', url: 'https://cointelegraph.com/rss' },
       { name: 'The Block', url: 'https://news.google.com/rss/search?q=site:theblock.co+when:1d&hl=en-US&gl=US&ceid=US:en' },
       { name: 'Decrypt', url: 'https://decrypt.co/feed' },
-      { name: 'Blockworks', url: 'https://blockworks.co/feed' },
+      // Blockworks REMOVED in parity with src/config/feeds.ts (PR #3715
+      // review). blockworks.co/feed is Cloudflare-blocked from both Vercel
+      // edge AND Railway egress, AND Google News returns 0 items for
+      // site:blockworks.co. The Block (above) covers the same
+      // institutional-crypto territory; no coverage lost.
       { name: 'The Defiant', url: 'https://thedefiant.io/feed' },
       { name: 'Bitcoin Magazine', url: 'https://bitcoinmagazine.com/feed' },
       { name: 'DL News', url: 'https://news.google.com/rss/search?q=site:dlnews.com+when:3d&hl=en-US&gl=US&ceid=US:en' },
@@ -333,7 +338,15 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Bloomberg Commodities', url: gn('site:bloomberg.com commodities OR metals OR mining when:1d') },
       { name: 'Reuters Commodities', url: gn('site:reuters.com commodities OR metals OR mining when:1d') },
       { name: 'S&P Global Commodity', url: gn('site:spglobal.com commodities metals when:3d') },
-      { name: 'Commodity Trade Mantra', url: gn('commodities trading metals energy gold silver when:1d') },
+      // Commodity Trade Mantra REMOVED in parity with src/config/feeds.ts
+      // (PR #3715 review follow-up #3717). Server emits ~10 items per refresh
+      // but the client filters digest items against the client feed-name set
+      // (src/app/data-loader.ts:908-914), so these are invisible to users.
+      // Worse, the server truncates to MAX_ITEMS_PER_CATEGORY (list-feed-
+      // digest.ts:1076-1082) BEFORE the client filter — so invisible CTM
+      // items crowd out visible commodity-news items, leaving the panel with
+      // fewer results. The other 6 commodity-news feeds (Kitco / Mining.com
+      // / Bloomberg / Reuters / S&P / CNBC) cover the same territory.
       { name: 'CNBC Commodities', url: gn('site:cnbc.com (commodities OR metals OR gold OR copper) when:1d') },
     ],
     'gold-silver': [

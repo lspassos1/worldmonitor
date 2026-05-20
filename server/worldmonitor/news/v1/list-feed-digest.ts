@@ -14,6 +14,8 @@ import { sha256Hex } from '../../../_shared/hash';
 import { CHROME_UA } from '../../../_shared/constants';
 import { VARIANT_FEEDS, INTEL_SOURCES, type ServerFeed } from './_feeds';
 import { classifyByKeyword, hasHistoricalMarker, type ThreatLevel } from './_classifier';
+import { classifyOpinion } from '../../../_shared/opinion-classifier.js';
+import { classifyFeelGood } from '../../../_shared/feelgood-classifier.js';
 import { buildClassifyCacheKey } from '../../intelligence/v1/_shared';
 import { getSourceTier } from '../../../_shared/source-tiers';
 import {
@@ -152,6 +154,21 @@ interface ParsedItem {
   // absent, too short, or indistinguishable from the headline. Grounding input
   // for brief / whyMatters / SummarizeArticle LLMs.
   description: string;
+  // Opinion / analysis classification (classifyOpinion over title + link +
+  // description). Persisted on the story:track:v1 row as `isOpinion` so the
+  // brief's read path (buildDigest) can exclude op-ed/column content — the
+  // brief is event-driven intelligence, a column is not an event. See
+  // docs/plans/2026-05-14-001-…-plan.md (F3). story:track rows feed more
+  // than the brief, so this STAMPS rather than drops — only buildDigest
+  // filters on it.
+  isOpinion: boolean;
+  // Feel-good / lifestyle classification (classifyFeelGood over title +
+  // link + description). Sibling stamp to isOpinion — same persistence,
+  // same buildDigest read-path filter. The brief is event-driven; a
+  // vintage-warplane veterans' reunion in a 9,800-person town is not an
+  // event. See docs/plans/2026-05-17-001-fix-feelgood-lifestyle-filter-plan.md
+  // (Veterans-warplanes anchor case, May 17 0802 brief).
+  isFeelGood: boolean;
 }
 
 const MAX_DESCRIPTION_LEN = 400;
@@ -282,17 +299,23 @@ async function fetchAndParseRss(
   variant: string,
   signal: AbortSignal,
 ): Promise<ParseResult> {
-  // v3 cache shape: identical struct to v2 but a new prefix invalidates
-  // every pre-fix entry on deploy. Pre-fix v2 entries could be poisoned
-  // (non-RSS body cached at the long TTL via the old cachedFetchJson path
-  // — the bug this PR fixes). Their unprefixed v2 keys remain in Redis
-  // until they TTL-expire naturally over the next hour; v3 reads/writes
-  // ignore them. Without this prefix bump we'd need a runtime guard to
-  // distinguish "recently confirmed empty (honor short TTL)" from
-  // "old poisoned long-TTL entry" — and that runtime guard regressed
-  // throttling because every parsedTotal=0 read fell through to a live
-  // upstream fetch (PR #3556 review P1: short TTL never throttled).
-  const cacheKey = `rss:feed:v3:${variant}:${feed.url}`;
+  // v4 cache shape: identical struct to v3 but a new prefix invalidates
+  // every pre-fix entry on deploy. v3 entries cached pre-PR contain
+  // ParsedItems without the new isFeelGood field. If a cache hit
+  // returned one of those, buildStoryTrackHsetFields would write
+  // `'isFeelGood', undefined ? '1' : '0'` → '0' onto the story:track:v1
+  // row, and buildDigest's `stampMissing = typeof !== 'string' || length === 0`
+  // check would treat '0' as a genuine "not feel-good" verdict and
+  // skip the residue catch. Feel-good content could then silently slip
+  // through during the 1h healthy-cache rollout window. Bumping the
+  // prefix forces cold parseRssXml runs that stamp isFeelGood correctly.
+  //
+  // (Same class of cache-prefix bump as v2→v3, which this codebase
+  // already established as the correct cutover pattern for parsed-cache
+  // shape changes. The same bug exists latently in PR #3690's isOpinion
+  // path; a separate backport bumps the prefix once rather than for
+  // every sibling classifier — out of scope for this PR.)
+  const cacheKey = `rss:feed:v4:${variant}:${feed.url}`;
 
   try {
     // Read cache unconditionally — the v3 prefix guarantees pre-fix
@@ -466,6 +489,8 @@ function parseRssXml(xml: string, feed: ServerFeed, variant: string): ParseResul
       corroborationCount: 1,
       lang: feed.lang ?? 'en',
       description,
+      isOpinion: classifyOpinion({ title, link, description }),
+      isFeelGood: classifyFeelGood({ title, link, description }),
     });
   }
 
@@ -890,6 +915,30 @@ function buildStoryTrackHsetFields(
     // (treats as legacy row) instead of being mis-classified as a stale
     // row with a bogus timestamp.
     'publishedAt', Number.isFinite(item.publishedAt) ? String(item.publishedAt) : '',
+    // Opinion/analysis flag (classifyOpinion). '1' = op-ed/column,
+    // '0' = hard news. buildDigest's read-path filter excludes '1' rows
+    // from the brief pool. Written unconditionally for the same
+    // shared-row reason as `description` above: story:track rows are
+    // collapsed by normalised-title hash, so a stale '1' from an earlier
+    // mention must be overwritten by the current mention's verdict.
+    // Pre-stamp rows (ingested before this shipped) have no field at
+    // all; buildDigest re-classifies those from title/link/description.
+    'isOpinion', item.isOpinion ? '1' : '0',
+    // Feel-good / lifestyle flag (classifyFeelGood). Sibling to
+    // isOpinion — same write semantics, same buildDigest read-path
+    // exclusion. Pre-stamp rows are re-classified by buildDigest from
+    // title/link/description (residue catch).
+    'isFeelGood', item.isFeelGood ? '1' : '0',
+    // Event category (classifyByKeyword EventCategory enum, possibly
+    // overridden by enrichWithAiCache). Persisted so the brief's
+    // threads card + magazine story-page + public-thread fallback
+    // can display a meaningful per-story tag instead of defaulting
+    // to 'General' for every story. Defensive empty-string write on
+    // missing/non-string: shared/brief-filter.js:384's
+    // `asTrimmedString(raw.category) || 'General'` fallback converts
+    // empty back to 'General' for graceful degradation. See plan
+    // docs/plans/2026-05-17-002-fix-persist-story-track-category-plan.md.
+    'category', typeof item.category === 'string' ? item.category : '',
   ];
 }
 
